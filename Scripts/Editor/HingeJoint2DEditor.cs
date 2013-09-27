@@ -10,19 +10,47 @@ public class HingeJoint2DEditor : Editor {
     private readonly Dictionary<HingeJoint2D, Vector2> positionCache = new Dictionary<HingeJoint2D, Vector2>();
     private const float ANCHOR_EPSILON = 0.0001f;
 
+    private const string ANCHOR_TEXTURE = "2djointeditor_anchor";
+    private const string LOCKED_ANCHOR_TEXTURE = "2djointeditor_locked_anchor";
+
+    private readonly Dictionary<String, Material> materials = new Dictionary<string, Material>();
+
+    private Material GetMaterial(String textureName) {
+        if (materials.ContainsKey(textureName)) {
+            return materials[textureName];
+        }
+
+        Material material = null;
+        Texture2D texture = Resources.Load<Texture2D>(textureName);
+        if (texture != null) {
+            material = new Material(Shader.Find("Unlit/Transparent"));
+            material.SetTexture(0, texture);
+        }
+        materials[textureName] = material;
+        return material;
+    }
+
     public void OnEnable() {
         foreach (HingeJoint2D hingeJoint2D in Selection.GetFiltered(typeof (HingeJoint2D), SelectionMode.TopLevel)) {
             positionCache.Add(hingeJoint2D, hingeJoint2D.transform.position);
         }
     }
 
-    private static Vector2 SphereSlider2D(Vector2 position, float handleScale, out bool changed,
-        IEnumerable<Vector2> snapPositions = null) {
+    private Vector2 AnchorSlider(Vector2 position, float handleScale, out bool changed, IEnumerable<Vector2> snapPositions, float angle = 0, bool locked = false) {
 
         float handleSize = HandleUtility.GetHandleSize(position) * handleScale;
         EditorGUI.BeginChangeCheck();
-        Vector2 result = Handles.Slider2D(position, Vector3.up, Vector3.up, Vector3.right, handleSize, Handles.SphereCap,
-            0f);
+        Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        Vector2 result;
+        if (locked) {
+            result = Handles.Slider2D(position, Vector3.forward, rotation*Vector3.up, rotation*Vector3.right, handleSize,
+                DrawLockedAnchor, 0f);
+        }
+        else
+        {
+            result = Handles.Slider2D(position, Vector3.forward, rotation * Vector3.up, rotation * Vector3.right, handleSize,
+                DrawAnchor, 0f);
+        }
         changed = EditorGUI.EndChangeCheck();
         if (changed && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
@@ -34,6 +62,47 @@ public class HingeJoint2DEditor : Editor {
         }
 
         return result;
+    }
+
+
+    private void DrawLockedAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
+        Material lockedAnchorMaterial = GetMaterial(LOCKED_ANCHOR_TEXTURE);
+        if (lockedAnchorMaterial != null)
+        {
+            DrawMaterial(lockedAnchorMaterial, position, rotation, size);
+        }
+        else
+        {
+            Handles.SphereCap(controlID, position, rotation, size);
+        }
+    }
+
+    private static void DrawMaterial(Material material, Vector3 position, Quaternion rotation, float size) {
+        float doubleSize = size*1.5f;
+        Vector3 up = rotation*Vector3.up;
+        Vector3 right = rotation*Vector3.right;
+        Vector3 bottomLeft = position - up*doubleSize*.5f - right*doubleSize*.5f;
+        material.SetPass(0);
+        GL.Begin(GL.QUADS);
+        GL.TexCoord2(0, 0);
+        GL.Vertex(bottomLeft);
+        GL.TexCoord2(0, 1);
+        GL.Vertex(bottomLeft + up*doubleSize);
+        GL.TexCoord2(1, 1);
+        GL.Vertex(bottomLeft + up*doubleSize + right*doubleSize);
+        GL.TexCoord2(1, 0);
+        GL.Vertex(bottomLeft + right*doubleSize);
+        GL.End();
+    }
+
+    private void DrawAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
+        Material anchorMaterial = GetMaterial(ANCHOR_TEXTURE);
+        if (anchorMaterial != null) {
+            DrawMaterial(anchorMaterial, position, rotation, size);
+        }
+        else {
+            Handles.SphereCap(controlID, position, rotation, size);
+        }
     }
 
     private static Vector2 GetAnchorPosition(HingeJoint2D joint2D) {
@@ -141,53 +210,69 @@ public class HingeJoint2DEditor : Editor {
         Vector2 worldConnectedAnchor = connectedTransform.TransformPoint(hingeJoint2D.connectedAnchor);
 
         Vector2 connectedTransformPosition = connectedTransform.position;
-        using (new DisposableHandleColor(Color.red)) {
-            bool anchorChanged;
-            List<Vector2> snapPositions = new List<Vector2>(new[] {transformPosition, connectedTransformPosition});
-            if (snapToOtherAnchor) {
-                snapPositions.Add(worldConnectedAnchor);
-            }
 
-            snapPositions.AddRange(otherAnchors);
+        if (anchorLock) {
+            using (new GUIHelpers.DisposableHandleColor(Color.red)) {
+                bool anchorChanged;
 
-            Vector2 newWorldAnchor = SphereSlider2D(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                List<Vector2> snapPositions = new List<Vector2>(new[] { transformPosition, connectedTransformPosition });
+                snapPositions.AddRange(otherAnchors);
 
-            if (anchorChanged) {
-                worldAnchor = newWorldAnchor;
-                Undo.RecordObject(hingeJoint2D, "Anchor Move");
-                changed = true;
-                hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
-                if (anchorLock) {
-                    worldConnectedAnchor =
-                        connectedTransform.TransformPoint(
-                            hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldAnchor));
-                }
-            }
-        }
+                Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, 0.5f, out anchorChanged, snapPositions, 45, true);
 
-        using (new DisposableHandleColor(Color.green)) {
-            bool anchorChanged;
-
-            List<Vector2> snapPositions = new List<Vector2>(new[] {transformPosition, connectedTransformPosition});
-            if (snapToOtherAnchor) {
-                snapPositions.Add(worldAnchor);
-            }
-
-            snapPositions.AddRange(otherAnchors);
-
-            Vector2 newWorldConnectedAnchor = SphereSlider2D(worldConnectedAnchor, 0.25f, out anchorChanged,
-                snapPositions);
-            if (anchorChanged) {
-                worldConnectedAnchor = newWorldConnectedAnchor;
-                Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
-                changed = true;
-                hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldConnectedAnchor);
-
-                if (anchorLock) {
+                if (anchorChanged)
+                {
+                    worldConnectedAnchor = newWorldConnectedAnchor;
+                    Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
+                    changed = true;
+                    hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldConnectedAnchor);
                     hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor = worldConnectedAnchor);
                 }
             }
         }
+        else {
+            using (new DisposableHandleColor(Color.red)) {
+                bool anchorChanged;
+                List<Vector2> snapPositions = new List<Vector2>(new[] {transformPosition, connectedTransformPosition});
+                if (snapToOtherAnchor) {
+                    snapPositions.Add(worldConnectedAnchor);
+                }
+
+                snapPositions.AddRange(otherAnchors);
+
+                Vector2 newWorldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+
+                if (anchorChanged) {
+                    worldAnchor = newWorldAnchor;
+                    Undo.RecordObject(hingeJoint2D, "Anchor Move");
+                    changed = true;
+                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
+                }
+            }
+
+            using (new DisposableHandleColor(Color.green))
+            {
+                bool anchorChanged;
+
+                List<Vector2> snapPositions = new List<Vector2>(new[] { transformPosition, connectedTransformPosition });
+                if (snapToOtherAnchor)
+                {
+                    snapPositions.Add(worldAnchor);
+                }
+
+                snapPositions.AddRange(otherAnchors);
+
+                Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, 0.5f, out anchorChanged, snapPositions, 45);
+                if (anchorChanged)
+                {
+                    worldConnectedAnchor = newWorldConnectedAnchor;
+                    Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
+                    changed = true;
+                    hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldConnectedAnchor);
+                }
+            }
+        }
+
 
         Vector2 midPoint = (worldConnectedAnchor + worldAnchor)*0.5f;
         Vector2 otherTransformPosition = connectedTransformPosition;
@@ -270,8 +355,10 @@ public class HingeJoint2DEditor : Editor {
         Handles.DrawWireDisc(midPoint, Vector3.forward, Vector2.Distance(midPoint, startPosition));
         Handles.DrawLine(startPosition, midPoint);
 
-        RadiusHandle(transform, left, handleSize, midPoint, radius);
-        RadiusHandle(transform, -left, handleSize, midPoint, radius);
+        if (radius > ANCHOR_EPSILON) {
+            RadiusHandle(transform, left, handleSize, midPoint, radius);
+            RadiusHandle(transform, -left, handleSize, midPoint, radius);
+        }
     }
 
     private static void RadiusHandle(Transform transform, Vector3 direction, float handleSize, Vector2 midPoint, float radius) {
@@ -316,43 +403,64 @@ public class HingeJoint2DEditor : Editor {
 
         Vector2 connectedAnchor = hingeJoint2D.connectedAnchor;
 
-        using (new DisposableHandleColor(Color.red)) {
-            List<Vector2> snapPositions = new List<Vector2> {transformPosition};
-            if (snapToOtherAnchor) {
-                snapPositions.Add(connectedAnchor);
-            }
+        if (anchorLock)
+        {
+            using (new DisposableHandleColor(Color.red))
+            {
+                List<Vector2> snapPositions = new List<Vector2> { transformPosition };
 
-            snapPositions.AddRange(otherAnchors);
+                snapPositions.AddRange(otherAnchors);
 
-            bool anchorChanged;
-            worldAnchor = SphereSlider2D(worldAnchor, 0.5f, out anchorChanged, snapPositions);
-            if (anchorChanged) {
-                Undo.RecordObject(hingeJoint2D, "Anchor Move");
-                changed = true;
-                hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
-                if (anchorLock) {
+                bool anchorChanged;
+                worldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                if (anchorChanged)
+                {
+                    Undo.RecordObject(hingeJoint2D, "Anchor Move");
+                    changed = true;
+                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
                     hingeJoint2D.connectedAnchor = worldAnchor;
                 }
             }
         }
+        else {
+            using (new DisposableHandleColor(Color.red))
+            {
+                List<Vector2> snapPositions = new List<Vector2> { transformPosition };
+                if (snapToOtherAnchor)
+                {
+                    snapPositions.Add(connectedAnchor);
+                }
 
-        using (new DisposableHandleColor(Color.green)) {
-            List<Vector2> snapPositions = new List<Vector2> {transformPosition};
+                snapPositions.AddRange(otherAnchors);
 
-            if (snapToOtherAnchor) {
-                snapPositions.Add(worldAnchor);
+                bool anchorChanged;
+                worldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                if (anchorChanged)
+                {
+                    Undo.RecordObject(hingeJoint2D, "Anchor Move");
+                    changed = true;
+                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
+                }
             }
 
-            snapPositions.AddRange(otherAnchors);
+            using (new DisposableHandleColor(Color.green))
+            {
+                List<Vector2> snapPositions = new List<Vector2> { transformPosition };
 
-            bool anchorChanged;
-            connectedAnchor = SphereSlider2D(connectedAnchor, 0.25f, out anchorChanged, snapPositions);
-            if (anchorChanged) {
-                Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
-                changed = true;
-                hingeJoint2D.connectedAnchor = connectedAnchor;
-                if (anchorLock) {
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor = connectedAnchor);
+                if (snapToOtherAnchor)
+                {
+                    snapPositions.Add(worldAnchor);
+                }
+
+                snapPositions.AddRange(otherAnchors);
+
+                bool anchorChanged;
+                connectedAnchor = AnchorSlider(connectedAnchor, 0.5f, out anchorChanged, snapPositions, 45);
+                if (anchorChanged)
+                {
+                    Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
+                    changed = true;
+                    hingeJoint2D.connectedAnchor = connectedAnchor;
                 }
             }
         }
