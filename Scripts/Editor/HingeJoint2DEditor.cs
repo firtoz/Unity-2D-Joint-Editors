@@ -23,7 +23,9 @@ public class HingeJoint2DEditor : Editor {
         Material material = null;
         Texture2D texture = Resources.Load<Texture2D>(textureName);
         if (texture != null) {
-            material = new Material(Shader.Find("Unlit/Transparent"));
+            material = new Material(Shader.Find("Unlit/Transparent")) {
+                hideFlags = HideFlags.HideAndDontSave
+            };
             material.SetTexture(0, texture);
         }
         materials[textureName] = material;
