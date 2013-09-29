@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using GUIHelpers;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -214,7 +215,7 @@ public class HingeJoint2DEditor : Editor {
         Vector2 connectedTransformPosition = connectedTransform.position;
 
         if (anchorLock) {
-            using (new GUIHelpers.DisposableHandleColor(Color.red)) {
+            using (new DisposableHandleColor(Color.red)) {
                 bool anchorChanged;
 
                 List<Vector2> snapPositions = new List<Vector2>(new[] { transformPosition, connectedTransformPosition });
@@ -572,45 +573,6 @@ public class HingeJoint2DEditor : Editor {
         DrawDefaultInspector();
         if (EditorGUI.EndChangeCheck()) {
             //hinge angle changed...
-        }
-    }
-
-    internal class DisposableHandleColor : IDisposable {
-        private readonly Color previousColor;
-
-        public DisposableHandleColor(Color color) {
-            previousColor = GUI.color;
-            Handles.color = color;
-        }
-
-        public void Dispose() {
-            Handles.color = previousColor;
-        }
-    }
-
-    internal class DisposableEditorGUIMixedValue : IDisposable {
-        private readonly bool oldMixedValue;
-
-        public DisposableEditorGUIMixedValue(bool mixedValue) {
-            oldMixedValue = EditorGUI.showMixedValue;
-            EditorGUI.showMixedValue = mixedValue;
-        }
-
-        public void Dispose() {
-            EditorGUI.showMixedValue = oldMixedValue;
-        }
-    }
-
-    internal class DisposableGUIEnabled : IDisposable {
-        private readonly bool guiEnabled;
-
-        public DisposableGUIEnabled(bool enabled) {
-            guiEnabled = GUI.enabled;
-            GUI.enabled = enabled;
-        }
-
-        public void Dispose() {
-            GUI.enabled = guiEnabled;
         }
     }
 }
