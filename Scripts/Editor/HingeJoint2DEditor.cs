@@ -351,7 +351,6 @@ public class HingeJoint2DEditor : Editor {
         Vector2 startPosition = transform.position;
 
         float radius = Vector2.Distance(midPoint, startPosition);
-        float handleSize = radius*0.5f;
 
         Vector2 left = (Quaternion.AngleAxis(90, Vector3.forward)*(midPoint - startPosition))*0.5f;
 
@@ -359,28 +358,38 @@ public class HingeJoint2DEditor : Editor {
         Handles.DrawLine(startPosition, midPoint);
 
         if (radius > ANCHOR_EPSILON) {
-            RadiusHandle(transform, left, handleSize, midPoint, radius);
-            RadiusHandle(transform, -left, handleSize, midPoint, radius);
+            RadiusHandle(transform, left, midPoint, radius);
+            RadiusHandle(transform, -left, midPoint, radius);
         }
     }
 
-    private static void RadiusHandle(Transform transform, Vector3 direction, float handleSize, Vector2 midPoint, float radius) {
+    private static void RadiusHandle(Transform transform, Vector3 direction, Vector2 midPoint, float radius) {
         EditorGUI.BeginChangeCheck();
         Vector2 startPosition = transform.position;
-        Vector2 towardsCenter = startPosition - midPoint;
+		Vector2 towardsObject = (startPosition - midPoint).normalized;
 
-        Vector2 newPosition = Handles.Slider2D(startPosition, direction, Vector2.up, Vector2.right, handleSize, Handles.ArrowCap, 0f);
+	    int controlID = GUIUtility.GetControlID(FocusType.Passive);
+
+		Vector2 newPosition = Handles.Slider2D(controlID, midPoint + towardsObject * radius * .5f, direction, Vector2.up, Vector2.right, radius * .5f, Handles.ArrowCap, Vector2.zero);
         if (EditorGUI.EndChangeCheck())
         {
             //go along the radius
-            Vector2 offset = newPosition - midPoint;
-            offset = offset.normalized * radius;
-            startPosition = midPoint + offset;
+            Vector2 towardsNewPosition = newPosition - midPoint;
+            towardsNewPosition = towardsNewPosition.normalized * radius;
 
             Undo.RecordObject(transform.gameObject, "Moved Along Hinge Radius");
 
-            transform.position = new Vector3(startPosition.x, startPosition.y, transform.position.z);
-            transform.rotation *= Quaternion.FromToRotation(towardsCenter, startPosition - midPoint);
+			Quaternion originalRotation = Quaternion.FromToRotation(Vector3.up, towardsObject);
+	        Quaternion finalRotation = Quaternion.FromToRotation(Vector3.up, towardsNewPosition);
+
+	        float snappedAngle = Handles.SnapValue(finalRotation.eulerAngles.z, 45);
+	        finalRotation = Quaternion.AngleAxis(snappedAngle, Vector3.forward);
+
+			transform.position = midPoint + (Vector2)(finalRotation * Vector3.up) * radius;
+
+			Quaternion rotationOffset = Quaternion.Inverse(originalRotation) * finalRotation;
+
+			transform.rotation *= rotationOffset;
 
             EditorUtility.SetDirty(transform.gameObject);
         }
