@@ -415,7 +415,7 @@ public class HingeJoint2DEditor : Editor {
                 snapPositions.AddRange(otherAnchors);
 
                 bool anchorChanged;
-                worldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                worldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions, 0, true);
                 if (anchorChanged)
                 {
                     Undo.RecordObject(hingeJoint2D, "Anchor Move");
