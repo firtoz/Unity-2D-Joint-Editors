@@ -108,13 +108,29 @@ public class HingeJoint2DEditor : Editor {
         }
     }
 
+    private static Vector2 Transform2DPoint(Transform transform, Vector2 point) {
+        Vector2 scaledPoint = Vector2.Scale(point, transform.lossyScale);
+        float angle = transform.rotation.eulerAngles.z;
+        Vector2 rotatedScaledPoint = Quaternion.AngleAxis(angle, Vector3.forward) * scaledPoint;
+        Vector2 translatedRotatedScaledPoint = (Vector2)transform.position + rotatedScaledPoint;
+        return translatedRotatedScaledPoint;
+    }
+
+    private static Vector2 InverseTransform2DPoint(Transform transform, Vector2 translatedRotatedScaledPoint) {
+        Vector2 rotatedScaledPoint = translatedRotatedScaledPoint - (Vector2) transform.position;
+        float angle = transform.rotation.eulerAngles.z;
+        Vector2 scaledPoint = Quaternion.AngleAxis(-angle, Vector3.forward)*rotatedScaledPoint;
+        Vector2 point = Vector2.Scale(scaledPoint, new Vector2(1 / transform.lossyScale.x, 1 / transform.lossyScale.y));
+        return point;
+    }
+
     private static Vector2 GetAnchorPosition(HingeJoint2D joint2D) {
-        return joint2D.transform.TransformPoint(joint2D.anchor);
+        return Transform2DPoint(joint2D.transform, joint2D.anchor);
     }
 
     private static Vector2 GetConnectedAnchorPosition(HingeJoint2D joint2D) {
         if (joint2D.connectedBody) {
-            return joint2D.connectedBody.transform.TransformPoint(joint2D.connectedAnchor);
+            return Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
         }
         return joint2D.connectedAnchor;
     }
@@ -165,9 +181,9 @@ public class HingeJoint2DEditor : Editor {
                     continue;
                 }
 
-                Vector2 otherWorldAnchor = otherHingeJoint.transform.TransformPoint(otherHingeJoint.anchor);
+                Vector2 otherWorldAnchor = Transform2DPoint(otherHingeJoint.transform, otherHingeJoint.anchor);
                 Vector2 otherConnectedWorldAnchor = otherHingeJoint.connectedBody
-                    ? (Vector2) otherHingeJoint.connectedBody.transform.TransformPoint(otherHingeJoint.connectedAnchor)
+                    ? Transform2DPoint(otherHingeJoint.connectedBody.transform, otherHingeJoint.connectedAnchor)
                     : otherHingeJoint.connectedAnchor;
 
                 otherAnchors.Add(otherWorldAnchor);
@@ -207,10 +223,10 @@ public class HingeJoint2DEditor : Editor {
 
         Transform transform = hingeJoint2D.transform;
         Vector2 transformPosition = transform.position;
-        Vector2 worldAnchor = transform.TransformPoint(hingeJoint2D.anchor);
+        Vector2 worldAnchor = Transform2DPoint(transform, hingeJoint2D.anchor);
         Rigidbody2D connectedBody = hingeJoint2D.connectedBody;
         Transform connectedTransform = connectedBody.transform;
-        Vector2 worldConnectedAnchor = connectedTransform.TransformPoint(hingeJoint2D.connectedAnchor);
+        Vector2 worldConnectedAnchor = Transform2DPoint(connectedTransform, hingeJoint2D.connectedAnchor);
 
         Vector2 connectedTransformPosition = connectedTransform.position;
 
@@ -228,8 +244,8 @@ public class HingeJoint2DEditor : Editor {
                     worldConnectedAnchor = newWorldConnectedAnchor;
                     Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
                     changed = true;
-                    hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldConnectedAnchor);
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor = worldConnectedAnchor);
+                    hingeJoint2D.connectedAnchor = Transform2DPoint( connectedTransform, worldConnectedAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint( transform, worldAnchor = worldConnectedAnchor);
                 }
             }
         }
@@ -249,7 +265,7 @@ public class HingeJoint2DEditor : Editor {
                     worldAnchor = newWorldAnchor;
                     Undo.RecordObject(hingeJoint2D, "Anchor Move");
                     changed = true;
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint(transform, worldAnchor);
                 }
             }
 
@@ -271,7 +287,7 @@ public class HingeJoint2DEditor : Editor {
                     worldConnectedAnchor = newWorldConnectedAnchor;
                     Undo.RecordObject(hingeJoint2D, "Connected Anchor Move");
                     changed = true;
-                    hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldConnectedAnchor);
+                    hingeJoint2D.connectedAnchor = InverseTransform2DPoint( connectedTransform, worldConnectedAnchor);
                 }
             }
         }
@@ -302,13 +318,13 @@ public class HingeJoint2DEditor : Editor {
                 if (!transform.rigidbody2D.isKinematic && connectedBody.isKinematic) { //other body is static
                     Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
                     changed = true;
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldConnectedAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint(transform, worldConnectedAnchor);
                 }
                 else if (transform.rigidbody2D.isKinematic && !connectedBody.isKinematic) //this body is static
                 {
                     Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
                     changed = true;
-                    hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(worldAnchor);
+                    hingeJoint2D.connectedAnchor = InverseTransform2DPoint(connectedTransform, worldAnchor);
                 }
                 else {
                     Vector2 lastPosition;
@@ -319,13 +335,13 @@ public class HingeJoint2DEditor : Editor {
                     else if (Vector2.Distance(lastPosition, transformPosition) > ANCHOR_EPSILON) { //our body is moved
                         Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
                         changed = true;
-                        hingeJoint2D.anchor = transform.InverseTransformPoint(worldConnectedAnchor);
+                        hingeJoint2D.anchor = InverseTransform2DPoint(transform, worldConnectedAnchor);
                     }
                     else {
                         Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
                         changed = true;
-                        hingeJoint2D.anchor = transform.InverseTransformPoint(midPoint);
-                        hingeJoint2D.connectedAnchor = connectedTransform.InverseTransformPoint(midPoint);
+                        hingeJoint2D.anchor = InverseTransform2DPoint(transform, midPoint);
+                        hingeJoint2D.connectedAnchor = InverseTransform2DPoint(connectedTransform, midPoint);
                     }
                 }
             }
@@ -411,7 +427,7 @@ public class HingeJoint2DEditor : Editor {
 
         Transform transform = hingeJoint2D.transform;
         Vector2 transformPosition = transform.position;
-        Vector2 worldAnchor = transform.TransformPoint(hingeJoint2D.anchor);
+        Vector2 worldAnchor = Transform2DPoint( transform, hingeJoint2D.anchor);
 
         Vector2 connectedAnchor = hingeJoint2D.connectedAnchor;
 
@@ -429,7 +445,7 @@ public class HingeJoint2DEditor : Editor {
                 {
                     Undo.RecordObject(hingeJoint2D, "Anchor Move");
                     changed = true;
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint(transform, worldAnchor);
                     hingeJoint2D.connectedAnchor = worldAnchor;
                 }
             }
@@ -451,7 +467,7 @@ public class HingeJoint2DEditor : Editor {
                 {
                     Undo.RecordObject(hingeJoint2D, "Anchor Move");
                     changed = true;
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(worldAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint(transform, worldAnchor);
                 }
             }
 
@@ -492,7 +508,7 @@ public class HingeJoint2DEditor : Editor {
                 else if (Vector2.Distance(lastPosition, transformPosition) > ANCHOR_EPSILON) { //our body is moved
                     Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
                     changed = true;
-                    hingeJoint2D.anchor = transform.InverseTransformPoint(hingeJoint2D.connectedAnchor);
+                    hingeJoint2D.anchor = InverseTransform2DPoint(transform, hingeJoint2D.connectedAnchor);
                 }
                 else {
                     Undo.RecordObject(hingeJoint2D, "Automated Anchor Move");
@@ -553,12 +569,12 @@ public class HingeJoint2DEditor : Editor {
 
                         Vector2 worldConnectedAnchor, midPoint;
                         Vector2 connectedAnchor = hingeJoint2D.connectedAnchor;
-                        Vector2 worldAnchor = transform.TransformPoint(hingeJoint2D.anchor);
+                        Vector2 worldAnchor = Transform2DPoint(transform, hingeJoint2D.anchor);
 
                         if (hingeJoint2D.connectedBody) {
                             Transform connectedTransform = hingeJoint2D.connectedBody.transform;
 
-                            worldConnectedAnchor = connectedTransform.TransformPoint(hingeJoint2D.connectedAnchor);
+                            worldConnectedAnchor = Transform2DPoint( connectedTransform, hingeJoint2D.connectedAnchor);
 
                             midPoint = (worldConnectedAnchor + worldAnchor)*0.5f;
                         }
@@ -567,10 +583,10 @@ public class HingeJoint2DEditor : Editor {
                         }
 
                         if (Vector2.Distance(worldConnectedAnchor, worldAnchor) > ANCHOR_EPSILON) {
-                            hingeJoint2D.anchor = transform.InverseTransformPoint(midPoint);
+                            hingeJoint2D.anchor = InverseTransform2DPoint(transform, midPoint);
                             if (hingeJoint2D.connectedBody) {
                                 hingeJoint2D.connectedAnchor =
-                                    hingeJoint2D.connectedBody.transform.InverseTransformPoint(midPoint);
+                                    InverseTransform2DPoint( hingeJoint2D.connectedBody.transform, midPoint);
                             }
                         }
                     }
