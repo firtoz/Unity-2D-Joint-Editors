@@ -56,7 +56,6 @@ public class HingeJoint2DEditor : Editor {
         {
             positionCache[hingeJoint2D] = hingeJoint2D.transform.position;
         }
-        //Debug.Log(Undo.GetCurrentGroup());
     }
 
     private Vector2 AnchorSlider(Vector2 position, float handleScale, out bool changed,
@@ -569,6 +568,21 @@ public class HingeJoint2DEditor : Editor {
             }
 
             if (EditorGUI.EndChangeCheck()) {
+                bool wantsContinue = true;
+                int choice = 1;
+
+                if (lockAnchors.Value) {
+                    choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
+                                                                    "Which anchor would you like to lock to?",
+                                                                    "Main",
+                                                                    "Connected",
+                                                                    "Cancel");
+
+                    if (choice == 2) {
+                        wantsContinue = false;
+                    }
+                }
+                if(wantsContinue)
                 foreach (
                     HingeJoint2D hingeJoint2D in Selection.GetFiltered(typeof (HingeJoint2D), SelectionMode.TopLevel)) {
                     HingeJoint2DSettings hingeSettings = hingeJoint2D.gameObject.GetComponent<HingeJoint2DSettings>() ??
@@ -579,8 +593,10 @@ public class HingeJoint2DEditor : Editor {
                     EditorUtility.SetDirty(hingeSettings);
 
                     if (lockAnchors.Value) {
+                        AnchorBias bias = choice==0 ? AnchorBias.Main : AnchorBias.Connected;
+
                         RecordUndo("toggle anchor locking", hingeJoint2D);
-                        ReAlignAnchors(hingeJoint2D);
+                        ReAlignAnchors(hingeJoint2D, bias);
                         EditorUtility.SetDirty(hingeJoint2D);
                     }
                 }
