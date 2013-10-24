@@ -11,8 +11,12 @@ public class HingeJoint2DEditor : Editor {
 	private readonly Dictionary<HingeJoint2D, Vector2> positionCache = new Dictionary<HingeJoint2D, Vector2>();
 	private const float ANCHOR_EPSILON = 0.0001f;
 
-	private const string ANCHOR_TEXTURE = "2djointeditor_anchor";
-	private const string LOCKED_ANCHOR_TEXTURE = "2djointeditor_locked_anchor";
+    private const string CONNECTED_HINGE_TEXTURE = "2d_joint_editor_hinge_connected";
+    private const string MAIN_HINGE_TEXTURE = "2d_joint_editor_hinge_main";
+    private const string LOCKED_HINGE_TEXTURE = "2d_joint_editor_hinge_locked";
+    private const string HOT_HINGE_TEXTURE = "2d_joint_editor_hinge_hot";
+
+    private const float ANCHOR_SCALE = 0.5f;
 
 	private readonly Dictionary<String, Material> materials = new Dictionary<string, Material>();
 
@@ -30,7 +34,8 @@ public class HingeJoint2DEditor : Editor {
 		Material material = null;
 		Texture2D texture = Resources.Load<Texture2D>(textureName);
 		if (texture != null) {
-			material = new Material(Shader.Find("Unlit/Transparent")) {
+            material = new Material(Shader.Find("Joint Editor"))
+            {
 				hideFlags = HideFlags.HideAndDontSave
 			};
 			material.SetTexture(0, texture);
@@ -60,23 +65,29 @@ public class HingeJoint2DEditor : Editor {
 	}
 
 	private Vector2 AnchorSlider(Vector2 position, float handleScale, out bool changed,
-		IEnumerable<Vector2> snapPositions, float angle = 0, bool locked = false) {
+		IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked = false) {
 		float handleSize = HandleUtility.GetHandleSize(position) * handleScale;
+        int controlID = GUIUtility.GetControlID(FocusType.Native);
 		EditorGUI.BeginChangeCheck();
-		Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        //Debug.Log(GUIUtility.hotControl+" "+controlID);
+	    if (GUIUtility.hotControl == controlID) {
+	        GetMaterial(HOT_HINGE_TEXTURE).SetPass(0);
+	        DrawAnchor(controlID, position, Quaternion.identity, handleSize);
+	    }
+		//Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
 		Vector2 result;
 		if (locked) {
-			result = Handles.Slider2D(position, Vector3.forward, rotation * Vector3.up, rotation * Vector3.right, handleSize,
-				DrawLockedAnchor, 0f);
+            result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize, DrawLockedAnchor, Vector2.zero);
 		}
 		else {
-			result = Handles.Slider2D(position, Vector3.forward, rotation * Vector3.up, rotation * Vector3.right, handleSize,
-				DrawAnchor, 0f);
+		    Material material = GetMaterial(bias == AnchorBias.Main ? MAIN_HINGE_TEXTURE : CONNECTED_HINGE_TEXTURE);
+		    material.SetPass(0);
+			result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize, DrawAnchor, Vector2.zero);
 		}
 		changed = EditorGUI.EndChangeCheck();
 		if (changed && snapPositions != null) {
 			foreach (Vector2 snapPosition in snapPositions) {
-				if (Vector2.Distance(result, snapPosition) < handleSize * 0.5f) {
+				if (Vector2.Distance(result, snapPosition) < handleSize * 0.25f) {
 					result = snapPosition;
 					break;
 				}
@@ -88,21 +99,21 @@ public class HingeJoint2DEditor : Editor {
 
 
 	private void DrawLockedAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
-		Material lockedAnchorMaterial = GetMaterial(LOCKED_ANCHOR_TEXTURE);
+        Material lockedAnchorMaterial = GetMaterial(LOCKED_HINGE_TEXTURE);
 		if (lockedAnchorMaterial != null) {
-			DrawMaterial(lockedAnchorMaterial, position, rotation, size);
+		    lockedAnchorMaterial.SetPass(0);
+			DrawQuad(position, rotation, size);
 		}
 		else {
 			Handles.SphereCap(controlID, position, rotation, size);
 		}
 	}
 
-	private static void DrawMaterial(Material material, Vector3 position, Quaternion rotation, float size) {
-		float doubleSize = size * 1.5f;
+	private static void DrawQuad(Vector3 position, Quaternion rotation, float size) {
+		float doubleSize = size * 1.25f;
 		Vector3 up = rotation * Vector3.up;
 		Vector3 right = rotation * Vector3.right;
 		Vector3 bottomLeft = position - up * doubleSize * .5f - right * doubleSize * .5f;
-		material.SetPass(0);
 		GL.Begin(GL.QUADS);
 		GL.TexCoord2(0, 0);
 		GL.Vertex(bottomLeft);
@@ -115,14 +126,9 @@ public class HingeJoint2DEditor : Editor {
 		GL.End();
 	}
 
-	private void DrawAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
-		Material anchorMaterial = GetMaterial(ANCHOR_TEXTURE);
-		if (anchorMaterial != null) {
-			DrawMaterial(anchorMaterial, position, rotation, size);
-		}
-		else {
-			Handles.SphereCap(controlID, position, rotation, size);
-		}
+    private static void DrawAnchor(int controlID, Vector3 position, Quaternion rotation, float size)
+    {
+        DrawQuad(position, rotation, size);
 	}
 
 	private static Vector2 Transform2DPoint(Transform transform, Vector2 point) {
@@ -173,9 +179,9 @@ public class HingeJoint2DEditor : Editor {
 				foreach (Transform selectedTransform in Selection.transforms) {
 					bounds.Encapsulate((Vector2) selectedTransform.position);
 				}
-				using (new DisposableHandleColor(Color.green)) {
-					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
-				}
+//				using (new DisposableHandleColor(Color.green)) {
+////					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
+//				}
 
 				foreach (HingeJoint2D hingeJoint2D in selectedHingeJoints) {
 					Vector2 midPoint = (GetAnchorPosition(hingeJoint2D) + GetConnectedAnchorPosition(hingeJoint2D)) * .5f;
@@ -262,8 +268,8 @@ public class HingeJoint2DEditor : Editor {
 						new List<Vector2>(new[] {transformPosition, connectedTransformPosition});
 					snapPositions.AddRange(otherAnchors);
 
-					Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, 0.5f, out anchorChanged,
-						snapPositions, 45, true);
+					Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, ANCHOR_SCALE, out anchorChanged,
+						snapPositions, AnchorBias.Connected, true);
 
 					if (anchorChanged) {
 						worldConnectedAnchor = newWorldConnectedAnchor;
@@ -285,7 +291,7 @@ public class HingeJoint2DEditor : Editor {
 
 				snapPositions.AddRange(otherAnchors);
 
-				Vector2 newWorldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                Vector2 newWorldAnchor = AnchorSlider(worldAnchor, ANCHOR_SCALE, out anchorChanged, snapPositions, AnchorBias.Main);
 
 				if (anchorChanged) {
 					worldAnchor = newWorldAnchor;
@@ -305,8 +311,8 @@ public class HingeJoint2DEditor : Editor {
 
 				snapPositions.AddRange(otherAnchors);
 
-				Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, 0.5f, out anchorChanged,
-					snapPositions, 45);
+                Vector2 newWorldConnectedAnchor = AnchorSlider(worldConnectedAnchor, ANCHOR_SCALE, out anchorChanged,
+                    snapPositions, AnchorBias.Connected);
 				if (anchorChanged) {
 					worldConnectedAnchor = newWorldConnectedAnchor;
 					RecordUndo("Connected Anchor Move", hingeJoint2D);
@@ -462,7 +468,7 @@ public class HingeJoint2DEditor : Editor {
 				snapPositions.AddRange(otherAnchors);
 
 				bool anchorChanged;
-				connectedAnchor = AnchorSlider(connectedAnchor, 0.5f, out anchorChanged, snapPositions, 0, true);
+                connectedAnchor = AnchorSlider(connectedAnchor, ANCHOR_SCALE, out anchorChanged, snapPositions, 0, true);
 				if (anchorChanged) {
 					RecordUndo("Anchor Move", hingeJoint2D);
 					changed = true;
@@ -481,7 +487,7 @@ public class HingeJoint2DEditor : Editor {
 				snapPositions.AddRange(otherAnchors);
 
 				bool anchorChanged;
-				worldAnchor = AnchorSlider(worldAnchor, 0.5f, out anchorChanged, snapPositions);
+                worldAnchor = AnchorSlider(worldAnchor, ANCHOR_SCALE, out anchorChanged, snapPositions, AnchorBias.Main);
 				if (anchorChanged) {
 					RecordUndo("Anchor Move", hingeJoint2D);
 					changed = true;
@@ -499,7 +505,7 @@ public class HingeJoint2DEditor : Editor {
 				snapPositions.AddRange(otherAnchors);
 
 				bool anchorChanged;
-				connectedAnchor = AnchorSlider(connectedAnchor, 0.5f, out anchorChanged, snapPositions, 45);
+                connectedAnchor = AnchorSlider(connectedAnchor, ANCHOR_SCALE, out anchorChanged, snapPositions, AnchorBias.Connected);
 				if (anchorChanged) {
 					RecordUndo("Connected Anchor Move", hingeJoint2D);
 					changed = true;
@@ -530,7 +536,7 @@ public class HingeJoint2DEditor : Editor {
 				}
 			}
 			else {
-				using (new DisposableHandleColor(Color.green)) {
+				using (new DisposableHandleColor(Color.cyan)) {
 					Handles.DrawLine(worldAnchor, connectedAnchor);
 				}
 			}
@@ -580,15 +586,24 @@ public class HingeJoint2DEditor : Editor {
 				int choice = 1;
 
 				if (lockAnchors.Value) {
-					choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
-						"Which anchor would you like to lock to?",
-						"Main",
-						"Connected",
-						"Cancel");
+				    bool farAway = false;
+				    foreach (HingeJoint2D hingeJoint2D in targets) {
+				        if (Vector2.Distance(GetAnchorPosition(hingeJoint2D),GetConnectedAnchorPosition(hingeJoint2D)) > ANCHOR_EPSILON) {
+				            farAway = true;
+				            break;
+				        }
+				    }
+				    if (farAway) {
+				        choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
+				                                                    "Which anchor would you like to lock to?",
+				                                                    "Main",
+				                                                    "Connected",
+				                                                    "Cancel");
 
-					if (choice == 2) {
-						wantsContinue = false;
-					}
+				        if (choice == 2) {
+				            wantsContinue = false;
+				        }
+				    }
 				}
 				if (wantsContinue) {
 					foreach (HingeJoint2D hingeJoint2D in targets)
