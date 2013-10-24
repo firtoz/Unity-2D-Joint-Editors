@@ -16,7 +16,7 @@ public class HingeJoint2DEditor : Editor {
     private const string LOCKED_HINGE_TEXTURE = "2d_joint_editor_hinge_locked";
     private const string HOT_HINGE_TEXTURE = "2d_joint_editor_hinge_hot";
 
-    private const float ANCHOR_SCALE = 0.5f;
+    private const float ANCHOR_SCALE = 0.75f;
 
 	private readonly Dictionary<String, Material> materials = new Dictionary<string, Material>();
 
@@ -634,6 +634,13 @@ public class HingeJoint2DEditor : Editor {
 
 		Vector2 originalAnchor = serializedObject.FindProperty("m_Anchor").vector2Value;
 		Vector2 originalConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor").vector2Value;
+	    Object connectedRigidBody = serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue;
+
+        Dictionary<HingeJoint2D, Vector2> worldConnectedAnchors = new Dictionary<HingeJoint2D, Vector2>();
+	    foreach (HingeJoint2D hingeJoint2D in targets) {
+	        worldConnectedAnchors.Add(hingeJoint2D, GetConnectedAnchorPosition(hingeJoint2D));
+	    }
+        
 		EditorGUI.BeginChangeCheck();
 		DrawDefaultInspector();
 		if (EditorGUI.EndChangeCheck()) {
@@ -664,10 +671,25 @@ public class HingeJoint2DEditor : Editor {
 					}
 				}
 			}
+
+		    if (connectedRigidBody != serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue) {
+		        Object newBody = serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue;
+		        if (newBody == null) { //we had a body but now we don't
+                    foreach (HingeJoint2D hingeJoint2D in targets)
+                    {
+                        hingeJoint2D.connectedAnchor = worldConnectedAnchors[hingeJoint2D];
+                    }
+		        }
+		        else { //we changed the body
+                    foreach (HingeJoint2D hingeJoint2D in targets) {
+                        hingeJoint2D.connectedAnchor = InverseTransform2DPoint(hingeJoint2D.connectedBody.transform, worldConnectedAnchors[hingeJoint2D]);
+                    }
+		        }
+		    }
 		}
 
 		if (EditorGUI.EndChangeCheck()) {
-			Debug.Log("!!!");
+			//Debug.Log("!!!");
 			//hinge angle changed...
 		}
 	}
