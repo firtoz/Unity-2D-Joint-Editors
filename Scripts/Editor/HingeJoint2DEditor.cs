@@ -18,16 +18,18 @@ public class HingeJoint2DEditor : Editor {
 
     private const string LOCK_BUTTON_TEXTURE = "2d_joint_editor_lock_button";
     private const string UNLOCK_BUTTON_TEXTURE = "2d_joint_editor_unlock_button";
+	private const string HOT_UNLOCK_BUTTON_TEXTURE = "2d_joint_editor_unlock_button_hot";
 
     private const float ANCHOR_SCALE = 0.75f;
     private const float ANCHOR_GUI_SCALE = 1.25f;
-    private const float LOCK_BUTTON_SCALE = 0.25f;
+    private const float LOCK_BUTTON_SCALE = 0.5f;
 
-    private const float ANCHOR_LOCK_BUTTON_MINIMUM_DISTANCE = 32f;
     private const float ANCHOR_LOCK_BUTTON_MAXIMUM_DISTANCE = 128f;
     private const float ANCHOR_LOCK_BUTTON_DISTANCE = 64f;
+	private const float ANCHOR_LOCK_BUTTON_FADE_RANGE = (ANCHOR_LOCK_BUTTON_DISTANCE)*.25f;
 
     private readonly Dictionary<String, Material> materials = new Dictionary<string, Material>();
+	private readonly Dictionary<String, Texture2D> textures = new Dictionary<string, Texture2D>();
 
     private static void RecordUndo(String action, params Object[] objects) {
 #pragma warning disable 618
@@ -41,7 +43,7 @@ public class HingeJoint2DEditor : Editor {
         }
 
         Material material = null;
-        Texture2D texture = Resources.Load<Texture2D>(textureName);
+	    Texture2D texture = GetTexture(textureName);
         if (texture != null) {
             material = new Material(Shader.Find("Joint Editor")) {
                 hideFlags = HideFlags.HideAndDontSave
@@ -51,6 +53,19 @@ public class HingeJoint2DEditor : Editor {
         materials[textureName] = material;
         return material;
     }
+
+	private Texture2D GetTexture(String textureName)
+	{
+		if (textures.ContainsKey(textureName))
+		{
+			return textures[textureName];
+		}
+
+
+		Texture2D texture = Resources.Load<Texture2D>(textureName);
+		textures.Add(textureName, texture);
+		return texture;
+	}
 
     public void OnEnable() {
         Undo.undoRedoPerformed += OnUndoRedoPerformed;
@@ -77,11 +92,14 @@ public class HingeJoint2DEditor : Editor {
         float handleSize = HandleUtility.GetHandleSize(position)*handleScale;
         int controlID = givenControlID ?? GUIUtility.GetControlID(FocusType.Native);
         EditorGUI.BeginChangeCheck();
-        //Debug.Log(GUIUtility.hotControl+" "+controlID);
+
         if (GUIUtility.hotControl == controlID) {
-            GetMaterial(HOT_HINGE_TEXTURE).SetPass(0);
-            DrawAnchor(controlID, position, Quaternion.identity, handleSize);
+			using (DisposableMaterialDrawer drawer = new DisposableMaterialDrawer(GetMaterial(HOT_HINGE_TEXTURE)))
+			{
+				drawer.DrawSquare(position, Quaternion.identity, handleSize);
+			}
         }
+
         //Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         Vector2 result;
         if (locked) {
@@ -90,9 +108,11 @@ public class HingeJoint2DEditor : Editor {
         }
         else {
             Material material = GetMaterial(bias == AnchorBias.Main ? MAIN_HINGE_TEXTURE : CONNECTED_HINGE_TEXTURE);
-            material.SetPass(0);
-            result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
-                                      DrawAnchor, Vector2.zero);
+			using (DisposableMaterialDrawer drawer = new DisposableMaterialDrawer(material))
+			{
+				result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
+									   drawer.DrawSquare, Vector2.zero);
+			}
         }
         changed = EditorGUI.EndChangeCheck();
         if (changed && snapPositions != null) {
@@ -111,17 +131,19 @@ public class HingeJoint2DEditor : Editor {
     private void DrawLockedAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
         Material lockedAnchorMaterial = GetMaterial(LOCKED_HINGE_TEXTURE);
         if (lockedAnchorMaterial != null) {
-            lockedAnchorMaterial.SetPass(0);
-            DrawAnchor(controlID, position, rotation, size);
+			using (DisposableMaterialDrawer drawer = new DisposableMaterialDrawer(lockedAnchorMaterial))
+			{
+				drawer.DrawSquare(position, Quaternion.identity, size);
+			}
         }
         else {
             Handles.SphereCap(controlID, position, rotation, size);
         }
     }
 
-    private static void DrawAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
-        GUIHelpers.GUIHelpers.DrawSquare(position, rotation, size*ANCHOR_GUI_SCALE);
-    }
+//    private static void DrawAnchor(int controlID, Vector3 position, Quaternion rotation, float size) {
+//        GUIHelpers.GUIHelpers.DrawSquare(position, rotation, size*ANCHOR_GUI_SCALE);
+//    }
 
     private static Vector2 Transform2DPoint(Transform transform, Vector2 point) {
         Vector2 scaledPoint = Vector2.Scale(point, transform.lossyScale);
@@ -464,8 +486,7 @@ public class HingeJoint2DEditor : Editor {
 
             float distanceFromCenter = Vector2.Distance(anchorGUIPos, Event.current.mousePosition);
 
-            if (distanceFromCenter < ANCHOR_LOCK_BUTTON_MAXIMUM_DISTANCE
-                && distanceFromCenter > ANCHOR_LOCK_BUTTON_MINIMUM_DISTANCE) {
+            if (distanceFromCenter < ANCHOR_LOCK_BUTTON_MAXIMUM_DISTANCE) {
                 Vector2 worldMousePos = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).origin;
                 Vector2 towardsMouse = worldMousePos - connectedAnchor;
                 float angle = Mathf.Rad2Deg*Mathf.Atan2(towardsMouse.y, towardsMouse.x);
@@ -479,16 +500,30 @@ public class HingeJoint2DEditor : Editor {
                                                                                    * ANCHOR_LOCK_BUTTON_DISTANCE
                                                                                    )
                                                                                    ).origin;
+	            float distanceFromButton = HandleUtility.DistanceToCircle(lockPos,HandleUtility.GetHandleSize(lockPos)*LOCK_BUTTON_SCALE*0.5f);
 
-                if (GUIHelpers.GUIHelpers.CustomButton(lockControlID, lockPos,
-                                                       HandleUtility.GetHandleSize(lockPos)*LOCK_BUTTON_SCALE,
-                                                       GetMaterial(UNLOCK_BUTTON_TEXTURE))) {
-                    Debug.Log("unlock!");
-                }
+				Color color = Color.white;
+				color.a = Mathf.Clamp(1 - distanceFromButton / ANCHOR_LOCK_BUTTON_FADE_RANGE, 0, 1);
+
+	            Material unlockButtonMaterial = GetMaterial(UNLOCK_BUTTON_TEXTURE);
+	            if (unlockButtonMaterial.HasProperty("HotTexture")) {
+		            unlockButtonMaterial.SetTexture("HotTexture", GetTexture(HOT_UNLOCK_BUTTON_TEXTURE));
+	            }
+				//GUIUtility.hotControl == lockControlID ? HOT_UNLOCK_BUTTON_TEXTURE : UNLOCK_BUTTON_TEXTURE);
+				using(new DisposableMaterialColor(unlockButtonMaterial, color)) {
+					
+					if (GUIHelpers.GUIHelpers.CustomButton(lockControlID, lockPos,
+														   HandleUtility.GetHandleSize(lockPos)*LOCK_BUTTON_SCALE,
+														   unlockButtonMaterial))
+					{
+						//Debug.Log("unlock!");
+					}
+				}
+				
 
 //                Handles.Label(connectedAnchor,
 //                              "" + distanceFromCenter + " | " + (HandleUtility.GetHandleSize(connectedAnchor)*100));
-                HandleUtility.Repaint();
+//                HandleUtility.Repaint();
             }
 //            if (HandleUtility.DistanceToCircle(connectedAnchor, HandleUtility.GetHandleSize(connectedAnchor)*ANCHOR_SCALE) <= 5) {
 //                Vector3 worldMousePos = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).origin;
