@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -20,7 +21,7 @@ public class HingeJoint2DSettings : MonoBehaviour {
 	}
 
 	private static HingeJoint2DSettings Create(HingeJoint2D hingeJoint2D) {
-		HingeJoint2DSettings settings = hingeJoint2D.gameObject.AddComponent<HingeJoint2DSettings>();
+        HingeJoint2DSettings settings = Undo.AddComponent<HingeJoint2DSettings>(hingeJoint2D.gameObject);
 		settings.attachedJoint = hingeJoint2D;
 //		settings.hideFlags = HideFlags.HideInInspector;
 		return settings;
