@@ -346,16 +346,22 @@ public class HingeJoint2DEditor : Editor {
 
         float distanceFromInner = HandleUtility.DistanceToCircle(midPoint, innerRadius);
         float distanceFromOuter = HandleUtility.DistanceToCircle(midPoint, radius);
-        if (distanceFromInner > 0 && distanceFromOuter <= JointEditorSettings.AnchorEpsilon) {
-            HandleUtility.AddControl(controlID, distanceFromOuter);
+        bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointEditorSettings.AnchorEpsilon;
+        if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
+        {
             EditorGUIUtility.AddCursorRect(new Rect(0, 0, Screen.width, Screen.height), MouseCursor.RotateArrow,
                                            controlID);
-            using (new DisposableHandleColor(jointSettings.previewRadiusColor)) {
+            using (new DisposableHandleColor(jointSettings.previewRadiusColor))
+            {
                 Handles.DrawSolidDisc(midPoint, Vector3.forward, innerRadius);
                 Handles.DrawWireDisc(midPoint, Vector3.forward, radius);
             }
             HandleUtility.Repaint();
+        }
+        
 
+        if (inZone) {
+            HandleUtility.AddControl(controlID, distanceFromOuter);
             switch (Event.current.type) {
                 case EventType.mouseDown:
                     if (Event.current.button == 0 && GUIUtility.hotControl == 0) {
