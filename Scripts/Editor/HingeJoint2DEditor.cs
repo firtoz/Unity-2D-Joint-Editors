@@ -267,13 +267,6 @@ public class HingeJoint2DEditor : Editor {
 
     private static void RadiusHandle(Transform transform, Vector2 midPoint, float innerRadius, float radius) {
         int controlID = GUIUtility.GetControlID(FocusType.Passive);
-//
-//        using (new DisposableHandleColor(Color.yellow)) {
-//            Handles.CircleCap(controlID, midPoint, Quaternion.identity, innerRadius);
-//        }
-//        using (new DisposableHandleColor(Color.green)) {
-//            Handles.CircleCap(controlID, midPoint, Quaternion.identity, radius);
-//        }
 
         RadiusHandleData radiusHandleData = StateObject.Get<RadiusHandleData>(controlID);
         if (GUIUtility.hotControl == controlID) {
@@ -349,8 +342,7 @@ public class HingeJoint2DEditor : Editor {
         float distanceFromOuter = HandleUtility.DistanceToCircle(midPoint, radius);
         bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointEditorSettings.AnchorEpsilon;
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl) {
-            EditorGUIUtility.AddCursorRect(new Rect(0, 0, Screen.width, Screen.height), MouseCursor.RotateArrow,
-                                           controlID);
+            GUIHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
             using (new DisposableHandleColor(jointSettings.previewRadiusColor)) {
                 Handles.DrawSolidDisc(midPoint, Vector3.forward, innerRadius);
                 Handles.DrawWireDisc(midPoint, Vector3.forward, radius);
@@ -405,6 +397,7 @@ public class HingeJoint2DEditor : Editor {
 //            }
 //        }
     }
+
 
     private static float GetAngle(Vector2 vector) {
         return Mathf.Rad2Deg*Mathf.Atan2(vector.y, vector.x);
