@@ -6,7 +6,7 @@ public class JointEditorSettings : ScriptableObject {
     public const float AnchorEpsilon = 0.0001f;
 
     [SerializeField]
-    private bool initialized = false;
+    private bool initialized;
 
     public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected";
     public Texture2D connectedHingeTexture;
@@ -29,6 +29,8 @@ public class JointEditorSettings : ScriptableObject {
 
     public Color previewRadiusColor = new Color(1f, 1f, 0.5f, 0.125f);
     public Color radiusColor = new Color(1f, 1f, 0f, 0.5f);
+    public Color mainDiscColor = Color.red;
+    public Color connectedDiscColor = Color.green;
 
     public void OnEnable() {
         if (!initialized) {

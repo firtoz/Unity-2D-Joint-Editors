@@ -81,9 +81,17 @@ public class HingeJoint2DEditor : Editor {
         else {
             targetPosition = joint.gameObject.transform.position;
         }
-        Vector3 towardsTarget = (targetPosition - position).normalized;
 
-        float originalAngle = Mathf.Rad2Deg*Mathf.Atan2(towardsTarget.y, towardsTarget.x);
+        float originalAngle;
+
+        if (Vector3.Distance(targetPosition, position) > JointEditorSettings.AnchorEpsilon) {
+            Vector3 towardsTarget = (targetPosition - position).normalized;
+
+            originalAngle = GetAngle(towardsTarget);
+        }
+        else {
+            originalAngle = joint.gameObject.transform.rotation.eulerAngles.z;
+        }
 
         if (GUIUtility.hotControl == controlID) {
             using (
@@ -242,39 +250,34 @@ public class HingeJoint2DEditor : Editor {
         }
     }
 
-    private static void DrawExtraGizmos(Transform transform, Vector2 midPoint) {
-        Vector2 startPosition = transform.position;
+    private static void DrawExtraGizmos(IEnumerable<Transform> transforms, Vector2 midPoint)
+    {
+        RadiusHandle(transforms, midPoint, HandleUtility.GetHandleSize(midPoint) * jointSettings.anchorScale * 0.5f,
+                     HandleUtility.GetHandleSize(midPoint) * jointSettings.orbitRangeScale * 0.5f);
+    }
 
-        //Vector2 left = (Quaternion.AngleAxis(90, Vector3.forward)*(midPoint - startPosition))*0.5f;
+    private struct TransformInfo {
+        public readonly Vector3 pos;
+        public readonly Quaternion rot;
 
-        Handles.DrawWireDisc(midPoint, Vector3.forward, Vector2.Distance(midPoint, startPosition));
-        Handles.DrawLine(startPosition, midPoint);
-
-//        EditorGUI.BeginChangeCheck();
-
-        RadiusHandle(transform, midPoint, HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
-                     HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);
-//            RadiusHandle(transform, -left, midPoint, radius);
-//        if (EditorGUI.EndChangeCheck()) {
-////            Debug.Log("Radius handled!");
-//        }
+        public TransformInfo(Vector3 position, Quaternion rotation) {
+            pos = position;
+            rot = rotation;
+        }
     }
 
     private class RadiusHandleData {
         public Vector2 previousPosition;
-        public Vector2 originalPosition;
+        public Dictionary<Transform, TransformInfo> originalTransformInfos;
+        public float accum;
     }
 
-    private static void RadiusHandle(Transform transform, Vector2 midPoint, float innerRadius, float radius) {
+    private static void RadiusHandle(IEnumerable<Transform> transforms, Vector2 midPoint, float innerRadius,
+                                     float radius) {
         int controlID = GUIUtility.GetControlID(FocusType.Passive);
 
         RadiusHandleData radiusHandleData = StateObject.Get<RadiusHandleData>(controlID);
         if (GUIUtility.hotControl == controlID) {
-            Vector2 startPosition = transform.position;
-            Vector2 towardsObject = (startPosition - midPoint);
-
-            float originalObjectAngle = GetAngle(towardsObject);
-
             switch (Event.current.type) {
                 case EventType.mouseMove:
                 case EventType.mouseDrag: {
@@ -288,26 +291,72 @@ public class HingeJoint2DEditor : Editor {
                     Vector2 towardsMouse = worldMousePosition - midPoint;
                     Vector2 towardsPrevious = worldPreviousPosition - midPoint;
 
-                    float originalAngle = Mathf.Rad2Deg*Mathf.Atan2(towardsPrevious.y, towardsPrevious.x);
+                    float originalAngle = GetAngle(towardsPrevious);
                     float newAngle = GetAngle(towardsMouse);
 
-                    float objectAngle = originalObjectAngle + newAngle - originalAngle;
-
-                    float snappedAngle = Handles.SnapValue(objectAngle, 45);
-                    if (Math.Abs(snappedAngle - originalObjectAngle) > JointEditorSettings.AnchorEpsilon) {
-                        RecordUndo("Orbit", transform, transform.gameObject);
-                        var angleDiff = snappedAngle - originalObjectAngle;
-                        Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
-
-
-                        transform.position = ((Vector3) midPoint + ((rotationDelta)*towardsObject)) +
-                                             new Vector3(0, 0, transform.position.z);
-                        transform.rotation *= rotationDelta;
-
-                        radiusHandleData.previousPosition = Event.current.mousePosition;
-
-                        GUI.changed = true;
+                    float mainAngleDiff = newAngle - originalAngle;
+                    if (mainAngleDiff > 180)
+                    {
+                        mainAngleDiff -= 360;
                     }
+                    if (mainAngleDiff < -180)
+                    {
+                        mainAngleDiff += 360;
+                    }
+
+                    radiusHandleData.accum += mainAngleDiff;
+                    radiusHandleData.previousPosition = Event.current.mousePosition;
+
+                    foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
+                        Transform transform = kvp.Key;
+                        TransformInfo info = kvp.Value;
+
+                        Vector2 currentPosition = transform.position;
+                        if (Vector3.Distance(currentPosition, midPoint) <= JointEditorSettings.AnchorEpsilon) {
+                            float currentObjectAngle = transform.rotation.eulerAngles.z;
+                            float originalObjectAngle = info.rot.eulerAngles.z;
+                            float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+
+                            float snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+
+                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
+                            {
+                                RecordUndo("Orbit", transform, transform.gameObject);
+                                var angleDiff = snappedAngle - currentObjectAngle;
+                                Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
+
+                                transform.rotation *= rotationDelta;
+                            }
+                        }
+                        else {
+                            Vector2 originalPosition = info.pos;
+
+                            Vector2 currentTowardsObject = (currentPosition - midPoint);
+                            Vector2 originalTowardsObject = (originalPosition - midPoint);
+
+                            float currentObjectAngle = GetAngle(currentTowardsObject);
+                            float originalObjectAngle = GetAngle(originalTowardsObject);
+                            float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+
+                            float snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+
+                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
+                            {
+                                RecordUndo("Orbit", transform, transform.gameObject);
+                                var angleDiff = snappedAngle - currentObjectAngle;
+                                Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
+
+                                transform.position = ((Vector3)midPoint + ((rotationDelta) * currentTowardsObject)) +
+                                                     new Vector3(0, 0, transform.position.z);
+                                transform.rotation *= rotationDelta;
+
+                            }
+                        }
+                        
+
+                    }
+
+                    GUI.changed = true;
                 }
                     break;
                 case EventType.mouseUp: {
@@ -317,22 +366,38 @@ public class HingeJoint2DEditor : Editor {
                     break;
                 case EventType.repaint:
 
-                    Vector2 firstMousePosition = radiusHandleData.originalPosition;
-                    Vector2 currentPosition = transform.position;
+                    foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
+                    {
+                        Transform transform = kvp.Key;
+                        TransformInfo info = kvp.Value;
 
-                    float firstAngle = GetAngle(firstMousePosition - midPoint);
-                    float currentAngle = GetAngle(currentPosition - midPoint);
+                        Vector2 originalTransformPosition = info.pos;
+                        Vector2 currentPosition = transform.position;
 
-                    using (new DisposableHandleColor(jointSettings.radiusColor)) {
-                        Handles.DrawLine(midPoint,
-                                         (Vector3) midPoint +
-                                         (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right*radius);
-                        Handles.DrawLine(midPoint,
-                                         (Vector3) midPoint +
-                                         (Quaternion.AngleAxis(currentAngle, Vector3.forward))*Vector3.right*radius);
-                        Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                             (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
-                                             (360 + currentAngle - firstAngle)%360, innerRadius);
+                        Vector2 startPosition = transform.position;
+                        Vector2 towardsObject = (startPosition - midPoint);
+
+                        //float originalObjectAngle = GetAngle(towardsObject);
+                        //float objectAngle = originalObjectAngle + newAngle - originalAngle;
+
+
+                        float firstAngle = GetAngle(originalTransformPosition - midPoint);
+                        float currentAngle = GetAngle(currentPosition - midPoint);
+
+                        using (new DisposableHandleColor(jointSettings.radiusColor)) {
+                            Handles.DrawLine(midPoint,
+                                             (Vector3) midPoint +
+                                             (Quaternion.AngleAxis(firstAngle, Vector3.forward)) * Vector3.right * towardsObject.magnitude);
+                            Handles.DrawLine(midPoint,
+                                             (Vector3) midPoint +
+                                             (Quaternion.AngleAxis(currentAngle, Vector3.forward)) * Vector3.right * towardsObject.magnitude);
+                            Handles.DrawSolidArc(midPoint, Vector3.forward,
+                                                 (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
+                                                 radiusHandleData.accum, towardsObject.magnitude);
+//                            using (new DisposableHandleColor(Color.white)) {
+//                                Handles.Label(midPoint, radiusHandleData.accum + " ");
+//                            }
+                        }
                     }
                     break;
             }
@@ -357,8 +422,12 @@ public class HingeJoint2DEditor : Editor {
                 case EventType.mouseDown:
                     if (Event.current.button == 0 && GUIUtility.hotControl == 0) {
                         GUIUtility.hotControl = controlID;
-                        radiusHandleData.originalPosition = transform.position;
+                        radiusHandleData.originalTransformInfos = new Dictionary<Transform, TransformInfo>();
+                        foreach (Transform transform in transforms) {
+                            radiusHandleData.originalTransformInfos.Add(transform, new TransformInfo(transform.position, transform.rotation));
+                        }
                         radiusHandleData.previousPosition = Event.current.mousePosition;
+                        radiusHandleData.accum = 0;
                         Event.current.Use();
                     }
                     break;
@@ -533,26 +602,40 @@ public class HingeJoint2DEditor : Editor {
             }
         }
 
-        EditorGUI.BeginChangeCheck();
-        using (new DisposableHandleColor(Color.red)) {
-            DrawExtraGizmos(transform, worldAnchor);
-        }
-        if (EditorGUI.EndChangeCheck()) {
-//            positionCache[hingeJoint2D] = GetAnchorPosition(hingeJoint2D);
-        }
+        if (anchorLock) {
+            List<Transform> transforms = new List<Transform> {transform};
 
-        if (hingeJoint2D.connectedBody) {
-            using (new DisposableHandleColor(Color.green)) {
-                DrawExtraGizmos(hingeJoint2D.connectedBody.transform, worldConnectedAnchor);
+            if (hingeJoint2D.connectedBody && Event.current.shift) {
+                transforms.Add(hingeJoint2D.connectedBody.transform);
+            }
+
+            DrawExtraGizmos(transforms, worldAnchor);
+        }
+        else {
+            DrawExtraGizmos(new List<Transform> {transform}, worldAnchor);
+
+            if (hingeJoint2D.connectedBody) {
+                DrawExtraGizmos(new List<Transform> {hingeJoint2D.connectedBody.transform}, worldConnectedAnchor);
             }
         }
-
 
         if (Vector2.Distance(worldConnectedAnchor, worldAnchor) > JointEditorSettings.AnchorEpsilon) {
             using (new DisposableHandleColor(Color.cyan)) {
                 Handles.DrawLine(worldAnchor, worldConnectedAnchor);
             }
         }
+
+        using (new DisposableHandleColor(jointSettings.mainDiscColor)) {
+            Handles.DrawWireDisc(worldAnchor, Vector3.forward, Vector2.Distance(worldAnchor, transform.position));
+            Handles.DrawLine(transform.position, worldAnchor);
+        }
+        if (hingeJoint2D.connectedBody) {
+            using (new DisposableHandleColor(jointSettings.connectedDiscColor)) {
+                Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward, Vector2.Distance(worldConnectedAnchor, hingeJoint2D.connectedBody.transform.position));
+                Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, worldConnectedAnchor);
+            }
+        }
+
 
         Vector3 position = GetAnchorPosition(hingeJoint2D);
         if (anchorLock && Vector3.Distance(positionCache[hingeJoint2D], position) > JointEditorSettings.AnchorEpsilon) {
