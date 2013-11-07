@@ -8,7 +8,46 @@ using Object = UnityEngine.Object;
 [CustomEditor(typeof (HingeJoint2D))]
 [CanEditMultipleObjects]
 public class HingeJoint2DEditor : Editor {
-    private readonly Dictionary<HingeJoint2D, Vector2> positionCache = new Dictionary<HingeJoint2D, Vector2>();
+    private struct PositionInfo {
+        public PositionInfo(HingeJoint2D hingeJoint2D) {
+            main = GetAnchorPosition(hingeJoint2D);
+            connected = GetConnectedAnchorPosition(hingeJoint2D);
+        }
+
+        private readonly Vector2 main;
+        private readonly Vector2 connected;
+
+        public bool Changed(HingeJoint2D hingeJoint2D, out AnchorBias bias) {
+            bool result = false;
+            bias = AnchorBias.Either;
+            if (Vector3.Distance(main, GetAnchorPosition(hingeJoint2D)) > JointEditorSettings.AnchorEpsilon) {
+                result = true;
+                bias = AnchorBias.Main;
+            }
+            if (Vector3.Distance(connected, GetConnectedAnchorPosition(hingeJoint2D)) >
+                JointEditorSettings.AnchorEpsilon) {
+                if (!result) {
+                    bias = AnchorBias.Connected;
+                    result = true;
+                }
+                else {
+                    bias = AnchorBias.Either;
+                }
+            }
+            return result;
+        }
+    }
+
+    private readonly Dictionary<HingeJoint2D, PositionInfo> positionCache = new Dictionary<HingeJoint2D, PositionInfo>();
+
+#if RECURSIVE_EDITING
+    
+    private static readonly Dictionary<HingeJoint2D, HingeJoint2DEditor> Editors =
+        new Dictionary<HingeJoint2D, HingeJoint2DEditor>();
+
+    private readonly Dictionary<HingeJoint2D, List<HingeJoint2DEditor>> tempEditors =
+        new Dictionary<HingeJoint2D, List<HingeJoint2DEditor>>();
+#endif
 
     private static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
     private static JointEditorSettings _jointSettings;
@@ -44,14 +83,59 @@ public class HingeJoint2DEditor : Editor {
         return material;
     }
 
+
     public void OnEnable() {
         Undo.undoRedoPerformed += OnUndoRedoPerformed;
         foreach (HingeJoint2D hingeJoint2D in targets) {
-            positionCache.Add(hingeJoint2D, GetAnchorPosition(hingeJoint2D));
+            positionCache.Add(hingeJoint2D, new PositionInfo(hingeJoint2D));
+#if RECURSIVE_EDITING
+            if (!Editors.ContainsKey(hingeJoint2D)) {
+                Editors.Add(hingeJoint2D, this);
+            }
+
+            AddRecursiveEditors(hingeJoint2D);
+#endif
         }
     }
+    
+#if RECURSIVE_EDITING
+    private void AddRecursiveEditors(HingeJoint2D hingeJoint2D) {
+        List<HingeJoint2DEditor> currentEditors = new List<HingeJoint2DEditor>();
+
+        if (hingeJoint2D.connectedBody) {
+            HingeJoint2D[] connectedHinges = hingeJoint2D.connectedBody.GetComponents<HingeJoint2D>();
+            List<Object> hingesToEdit = new List<Object>();
+            foreach (HingeJoint2D connectedHinge in connectedHinges) {
+                if (!Editors.ContainsKey(connectedHinge)) {
+                    hingesToEdit.Add(connectedHinge);
+                }
+            }
+            if (hingesToEdit.Count > 0) {
+                currentEditors.Add(
+                                   CreateEditor(hingesToEdit.ToArray(), typeof (HingeJoint2DEditor)) as
+                                   HingeJoint2DEditor);
+            }
+        }
+        tempEditors.Add(hingeJoint2D, currentEditors);
+    }
+
+    private void RemoveRecursiveEditors(HingeJoint2D hingeJoint2D) {
+        if (tempEditors.ContainsKey(hingeJoint2D)) {
+            foreach (HingeJoint2DEditor hingeJoint2DEditor in tempEditors[hingeJoint2D]) {
+                DestroyImmediate(hingeJoint2DEditor);
+            }
+            tempEditors.Remove(hingeJoint2D);
+        }
+    }
+#endif
 
     public void OnDisable() {
+#if RECURSIVE_EDITING
+        foreach (HingeJoint2D hingeJoint2D in targets) {
+            RemoveRecursiveEditors(hingeJoint2D);
+            Editors.Remove(hingeJoint2D);
+        }
+#endif
 // ReSharper disable DelegateSubtraction
         Undo.undoRedoPerformed -= OnUndoRedoPerformed;
 // ReSharper restore DelegateSubtraction
@@ -59,7 +143,12 @@ public class HingeJoint2DEditor : Editor {
 
     private void OnUndoRedoPerformed() {
         foreach (HingeJoint2D hingeJoint2D in targets) {
-            positionCache[hingeJoint2D] = GetAnchorPosition(hingeJoint2D);
+            positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
+            
+#if RECURSIVE_EDITING
+            RemoveRecursiveEditors(hingeJoint2D);
+            AddRecursiveEditors(hingeJoint2D);
+#endif
         }
     }
 
@@ -176,9 +265,6 @@ public class HingeJoint2DEditor : Editor {
 
     public void OnSceneGUI() {
         List<HingeJoint2D> selectedHingeJoints = new List<HingeJoint2D> {target as HingeJoint2D};
-        //if (selectedHingeJoints.Count == 0) {
-        //	return;
-        //}
 
         if (Event.current.type == EventType.keyDown) {
             if ((Event.current.character + "").ToLower().Equals("f") || Event.current.keyCode == KeyCode.F) { //frame hotkey pressed
@@ -247,16 +333,21 @@ public class HingeJoint2DEditor : Editor {
             if (changed) {
                 EditorUtility.SetDirty(hingeJoint2D);
             }
+            
+#if RECURSIVE_EDITING
+            foreach (HingeJoint2DEditor tempEditor in tempEditors[hingeJoint2D]) {
+                tempEditor.OnSceneGUI();
+            }
+#endif
         }
     }
 
-    private static void DrawExtraGizmos(IEnumerable<Transform> transforms, Vector2 midPoint)
-    {
-        RadiusHandle(transforms, midPoint, HandleUtility.GetHandleSize(midPoint) * jointSettings.anchorScale * 0.5f,
-                     HandleUtility.GetHandleSize(midPoint) * jointSettings.orbitRangeScale * 0.5f);
+    private static void DrawExtraGizmos(IEnumerable<Transform> transforms, Vector2 midPoint) {
+        RadiusHandle(transforms, midPoint, HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
+                     HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);
     }
 
-    private struct TransformInfo {
+    public struct TransformInfo {
         public readonly Vector3 pos;
         public readonly Quaternion rot;
 
@@ -266,8 +357,8 @@ public class HingeJoint2DEditor : Editor {
         }
     }
 
-    private class RadiusHandleData {
-        public Vector2 previousPosition;
+    public class RadiusHandleData {
+        public Vector2 previousPosition, originalPosition;
         public Dictionary<Transform, TransformInfo> originalTransformInfos;
         public float accum;
     }
@@ -295,18 +386,17 @@ public class HingeJoint2DEditor : Editor {
                     float newAngle = GetAngle(towardsMouse);
 
                     float mainAngleDiff = newAngle - originalAngle;
-                    if (mainAngleDiff > 180)
-                    {
+                    if (mainAngleDiff > 180) {
                         mainAngleDiff -= 360;
                     }
-                    if (mainAngleDiff < -180)
-                    {
+                    if (mainAngleDiff < -180) {
                         mainAngleDiff += 360;
                     }
 
                     radiusHandleData.accum += mainAngleDiff;
                     radiusHandleData.previousPosition = Event.current.mousePosition;
 
+                    int transformCount = radiusHandleData.originalTransformInfos.Count;
                     foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
                         Transform transform = kvp.Key;
                         TransformInfo info = kvp.Value;
@@ -315,15 +405,20 @@ public class HingeJoint2DEditor : Editor {
                         if (Vector3.Distance(currentPosition, midPoint) <= JointEditorSettings.AnchorEpsilon) {
                             float currentObjectAngle = transform.rotation.eulerAngles.z;
                             float originalObjectAngle = info.rot.eulerAngles.z;
-                            float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+                            float snappedAngle;
 
-                            float snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                            if (transformCount == 1) {
+                                float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+                                snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                            }
+                            else {
+                                snappedAngle = originalObjectAngle + Handles.SnapValue(radiusHandleData.accum, 45);
+                            }
 
-                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
-                            {
+                            if (Math.Abs(snappedAngle - originalObjectAngle) > Mathf.Epsilon) {
                                 RecordUndo("Orbit", transform, transform.gameObject);
-                                var angleDiff = snappedAngle - currentObjectAngle;
-                                Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
+                                Quaternion rotationDelta = Quaternion.AngleAxis(snappedAngle - currentObjectAngle,
+                                                                                Vector3.forward);
 
                                 transform.rotation *= rotationDelta;
                             }
@@ -336,24 +431,27 @@ public class HingeJoint2DEditor : Editor {
 
                             float currentObjectAngle = GetAngle(currentTowardsObject);
                             float originalObjectAngle = GetAngle(originalTowardsObject);
-                            float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
 
-                            float snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                            float snappedAngle;
 
-                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
-                            {
+                            if (transformCount == 1) {
+                                float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+                                snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                            }
+                            else {
+                                snappedAngle = originalObjectAngle + Handles.SnapValue(radiusHandleData.accum, 45);
+                            }
+
+                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
                                 RecordUndo("Orbit", transform, transform.gameObject);
                                 var angleDiff = snappedAngle - currentObjectAngle;
                                 Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
 
-                                transform.position = ((Vector3)midPoint + ((rotationDelta) * currentTowardsObject)) +
+                                transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject)) +
                                                      new Vector3(0, 0, transform.position.z);
                                 transform.rotation *= rotationDelta;
-
                             }
                         }
-                        
-
                     }
 
                     GUI.changed = true;
@@ -366,37 +464,62 @@ public class HingeJoint2DEditor : Editor {
                     break;
                 case EventType.repaint:
 
-                    foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
-                    {
-                        Transform transform = kvp.Key;
-                        TransformInfo info = kvp.Value;
-
-                        Vector2 originalTransformPosition = info.pos;
-                        Vector2 currentPosition = transform.position;
-
-                        Vector2 startPosition = transform.position;
-                        Vector2 towardsObject = (startPosition - midPoint);
-
-                        //float originalObjectAngle = GetAngle(towardsObject);
-                        //float objectAngle = originalObjectAngle + newAngle - originalAngle;
-
-
-                        float firstAngle = GetAngle(originalTransformPosition - midPoint);
-                        float currentAngle = GetAngle(currentPosition - midPoint);
+                    if (radiusHandleData.originalTransformInfos.Count > 0) {
+                        float originalAngle =
+                            GetAngle(
+                                     (Vector2)
+                                     HandleUtility.GUIPointToWorldRay(radiusHandleData.originalPosition).origin -
+                                     midPoint);
+                        float snappedAngle = Handles.SnapValue(radiusHandleData.accum, 45);
 
                         using (new DisposableHandleColor(jointSettings.radiusColor)) {
-                            Handles.DrawLine(midPoint,
-                                             (Vector3) midPoint +
-                                             (Quaternion.AngleAxis(firstAngle, Vector3.forward)) * Vector3.right * towardsObject.magnitude);
-                            Handles.DrawLine(midPoint,
-                                             (Vector3) midPoint +
-                                             (Quaternion.AngleAxis(currentAngle, Vector3.forward)) * Vector3.right * towardsObject.magnitude);
                             Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                                 (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
-                                                 radiusHandleData.accum, towardsObject.magnitude);
-//                            using (new DisposableHandleColor(Color.white)) {
-//                                Handles.Label(midPoint, radiusHandleData.accum + " ");
-//                            }
+                                                 (Quaternion.AngleAxis(originalAngle, Vector3.forward))*Vector3.right,
+                                                 snappedAngle, radius);
+                        }
+
+                        foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
+                            Transform transform = kvp.Key;
+                            TransformInfo info = kvp.Value;
+
+                            Vector2 originalTransformPosition = info.pos;
+
+                            Vector2 startPosition = transform.position;
+                            Vector2 towardsObject = (startPosition - midPoint);
+
+                            float firstAngle = GetAngle(originalTransformPosition - midPoint);
+
+                            using (new DisposableHandleColor(jointSettings.radiusColor)) {
+                                Handles.DrawWireArc(midPoint, Vector3.forward,
+                                                    (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
+                                                    snappedAngle,
+                                                    towardsObject.magnitude - HandleUtility.GetHandleSize(midPoint)*0.1f);
+                                Handles.DrawWireArc(midPoint, Vector3.forward,
+                                                    (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
+                                                    snappedAngle,
+                                                    towardsObject.magnitude + HandleUtility.GetHandleSize(midPoint)*0.1f);
+                            }
+                        }
+                    }
+                    else {
+                        foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
+                            Transform transform = kvp.Key;
+                            TransformInfo info = kvp.Value;
+
+                            Vector2 originalTransformPosition = info.pos;
+
+                            Vector2 startPosition = transform.position;
+                            Vector2 towardsObject = (startPosition - midPoint);
+
+                            float firstAngle = GetAngle(originalTransformPosition - midPoint);
+
+                            using (new DisposableHandleColor(jointSettings.radiusColor)) {
+                                float snappedAngle = Handles.SnapValue(firstAngle + radiusHandleData.accum, 45);
+
+                                Handles.DrawSolidArc(midPoint, Vector3.forward,
+                                                     (Quaternion.AngleAxis(firstAngle, Vector3.forward))*Vector3.right,
+                                                     snappedAngle - firstAngle, towardsObject.magnitude);
+                            }
                         }
                     }
                     break;
@@ -424,9 +547,12 @@ public class HingeJoint2DEditor : Editor {
                         GUIUtility.hotControl = controlID;
                         radiusHandleData.originalTransformInfos = new Dictionary<Transform, TransformInfo>();
                         foreach (Transform transform in transforms) {
-                            radiusHandleData.originalTransformInfos.Add(transform, new TransformInfo(transform.position, transform.rotation));
+                            radiusHandleData.originalTransformInfos.Add(transform,
+                                                                        new TransformInfo(transform.position,
+                                                                                          transform.rotation));
                         }
                         radiusHandleData.previousPosition = Event.current.mousePosition;
+                        radiusHandleData.originalPosition = Event.current.mousePosition;
                         radiusHandleData.accum = 0;
                         Event.current.Use();
                     }
@@ -510,7 +636,8 @@ public class HingeJoint2DEditor : Editor {
                 RecordUndo("Anchor Move", hingeJoint2D);
                 changed = true;
                 SetWorldConnectedAnchorPosition(hingeJoint2D, worldConnectedAnchor);
-                SetWorldAnchorPosition(hingeJoint2D, positionCache[hingeJoint2D] = worldAnchor = worldConnectedAnchor);
+                SetWorldAnchorPosition(hingeJoint2D, worldAnchor = worldConnectedAnchor);
+                positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
             }
 
             if (ToggleLockButton(lockControlID, worldConnectedAnchor,
@@ -536,7 +663,8 @@ public class HingeJoint2DEditor : Editor {
                 if (anchorChanged && !anchorLock) {
                     RecordUndo("Anchor Move", hingeJoint2D);
                     changed = true;
-                    SetWorldAnchorPosition(hingeJoint2D, positionCache[hingeJoint2D] = worldAnchor);
+                    SetWorldAnchorPosition(hingeJoint2D, worldAnchor);
+                    positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
                 }
             }
 
@@ -577,8 +705,8 @@ public class HingeJoint2DEditor : Editor {
                 else {
                     RecordUndo("Realign Anchors to Main", hingeJoint2D);
                 }
-                SetWorldConnectedAnchorPosition(hingeJoint2D,
-                                                positionCache[hingeJoint2D] = worldConnectedAnchor = worldAnchor);
+                SetWorldConnectedAnchorPosition(hingeJoint2D, worldConnectedAnchor = worldAnchor);
+                positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
             }
 
             if (!overlapping &&
@@ -597,7 +725,9 @@ public class HingeJoint2DEditor : Editor {
                     RecordUndo("Realign Anchors to Connected", hingeJoint2D);
                 }
 
-                SetWorldAnchorPosition(hingeJoint2D, positionCache[hingeJoint2D] = worldAnchor = worldConnectedAnchor);
+                SetWorldAnchorPosition(hingeJoint2D, worldAnchor = worldConnectedAnchor);
+                positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
+
                 EditorUtility.SetDirty(hingeSettings);
             }
         }
@@ -631,18 +761,20 @@ public class HingeJoint2DEditor : Editor {
         }
         if (hingeJoint2D.connectedBody) {
             using (new DisposableHandleColor(jointSettings.connectedDiscColor)) {
-                Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward, Vector2.Distance(worldConnectedAnchor, hingeJoint2D.connectedBody.transform.position));
+                Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
+                                     Vector2.Distance(worldConnectedAnchor,
+                                                      hingeJoint2D.connectedBody.transform.position));
                 Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, worldConnectedAnchor);
             }
         }
 
 
-        Vector3 position = GetAnchorPosition(hingeJoint2D);
-        if (anchorLock && Vector3.Distance(positionCache[hingeJoint2D], position) > JointEditorSettings.AnchorEpsilon) {
-//            Debug.Log("movement!");
-            positionCache[hingeJoint2D] = position;
-            RecordUndo(null, hingeJoint2D);
-            SetWorldConnectedAnchorPosition(hingeJoint2D, position);
+        AnchorBias bias;
+        if (anchorLock && positionCache[hingeJoint2D].Changed(hingeJoint2D, out bias)) {
+            RecordUndo("...", hingeJoint2D);
+            positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
+
+            ReAlignAnchors(hingeJoint2D, bias);
             EditorUtility.SetDirty(hingeJoint2D);
         }
         return changed;
@@ -812,7 +944,7 @@ public class HingeJoint2DEditor : Editor {
                     bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
 
                     if (wantsLock) {
-                        RecordUndo(null, hingeJoint2D);
+                        RecordUndo("Inspector", hingeJoint2D);
                         ReAlignAnchors(hingeJoint2D, bias);
                         EditorUtility.SetDirty(hingeJoint2D);
                     }
@@ -821,8 +953,14 @@ public class HingeJoint2DEditor : Editor {
 
             if (connectedRigidBody != serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue) {
                 foreach (HingeJoint2D hingeJoint2D in targets) {
-                    RecordUndo(null, hingeJoint2D);
+                    RecordUndo("Inspector", hingeJoint2D);
                     SetWorldConnectedAnchorPosition(hingeJoint2D, worldConnectedAnchors[hingeJoint2D]);
+                    
+#if RECURSIVE_EDITING
+                    RemoveRecursiveEditors(hingeJoint2D);
+                    AddRecursiveEditors(hingeJoint2D);
+#endif
+
                     EditorUtility.SetDirty(hingeJoint2D);
                 }
             }
