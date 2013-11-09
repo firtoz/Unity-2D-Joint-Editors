@@ -1,0 +1,6 @@
+[submodule "GUIHelpers"]
+	path = GUIHelpers
+	url = git@github.com:toxicFork/GUIHelpers.git
+[submodule "AssetUtils"]
+	path = AssetUtils
+	url = git@github.com:toxicFork/AssetUtils.git

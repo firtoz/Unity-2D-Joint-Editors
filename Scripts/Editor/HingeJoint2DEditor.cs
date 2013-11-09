@@ -369,92 +369,110 @@ public class HingeJoint2DEditor : Editor {
 
         RadiusHandleData radiusHandleData = StateObject.Get<RadiusHandleData>(controlID);
         if (GUIUtility.hotControl == controlID) {
+            Vector2 mousePosition = Event.current.mousePosition;
+            Vector2 previousPosition = radiusHandleData.previousPosition;
+
+            Vector2 worldMousePosition = HandleUtility.GUIPointToWorldRay(mousePosition).origin;
+            Vector2 worldPreviousPosition = HandleUtility.GUIPointToWorldRay(previousPosition).origin;
+
+            Vector2 towardsMouse = worldMousePosition - midPoint;
+            Vector2 towardsPrevious = worldPreviousPosition - midPoint;
+
+            float previousAngle = GetAngle(towardsPrevious);
+            float newAngle = GetAngle(towardsMouse);
+
+            float mainAngleDiff = newAngle - previousAngle;
+            if (mainAngleDiff > 180) {
+                mainAngleDiff -= 360;
+            }
+            if (mainAngleDiff < -180) {
+                mainAngleDiff += 360;
+            }
+
+            radiusHandleData.accum += mainAngleDiff;
+            radiusHandleData.previousPosition = Event.current.mousePosition;
+
+            var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
+
+            var originalAngle = GetAngle(radiusHandleData.originalPosition - midPoint);
+
+//            int transformCount = radiusHandleData.originalTransformInfos.Count;
+            foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
+                Transform transform = kvp.Key;
+                TransformInfo info = kvp.Value;
+
+                Vector2 currentPosition = transform.position;
+                if (Vector3.Distance(currentPosition, midPoint) <= JointEditorSettings.AnchorEpsilon) {
+                    float currentObjectAngle = transform.rotation.eulerAngles.z;
+                    float originalObjectAngle = info.rot.eulerAngles.z;
+                    float snappedAngle;
+
+                    /*if (transformCount == 1) {
+                        float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+                        snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                    }
+                    else */{
+                               snappedAngle = originalObjectAngle + snappedAccum;
+                    }
+
+                    if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
+                    {
+                        GUI.changed = true;
+                        RecordUndo("Orbit", transform, transform.gameObject);
+                        Quaternion rotationDelta = Quaternion.AngleAxis(snappedAngle - currentObjectAngle,
+                                                                        Vector3.forward);
+
+                        transform.rotation *= rotationDelta;
+                    }
+                }
+                else {
+                    Vector2 originalPosition = info.pos;
+
+                    Vector2 currentTowardsObject = (currentPosition - midPoint);
+                    Vector2 originalTowardsObject = (originalPosition - midPoint);
+
+                    float currentObjectAngle = GetAngle(currentTowardsObject);
+                    float originalObjectAngle = GetAngle(originalTowardsObject);
+
+                    float snappedAngle;
+
+                    /*if (transformCount == 1) {
+                        float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
+                        snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
+                    }
+                    else */{
+                               snappedAngle = originalObjectAngle + snappedAccum;
+                    }
+
+//                    float displayAngle = snappedAngle-originalObjectAngle;
+
+                    if(Event.current.type == EventType.repaint) {
+                        using (new DisposableHandleColor(jointSettings.radiusColor))
+                        {
+                            Handles.DrawSolidArc(midPoint, Vector3.forward,
+                                                 (Quaternion.AngleAxis(originalAngle, Vector3.forward)) * Vector3.right,
+                                                 snappedAccum, radius);
+                        }
+                    }
+
+                    if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
+                    {
+                        GUI.changed = true;
+                        RecordUndo("Orbit", transform, transform.gameObject);
+                        var angleDiff = snappedAngle - currentObjectAngle;
+                        Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
+
+                        transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject)) +
+                                             new Vector3(0, 0, transform.position.z);
+                        transform.rotation *= rotationDelta;
+                    }
+                }
+            }
+
             switch (Event.current.type) {
                 case EventType.mouseMove:
                 case EventType.mouseDrag: {
                     Event.current.Use();
-                    Vector2 mousePosition = Event.current.mousePosition;
-                    Vector2 previousPosition = radiusHandleData.previousPosition;
-
-                    Vector2 worldMousePosition = HandleUtility.GUIPointToWorldRay(mousePosition).origin;
-                    Vector2 worldPreviousPosition = HandleUtility.GUIPointToWorldRay(previousPosition).origin;
-
-                    Vector2 towardsMouse = worldMousePosition - midPoint;
-                    Vector2 towardsPrevious = worldPreviousPosition - midPoint;
-
-                    float originalAngle = GetAngle(towardsPrevious);
-                    float newAngle = GetAngle(towardsMouse);
-
-                    float mainAngleDiff = newAngle - originalAngle;
-                    if (mainAngleDiff > 180) {
-                        mainAngleDiff -= 360;
-                    }
-                    if (mainAngleDiff < -180) {
-                        mainAngleDiff += 360;
-                    }
-
-                    radiusHandleData.accum += mainAngleDiff;
-                    radiusHandleData.previousPosition = Event.current.mousePosition;
-
-                    int transformCount = radiusHandleData.originalTransformInfos.Count;
-                    foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
-                        Transform transform = kvp.Key;
-                        TransformInfo info = kvp.Value;
-
-                        Vector2 currentPosition = transform.position;
-                        if (Vector3.Distance(currentPosition, midPoint) <= JointEditorSettings.AnchorEpsilon) {
-                            float currentObjectAngle = transform.rotation.eulerAngles.z;
-                            float originalObjectAngle = info.rot.eulerAngles.z;
-                            float snappedAngle;
-
-                            if (transformCount == 1) {
-                                float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
-                                snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
-                            }
-                            else {
-                                snappedAngle = originalObjectAngle + Handles.SnapValue(radiusHandleData.accum, 45);
-                            }
-
-                            if (Math.Abs(snappedAngle - originalObjectAngle) > Mathf.Epsilon) {
-                                RecordUndo("Orbit", transform, transform.gameObject);
-                                Quaternion rotationDelta = Quaternion.AngleAxis(snappedAngle - currentObjectAngle,
-                                                                                Vector3.forward);
-
-                                transform.rotation *= rotationDelta;
-                            }
-                        }
-                        else {
-                            Vector2 originalPosition = info.pos;
-
-                            Vector2 currentTowardsObject = (currentPosition - midPoint);
-                            Vector2 originalTowardsObject = (originalPosition - midPoint);
-
-                            float currentObjectAngle = GetAngle(currentTowardsObject);
-                            float originalObjectAngle = GetAngle(originalTowardsObject);
-
-                            float snappedAngle;
-
-                            if (transformCount == 1) {
-                                float wantedObjectAngle = originalObjectAngle + radiusHandleData.accum;
-                                snappedAngle = Handles.SnapValue(wantedObjectAngle, 45);
-                            }
-                            else {
-                                snappedAngle = originalObjectAngle + Handles.SnapValue(radiusHandleData.accum, 45);
-                            }
-
-                            if (Math.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
-                                RecordUndo("Orbit", transform, transform.gameObject);
-                                var angleDiff = snappedAngle - currentObjectAngle;
-                                Quaternion rotationDelta = Quaternion.AngleAxis(angleDiff, Vector3.forward);
-
-                                transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject)) +
-                                                     new Vector3(0, 0, transform.position.z);
-                                transform.rotation *= rotationDelta;
-                            }
-                        }
-                    }
-
-                    GUI.changed = true;
                 }
                     break;
                 case EventType.mouseUp: {
@@ -464,7 +482,7 @@ public class HingeJoint2DEditor : Editor {
                     break;
                 case EventType.repaint:
 
-                    if (radiusHandleData.originalTransformInfos.Count > 0) {
+                    /*if (radiusHandleData.originalTransformInfos.Count > 0) {
                         float originalAngle =
                             GetAngle(
                                      (Vector2)
@@ -521,7 +539,7 @@ public class HingeJoint2DEditor : Editor {
                                                      snappedAngle - firstAngle, towardsObject.magnitude);
                             }
                         }
-                    }
+                    }*/
                     break;
             }
         }
