@@ -394,7 +394,7 @@ public class HingeJoint2DEditor : Editor {
 
             var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
 
-            var originalAngle = GetAngle(radiusHandleData.originalPosition - midPoint);
+            var originalAngle = GetAngle((Vector2)HandleUtility.GUIPointToWorldRay(radiusHandleData.originalPosition).origin - midPoint);
 
 //            int transformCount = radiusHandleData.originalTransformInfos.Count;
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
@@ -446,14 +446,6 @@ public class HingeJoint2DEditor : Editor {
 
 //                    float displayAngle = snappedAngle-originalObjectAngle;
 
-                    if(Event.current.type == EventType.repaint) {
-                        using (new DisposableHandleColor(jointSettings.radiusColor))
-                        {
-                            Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                                 (Quaternion.AngleAxis(originalAngle, Vector3.forward)) * Vector3.right,
-                                                 snappedAccum, radius);
-                        }
-                    }
 
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
                     {
@@ -481,6 +473,16 @@ public class HingeJoint2DEditor : Editor {
                 }
                     break;
                 case EventType.repaint:
+
+                    if (Event.current.type == EventType.repaint)
+                    {
+                        using (new DisposableHandleColor(jointSettings.radiusColor))
+                        {
+                            Handles.DrawSolidArc(midPoint, Vector3.forward,
+                                                 (Quaternion.AngleAxis(originalAngle, Vector3.forward)) * Vector3.right,
+                                                 snappedAccum, radius);
+                        }
+                    }
 
                     /*if (radiusHandleData.originalTransformInfos.Count > 0) {
                         float originalAngle =
