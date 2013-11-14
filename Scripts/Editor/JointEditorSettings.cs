@@ -29,8 +29,10 @@ public class JointEditorSettings : ScriptableObject {
 
     public Color previewRadiusColor = new Color(1f, 1f, 0.5f, 0.125f);
     public Color radiusColor = new Color(1f, 1f, 0f, 0.5f);
+    public Color alternateRadiusColor = new Color(0f, 1f, 1f, 0.5f);
     public Color mainDiscColor = Color.red;
     public Color connectedDiscColor = Color.green;
+    public bool drawRadiusRings = true;
 
     public void OnEnable() {
         if (!initialized) {

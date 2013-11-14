@@ -7,36 +7,6 @@ using Object = UnityEngine.Object;
 [CustomEditor(typeof (HingeJoint2D))]
 [CanEditMultipleObjects]
 public class HingeJoint2DEditor : JointEditor {
-    private struct PositionInfo {
-        public PositionInfo(HingeJoint2D hingeJoint2D) {
-            main = GetAnchorPosition(hingeJoint2D);
-            connected = GetConnectedAnchorPosition(hingeJoint2D);
-        }
-
-        private readonly Vector2 main;
-        private readonly Vector2 connected;
-
-        public bool Changed(HingeJoint2D hingeJoint2D, out AnchorBias bias) {
-            bool result = false;
-            bias = AnchorBias.Either;
-            if (Vector3.Distance(main, GetAnchorPosition(hingeJoint2D)) > JointEditorSettings.AnchorEpsilon) {
-                result = true;
-                bias = AnchorBias.Main;
-            }
-            if (Vector3.Distance(connected, GetConnectedAnchorPosition(hingeJoint2D)) >
-                JointEditorSettings.AnchorEpsilon) {
-                if (!result) {
-                    bias = AnchorBias.Connected;
-                    result = true;
-                }
-                else {
-                    bias = AnchorBias.Either;
-                }
-            }
-            return result;
-        }
-    }
-
     private readonly Dictionary<HingeJoint2D, PositionInfo> positionCache = new Dictionary<HingeJoint2D, PositionInfo>();
 
 #if RECURSIVE_EDITING
@@ -175,19 +145,7 @@ public class HingeJoint2DEditor : JointEditor {
             }
         }
 
-        bool changed = false;
-//            if (hingeJoint2D.connectedBody) {
-//                if (DrawConnectedBodyAnchorHandles(hingeJoint2D, otherAnchors)) {
-//                    changed = true;
-//                }
-//            }
-//            else 
-        {
-            if (DrawAnchorHandles(hingeJoint2D, otherAnchors)) {
-                changed = true;
-            }
-        }
-        if (changed) {
+        if (DrawAnchorHandles(hingeJoint2D, otherAnchors)) {
             EditorUtility.SetDirty(hingeJoint2D);
         }
 
@@ -376,17 +334,17 @@ public class HingeJoint2DEditor : JointEditor {
         }
 
 
-        AnchorBias bias;
-        if (anchorLock && positionCache[hingeJoint2D].Changed(hingeJoint2D, out bias)) {
+        PositionChange change;
+        if (anchorLock &&
+            (change = positionCache[hingeJoint2D].Changed(hingeJoint2D)) != PositionChange.NoChange) {
             RecordUndo("...", hingeJoint2D);
             positionCache[hingeJoint2D] = new PositionInfo(hingeJoint2D);
 
-            ReAlignAnchors(hingeJoint2D, bias);
+            ReAlignAnchors(hingeJoint2D, GetBias(change));
             EditorUtility.SetDirty(hingeJoint2D);
         }
         return changed;
     }
-
 
     private static bool ToggleLockButton(int controlID, Vector2 center, Texture2D texture, Texture2D hotTexture,
                                          bool force = false) {
