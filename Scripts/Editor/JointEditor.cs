@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using toxicFork.GUIHelpers;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 public class JointEditor : Editor {
     protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
@@ -20,57 +18,6 @@ public class JointEditor : Editor {
         Main,
         Connected,
         Either
-    }
-
-
-    protected static void RecordUndo(String action, params Object[] objects) {
-        Undo.RecordObjects(objects, action);
-    }
-
-    protected static Vector2 Transform2DPoint(Transform transform, Vector2 point) {
-        Vector2 scaledPoint = Vector2.Scale(point, transform.lossyScale);
-        float angle = transform.rotation.eulerAngles.z;
-        Vector2 rotatedScaledPoint = Quaternion.AngleAxis(angle, Vector3.forward)*scaledPoint;
-        Vector2 translatedRotatedScaledPoint = (Vector2) transform.position + rotatedScaledPoint;
-        return translatedRotatedScaledPoint;
-    }
-
-    protected static Vector2 InverseTransform2DPoint(Transform transform, Vector2 translatedRotatedScaledPoint) {
-        Vector2 rotatedScaledPoint = translatedRotatedScaledPoint - (Vector2) transform.position;
-        float angle = transform.rotation.eulerAngles.z;
-        Vector2 scaledPoint = Quaternion.AngleAxis(-angle, Vector3.forward)*rotatedScaledPoint;
-        Vector2 point = Vector2.Scale(scaledPoint, new Vector2(1/transform.lossyScale.x, 1/transform.lossyScale.y));
-        return point;
-    }
-
-
-    protected static Vector2 GetAnchorPosition(HingeJoint2D joint2D) {
-        return Transform2DPoint(joint2D.transform, joint2D.anchor);
-    }
-
-    protected static Vector2 GetConnectedAnchorPosition(HingeJoint2D joint2D) {
-        if (joint2D.connectedBody) {
-            return Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
-        }
-        return joint2D.connectedAnchor;
-    }
-
-    protected static void SetWorldAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldAnchor) {
-        hingeJoint2D.anchor = InverseTransform2DPoint(hingeJoint2D.transform, worldAnchor);
-    }
-
-    protected static void SetWorldConnectedAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldConnectedAnchor) {
-        if (hingeJoint2D.connectedBody) {
-            hingeJoint2D.connectedAnchor = InverseTransform2DPoint(hingeJoint2D.connectedBody.transform,
-                                                                   worldConnectedAnchor);
-        }
-        else {
-            hingeJoint2D.connectedAnchor = worldConnectedAnchor;
-        }
-    }
-
-    protected static float GetAngle(Vector2 vector) {
-        return Mathf.Rad2Deg*Mathf.Atan2(vector.y, vector.x);
     }
 
     protected static Vector2 AnchorSlider(Vector2 position, float handleScale, out bool changed,
@@ -97,7 +44,7 @@ public class JointEditor : Editor {
         if (Vector3.Distance(targetPosition, position) > JointEditorSettings.AnchorEpsilon) {
             Vector3 towardsTarget = (targetPosition - position).normalized;
 
-            originalAngle = GetAngle(towardsTarget);
+            originalAngle = JointEditorHelpers.GetAngle(towardsTarget);
         }
         else {
             originalAngle = joint.gameObject.transform.rotation.eulerAngles.z;
@@ -186,8 +133,8 @@ public class JointEditor : Editor {
             Vector2 towardsMouse = worldMousePosition - midPoint;
             Vector2 towardsPrevious = worldPreviousPosition - midPoint;
 
-            float previousAngle = GetAngle(towardsPrevious);
-            float newAngle = GetAngle(towardsMouse);
+            float previousAngle = JointEditorHelpers.GetAngle(towardsPrevious);
+            float newAngle = JointEditorHelpers.GetAngle(towardsMouse);
 
             float mainAngleDiff = newAngle - previousAngle;
             if (mainAngleDiff > 180) {
@@ -203,7 +150,10 @@ public class JointEditor : Editor {
             var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
 
             var originalAngle =
-                GetAngle((Vector2) HandleUtility.GUIPointToWorldRay(radiusHandleData.originalPosition).origin - midPoint);
+                JointEditorHelpers.GetAngle(
+                                            (Vector2)
+                                            HandleUtility.GUIPointToWorldRay(radiusHandleData.originalPosition).origin -
+                                            midPoint);
 
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos) {
                 Transform transform = kvp.Key;
@@ -218,11 +168,11 @@ public class JointEditor : Editor {
 
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
                         GUI.changed = true;
-                        RecordUndo("Orbit", transform, transform.gameObject);
+                        GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
                         Quaternion rotationDelta = Quaternion.AngleAxis(snappedAngle,
                                                                         Vector3.forward);
 
-                        transform.rotation = rotationDelta * info.rot;
+                        transform.rotation = rotationDelta*info.rot;
                     }
                 }
                 else {
@@ -231,21 +181,24 @@ public class JointEditor : Editor {
                     Vector2 currentTowardsObject = (currentPosition - midPoint);
                     Vector2 originalTowardsObject = (originalPosition - midPoint);
 
-                    float currentObjectAngle = GetAngle(currentTowardsObject);
-                    float originalObjectAngle = GetAngle(originalTowardsObject);
+                    float currentObjectAngle = JointEditorHelpers.GetAngle(currentTowardsObject);
+                    float originalObjectAngle = JointEditorHelpers.GetAngle(originalTowardsObject);
 
                     float snappedAngle = originalObjectAngle + snappedAccum;
 
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
                         GUI.changed = true;
-                        RecordUndo("Orbit", transform, transform.gameObject);
+                        GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
 
-                        Quaternion rotationDelta = Quaternion.AngleAxis(snappedAccum, Vector3.forward);
+                        float angleDelta = snappedAngle - currentObjectAngle;
 
-                        transform.position = ((Vector3) midPoint + ((rotationDelta) * originalTowardsObject)) 
-                            + new Vector3(0, 0, info.pos.z);
+                        Quaternion rotationDelta = Quaternion.AngleAxis(angleDelta, Vector3.forward);
 
-                        transform.rotation = rotationDelta * info.rot;
+                        transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject))
+                                             + new Vector3(0, 0, info.pos.z);
+
+                        transform.rotation = rotationDelta*transform.rotation;
+//                        transform.rotation = info.rot * rotationDelta;
                     }
                 }
             }
@@ -368,23 +321,30 @@ public class JointEditor : Editor {
     }
 
     protected struct PositionInfo {
-        public PositionInfo(HingeJoint2D hingeJoint2D) {
-            main = GetAnchorPosition(hingeJoint2D);
-            connected = GetConnectedAnchorPosition(hingeJoint2D);
+        public static void Record(HingeJoint2D hingeJoint2D) {
+            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+            GUIHelpers.RecordUndo(null, settings);
+            settings.worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+            settings.worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+            EditorUtility.SetDirty(settings);
         }
 
-        private readonly Vector2 main;
-        private readonly Vector2 connected;
-
-        public PositionChange Changed(HingeJoint2D hingeJoint2D) {
-            return Changed(GetAnchorPosition(hingeJoint2D), GetConnectedAnchorPosition(hingeJoint2D));
+        public static PositionChange Changed(HingeJoint2D hingeJoint2D) {
+            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+            if (!settings || !settings.lockAnchors) {
+                return PositionChange.NoChange;
+            }
+            
+            return Changed(JointEditorHelpers.GetAnchorPosition(hingeJoint2D),
+                           JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D), settings);
         }
 
-        private PositionChange Changed(Vector2 main, Vector2 connected) {
+        private static PositionChange Changed(Vector2 main, Vector2 connected, HingeJoint2DSettings settings)
+        {
             PositionChange result = PositionChange.NoChange;
 
-            bool mainChanged = Vector3.Distance(this.main, main) > JointEditorSettings.AnchorEpsilon;
-            bool connectedChanged = Vector3.Distance(this.connected, connected) > JointEditorSettings.AnchorEpsilon;
+            bool mainChanged = Vector3.Distance(settings.worldAnchor, main) > JointEditorSettings.AnchorEpsilon;
+            bool connectedChanged = Vector3.Distance(settings.worldConnectedAnchor, connected) > JointEditorSettings.AnchorEpsilon;
 
             if (mainChanged) {
                 result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
