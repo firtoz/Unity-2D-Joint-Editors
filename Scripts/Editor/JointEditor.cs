@@ -169,7 +169,7 @@ public class JointEditor : Editor {
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
                         GUI.changed = true;
                         GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
-                        Quaternion rotationDelta = Quaternion.AngleAxis(snappedAngle,
+                        Quaternion rotationDelta = Quaternion.AngleAxis(snappedAccum,
                                                                         Vector3.forward);
 
                         transform.rotation = rotationDelta*info.rot;
@@ -322,11 +322,11 @@ public class JointEditor : Editor {
 
     protected struct PositionInfo {
         public static void Record(HingeJoint2D hingeJoint2D) {
-            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
-            GUIHelpers.RecordUndo(null, settings);
-            settings.worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
-            settings.worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
-            EditorUtility.SetDirty(settings);
+//            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+//            GUIHelpers.RecordUndo(null, settings);
+//            settings.worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+//            settings.worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+//            EditorUtility.SetDirty(settings);
         }
 
         public static PositionChange Changed(HingeJoint2D hingeJoint2D) {
@@ -343,15 +343,15 @@ public class JointEditor : Editor {
         {
             PositionChange result = PositionChange.NoChange;
 
-            bool mainChanged = Vector3.Distance(settings.worldAnchor, main) > JointEditorSettings.AnchorEpsilon;
-            bool connectedChanged = Vector3.Distance(settings.worldConnectedAnchor, connected) > JointEditorSettings.AnchorEpsilon;
-
-            if (mainChanged) {
-                result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
-            }
-            else if (connectedChanged) {
-                result = PositionChange.ConnectedChanged;
-            }
+//            bool mainChanged = Vector3.Distance(settings.worldAnchor, main) > JointEditorSettings.AnchorEpsilon;
+//            bool connectedChanged = Vector3.Distance(settings.worldConnectedAnchor, connected) > JointEditorSettings.AnchorEpsilon;
+//
+//            if (mainChanged) {
+//                result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
+//            }
+//            else if (connectedChanged) {
+//                result = PositionChange.ConnectedChanged;
+//            }
             return result;
         }
     }

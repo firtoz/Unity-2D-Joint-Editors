@@ -41,11 +41,7 @@ public class HingeJoint2DSettingsEditor : Editor {
     {
         HingeJoint2DSettings[] allSettings = hingeJoint2D.GetComponents<HingeJoint2DSettings>();
 
-        foreach (HingeJoint2DSettings settings in allSettings.Where(settings => settings.attachedJoint == hingeJoint2D))
-        {
-            return settings;
-        }
-        return null;
+        return allSettings.FirstOrDefault(settings => settings.attachedJoint == hingeJoint2D);
     }
 
     public static HingeJoint2DSettings GetOrCreate(HingeJoint2D hingeJoint2D)

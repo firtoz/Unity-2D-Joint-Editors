@@ -198,49 +198,54 @@ public class HingeJoint2DEditor : JointEditor
         {
             return;
         }
-
-        if (Event.current.type == EventType.keyDown)
+        HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+        if (settings && !settings.showJointGizmos)
         {
-            if ((Event.current.character + "").ToLower().Equals("f") || Event.current.keyCode == KeyCode.F)
-            {
-                //frame hotkey pressed
-                Event.current.Use();
-
-                Bounds bounds;
-                if (Selection.activeGameObject.renderer)
-                {
-                    bounds = Selection.activeGameObject.renderer.bounds;
-                    using (new DisposableHandleColor(Color.red))
-                    {
-                        Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
-                    }
-                }
-                else
-                {
-                    bounds = new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
-                }
-                foreach (Transform selectedTransform in Selection.transforms)
-                {
-                    bounds.Encapsulate((Vector2) selectedTransform.position);
-                }
-//				using (new DisposableHandleColor(Color.green)) {
-////					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
-//				}
-
-                Vector2 midPoint = (JointEditorHelpers.GetAnchorPosition(hingeJoint2D) +
-                                    JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D))*.5f;
-                float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
-                Bounds hingeBounds = new Bounds(midPoint, Vector2.one*distance*2);
-                bounds.Encapsulate(hingeBounds);
-
-                using (new DisposableHandleColor(Color.blue))
-                {
-                    Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
-                }
-
-                SceneView.lastActiveSceneView.LookAt(bounds.center, Quaternion.identity, bounds.size.magnitude);
-            }
+            return;
         }
+
+//        if (Event.current.type == EventType.keyDown)
+//        {
+//            if ((Event.current.character + "").ToLower().Equals("f") || Event.current.keyCode == KeyCode.F)
+//            {
+//                //frame hotkey pressed
+//                Event.current.Use();
+//
+//                Bounds bounds;
+//                if (Selection.activeGameObject.renderer)
+//                {
+//                    bounds = Selection.activeGameObject.renderer.bounds;
+//                    using (new DisposableHandleColor(Color.red))
+//                    {
+//                        Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
+//                    }
+//                }
+//                else
+//                {
+//                    bounds = new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
+//                }
+//                foreach (Transform selectedTransform in Selection.transforms)
+//                {
+//                    bounds.Encapsulate((Vector2) selectedTransform.position);
+//                }
+////				using (new DisposableHandleColor(Color.green)) {
+//////					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
+////				}
+//
+//                Vector2 midPoint = (JointEditorHelpers.GetAnchorPosition(hingeJoint2D) +
+//                                    JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D))*.5f;
+//                float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
+//                Bounds hingeBounds = new Bounds(midPoint, Vector2.one*distance*2);
+//                bounds.Encapsulate(hingeBounds);
+//
+//                using (new DisposableHandleColor(Color.blue))
+//                {
+//                    Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
+//                }
+//
+//                SceneView.lastActiveSceneView.LookAt(bounds.center, Quaternion.identity, bounds.size.magnitude);
+//            }
+//        }
 
         List<Vector2> otherAnchors = new List<Vector2>();
         foreach (HingeJoint2D otherHingeObject in Selection.GetFiltered(typeof (HingeJoint2D), SelectionMode.Deep))
@@ -460,15 +465,16 @@ public class HingeJoint2DEditor : JointEditor
             }
 
             DrawExtraGizmos(transforms, worldAnchor);
+            GUIUtility.GetControlID(FocusType.Passive); //to keep controlIDs consistent
         }
         else
         {
             DrawExtraGizmos(new List<Transform> {transform}, worldAnchor);
 
-            if (hingeJoint2D.connectedBody)
-            {
-                DrawExtraGizmos(new List<Transform> {hingeJoint2D.connectedBody.transform}, worldConnectedAnchor);
-            }
+            DrawExtraGizmos(
+                hingeJoint2D.connectedBody
+                    ? new List<Transform> {hingeJoint2D.connectedBody.transform}
+                    : new List<Transform> {transform}, worldConnectedAnchor);
 
             if (!overlapping) {
                 using (new DisposableHandleColor(Color.cyan))
@@ -482,6 +488,12 @@ public class HingeJoint2DEditor : JointEditor
         {
             Handles.DrawWireDisc(worldAnchor, Vector3.forward, Vector2.Distance(worldAnchor, transform.position));
             Handles.DrawLine(transform.position, worldAnchor);
+
+            if (!overlapping)
+            {
+                Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward, Vector2.Distance(worldConnectedAnchor, transform.position));
+                Handles.DrawLine(transform.position, worldConnectedAnchor);
+            }
         }
         if (hingeJoint2D.connectedBody)
         {
@@ -548,12 +560,15 @@ public class HingeJoint2DEditor : JointEditor
         EditorGUI.BeginChangeCheck();
 
         bool? lockAnchors = null;
+        bool? showJointGizmos = null;
         bool valueDifferent = false;
+        bool gizmoValueDifferent = false;
 
         foreach (HingeJoint2D hingeJoint2D in targets)
         {
             HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
             bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
+            bool wantsGizmos = hingeSettings == null || hingeSettings.showJointGizmos;
             if (lockAnchors != null)
             {
                 if (lockAnchors.Value != wantsLock)
@@ -565,8 +580,44 @@ public class HingeJoint2DEditor : JointEditor
             {
                 lockAnchors = wantsLock;
             }
+            if (showJointGizmos != null)
+            {
+                if (showJointGizmos.Value != wantsGizmos)
+                {
+                    gizmoValueDifferent = true;
+                }
+            }
+            else
+            {
+                showJointGizmos = wantsGizmos;
+            }
         }
 
+        using (new DisposableEditorGUIMixedValue(gizmoValueDifferent))
+        {
+            bool enabled = true;
+            if (showJointGizmos == null)
+            {
+                showJointGizmos = false;
+                enabled = false;
+            }
+            EditorGUI.BeginChangeCheck();
+            using (new DisposableGUIEnabled(enabled))
+            {
+                showJointGizmos = EditorGUILayout.Toggle("Show Gizmos", showJointGizmos.Value);
+            }
+            if (EditorGUI.EndChangeCheck())
+            {
+                foreach (HingeJoint2D hingeJoint2D in targets)
+                {
+                    HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                    GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
+                    hingeSettings.showJointGizmos = showJointGizmos.Value;
+                    EditorUtility.SetDirty(hingeSettings);
+                }
+            }
+        }
         using (new DisposableEditorGUIMixedValue(valueDifferent))
         {
             bool enabled = true;
