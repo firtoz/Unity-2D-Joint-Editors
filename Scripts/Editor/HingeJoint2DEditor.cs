@@ -278,6 +278,11 @@ public class HingeJoint2DEditor : JointEditor
             EditorUtility.SetDirty(hingeJoint2D);
         }
 
+        if (DrawAngleLimits(hingeJoint2D))
+        {
+            EditorUtility.SetDirty(hingeJoint2D);
+        }
+
 #if RECURSIVE_EDITING
             foreach (HingeJoint2DEditor tempEditor in tempEditors[hingeJoint2D]) {
                 tempEditor.OnSceneGUI();
@@ -289,6 +294,13 @@ public class HingeJoint2DEditor : JointEditor
     {
         RadiusHandle(transforms, midPoint, HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
             HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);
+    }
+
+    private bool DrawAngleLimits(HingeJoint2D hingeJoint2D)
+    {
+        bool changed = false;
+
+        return changed;
     }
 
 
@@ -344,7 +356,7 @@ public class HingeJoint2DEditor : JointEditor
                 jointSettings.unlockButtonTexture))
             {
                 GUIHelpers.RecordUndo("Unlock Anchors", hingeSettings);
-                hingeSettings.lockAnchors = false;
+                hingeSettings.lockAnchors = false; //hingesettings will exist if anchors are already locked
                 EditorUtility.SetDirty(hingeSettings);
             }
         }
