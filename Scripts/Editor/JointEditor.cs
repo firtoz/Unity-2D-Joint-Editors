@@ -61,6 +61,14 @@ public class JointEditor : Editor {
             }
         }
 
+
+        float distanceFromInner = HandleUtility.DistanceToCircle(position, handleSize*.5f);
+        bool inZone = distanceFromInner <= 0;
+        if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
+        {
+            GUIHelpers.SetEditorCursor(MouseCursor.MoveArrow, controlID);
+        }
+
         //Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         Vector2 result;
 

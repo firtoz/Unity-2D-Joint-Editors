@@ -3,10 +3,17 @@ using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
+    public enum RingDisplayMode
+    {
+        Always,
+        Hover,
+        Never
+    }
+
     public const float AnchorEpsilon = 0.0001f;
 
     [SerializeField]
-    private bool initialized;
+    private bool _initialized;
 
     public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected";
     public Texture2D connectedHingeTexture;
@@ -34,9 +41,11 @@ public class JointEditorSettings : ScriptableObject {
     public Color connectedDiscColor = Color.green;
     public bool drawRadiusRings = true;
 
+    public RingDisplayMode ringDisplayMode = RingDisplayMode.Always;
+
     public void OnEnable() {
-        if (!initialized) {
-            initialized = true;
+        if (!_initialized) {
+            _initialized = true;
             connectedHingeTexture = Resources.Load<Texture2D>(ConnectedHingeTexturePath);
             mainHingeTexture = Resources.Load<Texture2D>(MainHingeTexturePath);
             lockedHingeTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);

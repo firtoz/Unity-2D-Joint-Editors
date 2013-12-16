@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEditor;
+#endif
+using UnityEngine;
 
 [ExecuteInEditMode]
 public class HingeJoint2DSettings : MonoBehaviour {
@@ -8,10 +11,6 @@ public class HingeJoint2DSettings : MonoBehaviour {
 //    public Vector2 worldAnchor;
 //    public Vector2 worldConnectedAnchor;
 
-    public void Awake()
-    {
-    }
-
     public void OnEnable()
     {
     }
@@ -20,6 +19,15 @@ public class HingeJoint2DSettings : MonoBehaviour {
         if (!gameObject.GetComponent<HingeJoint2D>()) {
             DestroyImmediate(this);
         }
+
+#if UNITY_EDITOR
+        if (!EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            //referenceAngle
+            //if the transform is 
+//            attachedJoint.anchor
+        }
+#endif
     }
 
     public void Setup(HingeJoint2D hingeJoint2D) {
