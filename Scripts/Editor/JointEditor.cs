@@ -127,8 +127,15 @@ public class JointEditor : Editor {
     }
 
     protected static void RadiusHandle(IEnumerable<Transform> transforms, Vector2 midPoint, float innerRadius,
-                                       float radius) {
-        int controlID = GUIUtility.GetControlID(FocusType.Passive);
+        float radius)
+    {
+        int controlID;
+        RadiusHandle(transforms, midPoint, innerRadius, radius, out controlID);
+    }
+
+    protected static void RadiusHandle(IEnumerable<Transform> transforms, Vector2 midPoint, float innerRadius,
+                                       float radius, out int controlID) {
+        controlID = GUIUtility.GetControlID(FocusType.Passive);
 
         RadiusHandleData radiusHandleData = StateObject.Get<RadiusHandleData>(controlID);
         if (GUIUtility.hotControl == controlID) {
@@ -337,30 +344,30 @@ public class JointEditor : Editor {
 //            EditorUtility.SetDirty(settings);
         }
 
-        public static PositionChange Changed(HingeJoint2D hingeJoint2D) {
-            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
-            if (!settings || !settings.lockAnchors) {
-                return PositionChange.NoChange;
-            }
-            
-            return Changed(JointEditorHelpers.GetAnchorPosition(hingeJoint2D),
-                           JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D), settings);
-        }
+//        public static PositionChange Changed(HingeJoint2D hingeJoint2D) {
+//            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+//            if (!settings || !settings.lockAnchors) {
+//                return PositionChange.NoChange;
+//            }
+//            
+//            return Changed(JointEditorHelpers.GetAnchorPosition(hingeJoint2D),
+//                           JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D), settings);
+//        }
 
-        private static PositionChange Changed(Vector2 main, Vector2 connected, HingeJoint2DSettings settings)
-        {
-            PositionChange result = PositionChange.NoChange;
-
-//            bool mainChanged = Vector3.Distance(settings.worldAnchor, main) > JointEditorSettings.AnchorEpsilon;
-//            bool connectedChanged = Vector3.Distance(settings.worldConnectedAnchor, connected) > JointEditorSettings.AnchorEpsilon;
+//        private static PositionChange Changed(Vector2 main, Vector2 connected, HingeJoint2DSettings settings)
+//        {
+//            PositionChange result = PositionChange.NoChange;
 //
-//            if (mainChanged) {
-//                result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
-//            }
-//            else if (connectedChanged) {
-//                result = PositionChange.ConnectedChanged;
-//            }
-            return result;
-        }
+////            bool mainChanged = Vector3.Distance(settings.worldAnchor, main) > JointEditorSettings.AnchorEpsilon;
+////            bool connectedChanged = Vector3.Distance(settings.worldConnectedAnchor, connected) > JointEditorSettings.AnchorEpsilon;
+////
+////            if (mainChanged) {
+////                result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
+////            }
+////            else if (connectedChanged) {
+////                result = PositionChange.ConnectedChanged;
+////            }
+//            return result;
+//        }
     }
 }

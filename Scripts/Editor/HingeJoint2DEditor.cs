@@ -278,6 +278,15 @@ public class HingeJoint2DEditor : JointEditor
             EditorUtility.SetDirty(hingeJoint2D);
         }
 
+        bool radiusHandlesInUse;
+
+        if (DrawRadiusHandles(hingeJoint2D, out radiusHandlesInUse))
+        {
+            EditorUtility.SetDirty(hingeJoint2D);
+        }
+
+        DrawDiscs(hingeJoint2D, radiusHandlesInUse);
+
         if (DrawAngleLimits(hingeJoint2D))
         {
             EditorUtility.SetDirty(hingeJoint2D);
@@ -290,12 +299,52 @@ public class HingeJoint2DEditor : JointEditor
 #endif
     }
 
-    private static void DrawExtraGizmos(IEnumerable<Transform> transforms, IEnumerable<Transform> rightTransforms, Vector2 midPoint)
+    private void DrawDiscs(HingeJoint2D hingeJoint2D, bool inUse)
+    {
+        Transform transform = hingeJoint2D.transform;
+        Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+        Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+
+        float handleSize = HandleUtility.GetHandleSize(worldAnchor) * jointSettings.orbitRangeScale;
+        float distanceFromInner = HandleUtility.DistanceToCircle(worldAnchor, handleSize * .5f);
+        bool inZone = distanceFromInner <= 0;
+
+        bool overlapping = Vector2.Distance(worldAnchor, worldConnectedAnchor) <= JointEditorSettings.AnchorEpsilon;
+
+        if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
+            ((inZone || inUse) && jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover))
+        {
+            using (new DisposableHandleColor(jointSettings.mainDiscColor))
+            {
+                Handles.DrawWireDisc(worldAnchor, Vector3.forward, Vector2.Distance(worldAnchor, transform.position));
+                Handles.DrawLine(transform.position, worldAnchor);
+
+                if (!overlapping)
+                {
+                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
+                        Vector2.Distance(worldConnectedAnchor, transform.position));
+                    Handles.DrawLine(transform.position, worldConnectedAnchor);
+                }
+            }
+            if (hingeJoint2D.connectedBody)
+            {
+                using (new DisposableHandleColor(jointSettings.connectedDiscColor))
+                {
+                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
+                        Vector2.Distance(worldConnectedAnchor,
+                            hingeJoint2D.connectedBody.transform.position));
+                    Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, worldConnectedAnchor);
+                }
+            }
+        }
+    }
+
+    private static void DrawExtraGizmos(IEnumerable<Transform> transforms, IEnumerable<Transform> rightTransforms, Vector2 midPoint, out int controlID)
     {
         RadiusHandle(transforms, 
             midPoint, 
             HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
-            HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);
+            HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f, out controlID);
     }
 
     private bool DrawAngleLimits(HingeJoint2D hingeJoint2D)
@@ -309,6 +358,81 @@ public class HingeJoint2DEditor : JointEditor
         return changed;
     }
 
+    private bool DrawRadiusHandles(HingeJoint2D hingeJoint2D)
+    {
+        bool inUse;
+        return DrawRadiusHandles(hingeJoint2D, out inUse);
+    }
+
+    private bool DrawRadiusHandles(HingeJoint2D hingeJoint2D, out bool inUse)
+    {
+        bool changed = false;
+
+        HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+
+        bool anchorLock = hingeSettings != null && hingeSettings.lockAnchors;
+
+        if (EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPaused)
+        {
+            anchorLock = false;
+        }
+
+
+        Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+        Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+
+        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= JointEditorSettings.AnchorEpsilon;
+
+        Transform transform = hingeJoint2D.transform;
+
+        int connectedRadiusControlID, mainRadiusControlID;
+
+        if (anchorLock && overlapping)
+        {
+            List<Transform> transforms = new List<Transform> { transform };
+            List<Transform> rightTransforms = new List<Transform>();
+
+
+            if (hingeJoint2D.connectedBody)
+            {
+                rightTransforms.Add(hingeJoint2D.connectedBody.transform);
+                if (Event.current.shift)
+                {
+                    rightTransforms.Add(transform);
+                    transforms.Add(hingeJoint2D.connectedBody.transform);
+                }
+            }
+
+            EditorGUI.BeginChangeCheck();
+            DrawExtraGizmos(transforms, rightTransforms, worldAnchor, out mainRadiusControlID);
+            changed = EditorGUI.EndChangeCheck();
+            connectedRadiusControlID = GUIUtility.GetControlID(FocusType.Passive); //to keep controlIDs consistent
+        }
+        else
+        {
+            EditorGUI.BeginChangeCheck();
+
+            DrawExtraGizmos(new List<Transform> { transform }, null, worldAnchor, out mainRadiusControlID);
+
+            DrawExtraGizmos(
+                hingeJoint2D.connectedBody
+                    ? new List<Transform> { hingeJoint2D.connectedBody.transform }
+                    : new List<Transform> { transform }, null, worldConnectedAnchor, out connectedRadiusControlID);
+            changed = EditorGUI.EndChangeCheck();
+
+            if (!overlapping)
+            {
+                using (new DisposableHandleColor(Color.cyan))
+                {
+                    Handles.DrawLine(worldAnchor, worldConnectedAnchor);
+                }
+            }
+        }
+
+        inUse = GUIUtility.hotControl == mainRadiusControlID || GUIUtility.hotControl == connectedRadiusControlID;
+
+        return changed;
+    }
 
     private bool DrawAnchorHandles(HingeJoint2D hingeJoint2D, List<Vector2> otherAnchors)
     {
@@ -330,12 +454,12 @@ public class HingeJoint2DEditor : JointEditor
         Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
         Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 
+        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= JointEditorSettings.AnchorEpsilon;
+
         int mainControlID = GUIUtility.GetControlID(FocusType.Native);
         int connectedControlID = GUIUtility.GetControlID(FocusType.Native);
         int lockControlID = GUIUtility.GetControlID(FocusType.Native);
         int lockControlID2 = GUIUtility.GetControlID(FocusType.Native);
-
-        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= JointEditorSettings.AnchorEpsilon;
 
         if (anchorLock && overlapping)
         {
@@ -478,67 +602,7 @@ public class HingeJoint2DEditor : JointEditor
             }
         }
 
-        if (anchorLock && overlapping)
-        {
-            List<Transform> transforms = new List<Transform> {transform};
-            List<Transform> rightTransforms = new List<Transform>();
-
-
-            if (hingeJoint2D.connectedBody)
-            {
-                rightTransforms.Add(hingeJoint2D.connectedBody.transform);
-                if (Event.current.shift)
-                {
-                    rightTransforms.Add(transform);
-                    transforms.Add(hingeJoint2D.connectedBody.transform);
-                }
-            }
-
-            DrawExtraGizmos(transforms, rightTransforms, worldAnchor);
-            GUIUtility.GetControlID(FocusType.Passive); //to keep controlIDs consistent
-        }
-        else
-        {
-            DrawExtraGizmos(new List<Transform> {transform}, null, worldAnchor);
-
-            DrawExtraGizmos(
-                hingeJoint2D.connectedBody
-                    ? new List<Transform> {hingeJoint2D.connectedBody.transform}
-                    : new List<Transform> {transform}, null, worldConnectedAnchor);
-
-            if (!overlapping) {
-                using (new DisposableHandleColor(Color.cyan))
-                {
-                    Handles.DrawLine(worldAnchor, worldConnectedAnchor);
-                }
-            }
-        }
-
-        if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always)
-        {
-            using (new DisposableHandleColor(jointSettings.mainDiscColor))
-            {
-                Handles.DrawWireDisc(worldAnchor, Vector3.forward, Vector2.Distance(worldAnchor, transform.position));
-                Handles.DrawLine(transform.position, worldAnchor);
-
-                if (!overlapping)
-                {
-                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
-                        Vector2.Distance(worldConnectedAnchor, transform.position));
-                    Handles.DrawLine(transform.position, worldConnectedAnchor);
-                }
-            }
-            if (hingeJoint2D.connectedBody)
-            {
-                using (new DisposableHandleColor(jointSettings.connectedDiscColor))
-                {
-                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
-                        Vector2.Distance(worldConnectedAnchor,
-                            hingeJoint2D.connectedBody.transform.position));
-                    Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, worldConnectedAnchor);
-                }
-            }
-        }
+        
 
 #if USE_POSITION_INFO
 
