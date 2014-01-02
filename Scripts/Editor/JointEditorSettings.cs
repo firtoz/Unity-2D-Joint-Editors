@@ -41,7 +41,7 @@ public class JointEditorSettings : ScriptableObject {
     public Color connectedDiscColor = Color.green;
     public bool drawRadiusRings = true;
 
-    public RingDisplayMode ringDisplayMode = RingDisplayMode.Always;
+    public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
 
     public void OnEnable() {
         if (!_initialized) {

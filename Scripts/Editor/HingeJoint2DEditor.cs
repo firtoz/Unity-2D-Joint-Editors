@@ -9,6 +9,7 @@ using Object = UnityEngine.Object;
 [CanEditMultipleObjects]
 public class HingeJoint2DEditor : JointEditor
 {
+    private const float AnchorEpsilon = JointEditorSettings.AnchorEpsilon;
 #if RECURSIVE_EDITING
     private static readonly Dictionary<HingeJoint2D, HingeJoint2DEditor> Editors =
         new Dictionary<HingeJoint2D, HingeJoint2DEditor>();
@@ -190,6 +191,53 @@ public class HingeJoint2DEditor : JointEditor
 //        }
     }
 
+    public void OnPreSceneGUI()
+    {
+
+//                if (Event.current.type == EventType.keyDown)
+//                {
+//                    if ((Event.current.character + "").ToLower().Equals("f") || Event.current.keyCode == KeyCode.F)
+//                    {
+//                        //frame hotkey pressed
+//                        Event.current.Use();
+//        
+//                        Bounds bounds;
+//                        if (Selection.activeGameObject.renderer)
+//                        {
+//                            bounds = Selection.activeGameObject.renderer.bounds;
+//                            using (new DisposableHandleColor(Color.red))
+//                            {
+//                                Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
+//                            }
+//                        }
+//                        else
+//                        {
+//                            bounds = new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
+//                        }
+//                        foreach (Transform selectedTransform in Selection.transforms)
+//                        {
+//                            bounds.Encapsulate((Vector2) selectedTransform.position);
+//                        }
+//        //				using (new DisposableHandleColor(Color.green)) {
+//        ////					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
+//        //				}
+//        
+//                        Vector2 midPoint = (JointEditorHelpers.GetAnchorPosition(hingeJoint2D) +
+//                                            JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D))*.5f;
+//                        float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
+//                        Bounds hingeBounds = new Bounds(midPoint, Vector2.one*distance*2);
+//                        bounds.Encapsulate(hingeBounds);
+//        
+//                        using (new DisposableHandleColor(Color.blue))
+//                        {
+//                            Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
+//                        }
+//        
+//                        SceneView.lastActiveSceneView.LookAt(bounds.center, Quaternion.identity, bounds.size.magnitude);
+//                    }
+//                }
+    }
+
 
     public void OnSceneGUI()
     {
@@ -204,48 +252,6 @@ public class HingeJoint2DEditor : JointEditor
             return;
         }
 
-//        if (Event.current.type == EventType.keyDown)
-//        {
-//            if ((Event.current.character + "").ToLower().Equals("f") || Event.current.keyCode == KeyCode.F)
-//            {
-//                //frame hotkey pressed
-//                Event.current.Use();
-//
-//                Bounds bounds;
-//                if (Selection.activeGameObject.renderer)
-//                {
-//                    bounds = Selection.activeGameObject.renderer.bounds;
-//                    using (new DisposableHandleColor(Color.red))
-//                    {
-//                        Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
-//                    }
-//                }
-//                else
-//                {
-//                    bounds = new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
-//                }
-//                foreach (Transform selectedTransform in Selection.transforms)
-//                {
-//                    bounds.Encapsulate((Vector2) selectedTransform.position);
-//                }
-////				using (new DisposableHandleColor(Color.green)) {
-//////					Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude * 0.5f);
-////				}
-//
-//                Vector2 midPoint = (JointEditorHelpers.GetAnchorPosition(hingeJoint2D) +
-//                                    JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D))*.5f;
-//                float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
-//                Bounds hingeBounds = new Bounds(midPoint, Vector2.one*distance*2);
-//                bounds.Encapsulate(hingeBounds);
-//
-//                using (new DisposableHandleColor(Color.blue))
-//                {
-//                    Handles.RectangleCap(0, bounds.center, Quaternion.identity, bounds.size.magnitude*0.5f);
-//                }
-//
-//                SceneView.lastActiveSceneView.LookAt(bounds.center, Quaternion.identity, bounds.size.magnitude);
-//            }
-//        }
 
         List<Vector2> otherAnchors = new List<Vector2>();
         foreach (HingeJoint2D otherHingeObject in Selection.GetFiltered(typeof (HingeJoint2D), SelectionMode.Deep))
@@ -273,7 +279,8 @@ public class HingeJoint2DEditor : JointEditor
             }
         }
 
-        if (DrawAnchorHandles(hingeJoint2D, otherAnchors))
+        bool anchorHandlesInUse;
+        if (DrawAnchorHandles(hingeJoint2D, otherAnchors, out anchorHandlesInUse))
         {
             EditorUtility.SetDirty(hingeJoint2D);
         }
@@ -305,11 +312,14 @@ public class HingeJoint2DEditor : JointEditor
         Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
         Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 
-        float handleSize = HandleUtility.GetHandleSize(worldAnchor) * jointSettings.orbitRangeScale;
-        float distanceFromInner = HandleUtility.DistanceToCircle(worldAnchor, handleSize * .5f);
-        bool inZone = distanceFromInner <= 0;
+        float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor) * jointSettings.orbitRangeScale;
+        float connectedHandleSize = HandleUtility.GetHandleSize(worldConnectedAnchor) * jointSettings.orbitRangeScale;
+        float distanceFromMain = HandleUtility.DistanceToCircle(worldAnchor, mainHandleSize * .5f);
+        float distanceFromConnected = HandleUtility.DistanceToCircle(worldConnectedAnchor, mainHandleSize * .5f);
+        bool inZone = distanceFromMain <= AnchorEpsilon ||
+            distanceFromConnected <= AnchorEpsilon;
 
-        bool overlapping = Vector2.Distance(worldAnchor, worldConnectedAnchor) <= JointEditorSettings.AnchorEpsilon;
+        bool overlapping = Vector2.Distance(worldAnchor, worldConnectedAnchor) <= AnchorEpsilon;
 
         if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             ((inZone || inUse) && jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover))
@@ -358,12 +368,6 @@ public class HingeJoint2DEditor : JointEditor
         return changed;
     }
 
-    private bool DrawRadiusHandles(HingeJoint2D hingeJoint2D)
-    {
-        bool inUse;
-        return DrawRadiusHandles(hingeJoint2D, out inUse);
-    }
-
     private bool DrawRadiusHandles(HingeJoint2D hingeJoint2D, out bool inUse)
     {
         bool changed = false;
@@ -381,7 +385,7 @@ public class HingeJoint2DEditor : JointEditor
         Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
         Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 
-        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= JointEditorSettings.AnchorEpsilon;
+        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= AnchorEpsilon;
 
         Transform transform = hingeJoint2D.transform;
 
@@ -429,12 +433,13 @@ public class HingeJoint2DEditor : JointEditor
             }
         }
 
-        inUse = GUIUtility.hotControl == mainRadiusControlID || GUIUtility.hotControl == connectedRadiusControlID;
+        inUse = GUIUtility.hotControl == mainRadiusControlID || 
+            GUIUtility.hotControl == connectedRadiusControlID;
 
         return changed;
     }
 
-    private bool DrawAnchorHandles(HingeJoint2D hingeJoint2D, List<Vector2> otherAnchors)
+    private bool DrawAnchorHandles(HingeJoint2D hingeJoint2D, List<Vector2> otherAnchors, out bool inUse)
     {
         bool changed = false;
         HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
@@ -454,7 +459,7 @@ public class HingeJoint2DEditor : JointEditor
         Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
         Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 
-        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= JointEditorSettings.AnchorEpsilon;
+        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= AnchorEpsilon;
 
         int mainControlID = GUIUtility.GetControlID(FocusType.Native);
         int connectedControlID = GUIUtility.GetControlID(FocusType.Native);
@@ -617,6 +622,10 @@ public class HingeJoint2DEditor : JointEditor
             EditorUtility.SetDirty(hingeJoint2D);
         }
 #endif
+        inUse = connectedControlID == GUIUtility.hotControl ||
+                lockControlID == GUIUtility.hotControl ||
+                lockControlID2 == GUIUtility.hotControl ||
+                mainControlID == GUIUtility.hotControl;
         return changed;
     }
 
@@ -741,7 +750,7 @@ public class HingeJoint2DEditor : JointEditor
                         Vector2.Distance(
                             JointEditorHelpers.GetAnchorPosition(hingeJoint2D),
                             JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
-                            ) > JointEditorSettings.AnchorEpsilon);
+                            ) > AnchorEpsilon);
                     if (farAway)
                     {
                         choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
@@ -798,9 +807,9 @@ public class HingeJoint2DEditor : JointEditor
             Vector2 curAnchor = serializedObject.FindProperty("m_Anchor").vector2Value;
             Vector2 curConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor").vector2Value;
 
-            bool mainAnchorChanged = Vector2.Distance(curAnchor, originalAnchor) > JointEditorSettings.AnchorEpsilon;
+            bool mainAnchorChanged = Vector2.Distance(curAnchor, originalAnchor) > AnchorEpsilon;
             bool connectedAnchorChanged = Vector2.Distance(curConnectedAnchor, originalConnectedAnchor) >
-                                          JointEditorSettings.AnchorEpsilon;
+                                          AnchorEpsilon;
 
             if (mainAnchorChanged || connectedAnchorChanged)
             {
