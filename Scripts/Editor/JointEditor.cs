@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using toxicFork.GUIHelpers;
 using UnityEditor;
 using UnityEngine;
@@ -20,13 +21,13 @@ public class JointEditor : Editor {
         Either
     }
 
-    protected static Vector2 AnchorSlider(Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked, Joint2D joint)
+    protected static Vector2 AnchorSlider(Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, Joint2D joint)
     {
         int controlID = GUIUtility.GetControlID(FocusType.Native);
-        return AnchorSlider(controlID, position, handleScale, snapPositions, bias, locked, joint);
+        return AnchorSlider(controlID, position, handleScale, snapPositions, bias, joint);
     }
 
-    protected static Vector2 AnchorSlider(int controlID, Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked, Joint2D joint)
+    protected static Vector2 AnchorSlider(int controlID, Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, Joint2D joint)
     {
         float handleSize = HandleUtility.GetHandleSize(position)*handleScale;
         EditorGUI.BeginChangeCheck();
@@ -76,29 +77,32 @@ public class JointEditor : Editor {
         //Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         Vector2 result;
 
-        if (locked) {
-            using (
-                DisposableGUITextureDrawer drawer =
-                    new DisposableGUITextureDrawer(jointSettings.lockedHingeTexture,
-                                                   Quaternion.AngleAxis(originalAngle,
-                                                                        Vector3.forward),
-                                                   jointSettings.anchorDisplayScale)) {
-                result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
-                                          drawer.DrawSquare, Vector2.zero);
-            }
+
+        Texture2D sliderTexture;
+
+        switch (bias)
+        {
+            case AnchorBias.Main:
+                sliderTexture = jointSettings.mainHingeTexture;
+                break;
+            case AnchorBias.Connected:
+                sliderTexture = jointSettings.connectedHingeTexture;
+                break;
+            case AnchorBias.Either:
+                sliderTexture = jointSettings.lockedHingeTexture;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException("bias");
         }
-        else {
-            using (
-                DisposableGUITextureDrawer drawer = new DisposableGUITextureDrawer(bias == AnchorBias.Main
-                                                                                       ? jointSettings.mainHingeTexture
-                                                                                       : jointSettings
-                                                                                             .connectedHingeTexture,
-                                                                                   Quaternion.AngleAxis(originalAngle,
-                                                                                                        Vector3.forward),
-                                                                                   jointSettings.anchorDisplayScale)) {
-                result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
-                                          drawer.DrawSquare, Vector2.zero);
-            }
+        using (
+            DisposableGUITextureDrawer drawer =
+                new DisposableGUITextureDrawer(sliderTexture,
+                                               Quaternion.AngleAxis(originalAngle,
+                                                                    Vector3.forward),
+                                               jointSettings.anchorDisplayScale))
+        {
+            result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
+                                      drawer.DrawSquare, Vector2.zero);
         }
         if (EditorGUI.EndChangeCheck() && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
