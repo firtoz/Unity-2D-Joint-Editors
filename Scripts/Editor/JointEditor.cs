@@ -20,11 +20,15 @@ public class JointEditor : Editor {
         Either
     }
 
-    protected static Vector2 AnchorSlider(Vector2 position, float handleScale, out bool changed,
-                                          IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked,
-                                          int? givenControlID, HingeJoint2D joint) {
+    protected static Vector2 AnchorSlider(Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked, Joint2D joint)
+    {
+        int controlID = GUIUtility.GetControlID(FocusType.Native);
+        return AnchorSlider(controlID, position, handleScale, snapPositions, bias, locked, joint);
+    }
+
+    protected static Vector2 AnchorSlider(int controlID, Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions, AnchorBias bias, bool locked, Joint2D joint)
+    {
         float handleSize = HandleUtility.GetHandleSize(position)*handleScale;
-        int controlID = givenControlID ?? GUIUtility.GetControlID(FocusType.Native);
         EditorGUI.BeginChangeCheck();
         Vector2 targetPosition;
         if (bias == AnchorBias.Connected) {
@@ -96,8 +100,7 @@ public class JointEditor : Editor {
                                           drawer.DrawSquare, Vector2.zero);
             }
         }
-        changed = EditorGUI.EndChangeCheck();
-        if (changed && snapPositions != null) {
+        if (EditorGUI.EndChangeCheck() && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
                 if (Vector2.Distance(result, snapPosition) < handleSize*0.25f) {
                     result = snapPosition;
