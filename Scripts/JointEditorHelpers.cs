@@ -22,7 +22,7 @@ public class JointEditorHelpers
     }
 
 
-    public static Vector2 GetAnchorPosition(HingeJoint2D joint2D)
+    public static Vector2 GetMainAnchorPosition(HingeJoint2D joint2D)
     {
         return Transform2DPoint(joint2D.transform, joint2D.anchor);
     }

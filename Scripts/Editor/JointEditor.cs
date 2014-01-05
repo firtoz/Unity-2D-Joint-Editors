@@ -258,14 +258,17 @@ public class JointEditor : Editor
                 case EventType.mouseDrag:
                 {
                     Event.current.Use();
-                }
                     break;
+                }
                 case EventType.mouseUp:
                 {
-                    Event.current.Use();
-                    GUIUtility.hotControl = 0;
-                }
+                    if (Event.current.button == 0)
+                    {
+                        Event.current.Use();
+                        GUIUtility.hotControl = 0;
+                    }
                     break;
+                }
                 case EventType.repaint:
 
                     if (Event.current.type == EventType.repaint)

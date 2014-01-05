@@ -224,12 +224,22 @@ public class HingeJoint2DEditor : JointEditor
         public readonly int sliderID;
         public readonly int lockID;
         public readonly int radiusID;
+        public bool showRadius;
+
+        public bool IsActive()
+        {
+            int hotControl = GUIUtility.hotControl;
+
+            return hotControl == radiusID || hotControl == sliderID || hotControl == lockID;
+        }
 
         public AnchorInfo()
         {
             sliderID = GUIUtility.GetControlID(FocusType.Passive);
             lockID = GUIUtility.GetControlID(FocusType.Passive);
             radiusID = GUIUtility.GetControlID(FocusType.Passive);
+
+            showRadius = true;
         }
     }
 
@@ -244,7 +254,7 @@ public class HingeJoint2DEditor : JointEditor
             anchorLock = false;
         }
 
-        Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+        Vector2 worldAnchor = JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D);
         Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 
         bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= AnchorEpsilon;
@@ -283,13 +293,25 @@ public class HingeJoint2DEditor : JointEditor
             {
                 changed = true;
             }
-            if (SingleAnchorGUI(hingeJoint2D, connected, otherAnchors, AnchorBias.Connected))
+
+            float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor)*jointSettings.orbitRangeScale;
+            float distanceFromMain = HandleUtility.DistanceToCircle(worldAnchor, mainHandleSize*.5f);
+            bool hoveringOverMain = distanceFromMain <= AnchorEpsilon;
+            if (hoveringOverMain)
             {
-                changed = true;
+                connected.showRadius = false;
+            }
+
+            if (!overlapping)
+            {
+                if (SingleAnchorGUI(hingeJoint2D, connected, otherAnchors, AnchorBias.Connected))
+                {
+                    changed = true;
+                }
             }
         }
 
-        DrawDiscs(hingeJoint2D, false);
+//        DrawDiscs(hingeJoint2D, false);
 
         if (DrawAngleLimits(hingeJoint2D))
         {
@@ -302,10 +324,8 @@ public class HingeJoint2DEditor : JointEditor
         }
     }
 
-    private static bool SingleAnchorGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo,
-        IEnumerable<Vector2> otherAnchors, AnchorBias bias)
+    private static bool SingleAnchorGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors, AnchorBias bias)
     {
-        int sliderID = anchorInfo.sliderID;
         int lockID = anchorInfo.lockID;
 
         bool changed = false;
@@ -314,7 +334,7 @@ public class HingeJoint2DEditor : JointEditor
             if (bias == AnchorBias.Either)
             {
                 //locked! show unlock
-                if (ToggleUnLockButton(lockID, hingeJoint2D, bias))
+                if (ToggleUnlockButton(lockID, hingeJoint2D, bias))
                 {
                     changed = true;
                 }
@@ -329,95 +349,91 @@ public class HingeJoint2DEditor : JointEditor
         }
         else
         {
-            if (AnchorSliderGUI(hingeJoint2D, anchorInfo, otherAnchors, bias))
-            {
-                changed = true;
-            }
-            if (AnchorRadiusGUI(hingeJoint2D, anchorInfo, bias))
+            if (SliderGUI(hingeJoint2D, anchorInfo, otherAnchors, bias))
             {
                 changed = true;
             }
         }
+
+        if (anchorInfo.showRadius && RadiusGUI(hingeJoint2D, anchorInfo, bias))
+        {
+            changed = true;
+        }
+
+        DiscGui(hingeJoint2D, anchorInfo, bias);
+
         return changed;
     }
 
-
-    /*private bool DrawRadiusHandles(HingeJoint2D hingeJoint2D, bool anchorLock, out bool inUse)
+    private static void DiscGui(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, AnchorBias bias)
     {
-        bool changed = false;
+        Vector3 center = GetAnchorPosition(hingeJoint2D, bias);
 
-        Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
-        Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+        float handleSize = HandleUtility.GetHandleSize(center)*jointSettings.orbitRangeScale;
+        float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
+        bool inZone = distance <= AnchorEpsilon;
 
-        bool overlapping = Vector2.Distance(worldConnectedAnchor, worldAnchor) <= AnchorEpsilon;
-
-        Transform transform = hingeJoint2D.transform;
-
-        int connectedRadiusControlID, mainRadiusControlID;
-
-        if (anchorLock && overlapping)
+        if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
+            (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
+             (anchorInfo.showRadius && (inZone || anchorInfo.IsActive()))))
         {
-            List<Transform> transforms = new List<Transform> { transform };
-            List<Transform> rightTransforms = new List<Transform>();
-
+            Vector3 bodyPosition = hingeJoint2D.transform.position;
+            using (new DisposableHandleColor(jointSettings.mainDiscColor))
+            {
+                Handles.DrawLine(bodyPosition, center);
+                Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, bodyPosition));
+            }
 
             if (hingeJoint2D.connectedBody)
             {
-                rightTransforms.Add(hingeJoint2D.connectedBody.transform);
-                if (Event.current.shift)
+                using (new DisposableHandleColor(jointSettings.connectedDiscColor))
                 {
-                    rightTransforms.Add(transform);
-                    transforms.Add(hingeJoint2D.connectedBody.transform);
-                }
-            }
-
-            EditorGUI.BeginChangeCheck();
-            DrawExtraGizmos(transforms, rightTransforms, worldAnchor, out mainRadiusControlID);
-            changed = EditorGUI.EndChangeCheck();
-            connectedRadiusControlID = GUIUtility.GetControlID(FocusType.Passive); //to keep controlIDs consistent
-        }
-        else
-        {
-            EditorGUI.BeginChangeCheck();
-
-            DrawExtraGizmos(new List<Transform> { transform }, null, worldAnchor, out mainRadiusControlID);
-
-            DrawExtraGizmos(
-                hingeJoint2D.connectedBody
-                    ? new List<Transform> { hingeJoint2D.connectedBody.transform }
-                    : new List<Transform> { transform }, null, worldConnectedAnchor, out connectedRadiusControlID);
-            changed = EditorGUI.EndChangeCheck();
-
-            if (!overlapping)
-            {
-                using (new DisposableHandleColor(Color.cyan))
-                {
-                    Handles.DrawLine(worldAnchor, worldConnectedAnchor);
+                    Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, center);
+                    Handles.DrawWireDisc(center, Vector3.forward,
+                        Vector2.Distance(center,
+                            hingeJoint2D.connectedBody.transform.position));
                 }
             }
         }
+    }
 
-        inUse = GUIUtility.hotControl == mainRadiusControlID ||
-                GUIUtility.hotControl == connectedRadiusControlID;
-
-        return changed;
-    }*/
-
-    private static bool AnchorRadiusGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, AnchorBias bias)
+    private static bool RadiusGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, AnchorBias bias)
     {
-        Vector3 center = GetPosition(hingeJoint2D, bias);
+        Vector3 center = GetAnchorPosition(hingeJoint2D, bias);
 
-        List<Transform> transforms = new List<Transform> { hingeJoint2D.transform };
+        List<Transform> transforms = new List<Transform>();
         List<Transform> rightTransforms = new List<Transform>();
-
-        if (hingeJoint2D.connectedBody)
+        switch (bias)
         {
-            rightTransforms.Add(hingeJoint2D.connectedBody.transform);
-            if (Event.current.shift)
-            {
-                rightTransforms.Add(hingeJoint2D.transform);
-                transforms.Add(hingeJoint2D.connectedBody.transform);
-            }
+            case AnchorBias.Connected:
+                if (hingeJoint2D.connectedBody)
+                {
+                    transforms.Add(hingeJoint2D.connectedBody.transform);
+                    rightTransforms.Add(hingeJoint2D.transform);
+                    if (Event.current.shift)
+                    {
+                        transforms.Add(hingeJoint2D.transform);
+                    }
+                }
+                else
+                {
+                    transforms.Add(hingeJoint2D.transform);
+                }
+                break;
+            default:
+                transforms.Add(hingeJoint2D.transform);
+                if (hingeJoint2D.connectedBody) {
+                    rightTransforms.Add(hingeJoint2D.connectedBody.transform);
+                    if (Event.current.shift)
+                    {
+                        transforms.Add(hingeJoint2D.connectedBody.transform);
+                    }
+                }
+                break;
+        }
+        if (Event.current.shift)
+        {
+            rightTransforms = transforms;
         }
 
         EditorGUI.BeginChangeCheck();
@@ -426,7 +442,7 @@ public class HingeJoint2DEditor : JointEditor
         return EditorGUI.EndChangeCheck();
     }
 
-    private static bool AnchorSliderGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors, AnchorBias bias)
+    private static bool SliderGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors, AnchorBias bias)
     {
         int sliderID = anchorInfo.sliderID;
         List<Vector2> snapPositions = new List<Vector2> {hingeJoint2D.transform.position};
@@ -439,16 +455,16 @@ public class HingeJoint2DEditor : JointEditor
         switch (bias)
         {
             case AnchorBias.Main:
-                snapPositions.Add(GetPosition(hingeJoint2D, AnchorBias.Connected));
+                snapPositions.Add(GetAnchorPosition(hingeJoint2D, AnchorBias.Connected));
                 break;
             case AnchorBias.Connected:
-                snapPositions.Add(GetPosition(hingeJoint2D, AnchorBias.Main));
+                snapPositions.Add(GetAnchorPosition(hingeJoint2D, AnchorBias.Main));
                 break;
         }
 
         snapPositions.AddRange(otherAnchors);
 
-        Vector3 position = GetPosition(hingeJoint2D, bias);
+        Vector3 position = GetAnchorPosition(hingeJoint2D, bias);
 
         EditorGUI.BeginChangeCheck();
         position = AnchorSlider(sliderID, position, jointSettings.anchorScale, snapPositions, bias, hingeJoint2D);
@@ -464,49 +480,7 @@ public class HingeJoint2DEditor : JointEditor
         return changed;
     }
 
-    private void DrawDiscs(HingeJoint2D hingeJoint2D, bool inUse)
-    {
-        Transform transform = hingeJoint2D.transform;
-        Vector2 worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
-        Vector2 worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
-
-        float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor)*jointSettings.orbitRangeScale;
-        float connectedHandleSize = HandleUtility.GetHandleSize(worldConnectedAnchor)*jointSettings.orbitRangeScale;
-        float distanceFromMain = HandleUtility.DistanceToCircle(worldAnchor, mainHandleSize*.5f);
-        float distanceFromConnected = HandleUtility.DistanceToCircle(worldConnectedAnchor, connectedHandleSize*.5f);
-        bool inZone = distanceFromMain <= AnchorEpsilon ||
-                      distanceFromConnected <= AnchorEpsilon;
-
-        bool overlapping = Vector2.Distance(worldAnchor, worldConnectedAnchor) <= AnchorEpsilon;
-
-        if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
-            ((inZone || inUse) && jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover))
-        {
-            using (new DisposableHandleColor(jointSettings.mainDiscColor))
-            {
-                Handles.DrawWireDisc(worldAnchor, Vector3.forward, Vector2.Distance(worldAnchor, transform.position));
-                Handles.DrawLine(transform.position, worldAnchor);
-
-                if (!overlapping)
-                {
-                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
-                        Vector2.Distance(worldConnectedAnchor, transform.position));
-                    Handles.DrawLine(transform.position, worldConnectedAnchor);
-                }
-            }
-            if (hingeJoint2D.connectedBody)
-            {
-                using (new DisposableHandleColor(jointSettings.connectedDiscColor))
-                {
-                    Handles.DrawWireDisc(worldConnectedAnchor, Vector3.forward,
-                        Vector2.Distance(worldConnectedAnchor,
-                            hingeJoint2D.connectedBody.transform.position));
-                    Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, worldConnectedAnchor);
-                }
-            }
-            HandleUtility.Repaint();
-        }
-    }
+    
 
     private static void DrawRadiusHandle(int controlID, IEnumerable<Transform> transforms, IEnumerable<Transform> rightTransforms,
         Vector2 midPoint)
@@ -532,7 +506,7 @@ public class HingeJoint2DEditor : JointEditor
 
     private static bool ToggleLockButton(int controlID, HingeJoint2D hingeJoint2D, AnchorBias bias)
     {
-        Vector3 center = GetPosition(hingeJoint2D, bias);
+        Vector3 center = GetAnchorPosition(hingeJoint2D, bias);
 
         bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
             center,
@@ -553,9 +527,9 @@ public class HingeJoint2DEditor : JointEditor
         return lockPressed;
     }
 
-    private static bool ToggleUnLockButton(int controlID, HingeJoint2D hingeJoint2D, AnchorBias bias)
+    private static bool ToggleUnlockButton(int controlID, HingeJoint2D hingeJoint2D, AnchorBias bias)
     {
-        Vector3 center = GetPosition(hingeJoint2D, bias);
+        Vector3 center = GetAnchorPosition(hingeJoint2D, bias);
 
         bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
             center,
@@ -575,14 +549,14 @@ public class HingeJoint2DEditor : JointEditor
     }
 
 
-    private static Vector3 GetPosition(HingeJoint2D hingeJoint2D, AnchorBias bias)
+    private static Vector3 GetAnchorPosition(HingeJoint2D hingeJoint2D, AnchorBias bias)
     {
         switch (bias)
         {
             case AnchorBias.Connected:
                 return JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
             default:
-                return JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
+                return JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D);
         }
     }
 
@@ -691,7 +665,7 @@ public class HingeJoint2DEditor : JointEditor
                 {
                     bool farAway = targets.Cast<HingeJoint2D>().Any(hingeJoint2D =>
                         Vector2.Distance(
-                            JointEditorHelpers.GetAnchorPosition(hingeJoint2D),
+                            JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D),
                             JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
                             ) > AnchorEpsilon);
                     if (farAway)
@@ -731,21 +705,38 @@ public class HingeJoint2DEditor : JointEditor
             }
         }
 
-//        SerializedProperty propertyIterator = serializedObject.GetIterator();
-//        do
-//        {
-//            Debug.Log(propertyIterator.name);
-//        } while (propertyIterator.Next(true));
+        /*SerializedProperty propertyIterator = serializedObject.GetIterator();
+        do
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.TextField(propertyIterator.propertyPath);
+            EditorGUILayout.LabelField(propertyIterator.type);
+            EditorGUILayout.EndHorizontal();
+        } while (propertyIterator.Next(true));*/
 
         Vector2 originalAnchor = serializedObject.FindProperty("m_Anchor").vector2Value;
         Vector2 originalConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor").vector2Value;
         Object connectedRigidBody = serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue;
+
+        /*SerializedProperty angleLimits = serializedObject.FindProperty("m_AngleLimits");
+        float lowerAngle = angleLimits.FindPropertyRelative("m_LowerAngle").floatValue;
+        float upperAngle = angleLimits.FindPropertyRelative("m_UpperAngle").floatValue;
+        EditorGUI.BeginChangeCheck();
+        lowerAngle = EditorGUILayout.FloatField("Lower Angle", lowerAngle);
+        upperAngle = EditorGUILayout.FloatField("Upper Angle", upperAngle);
+        if (EditorGUI.EndChangeCheck())
+        {
+            angleLimits.FindPropertyRelative("m_LowerAngle").floatValue = lowerAngle;
+            angleLimits.FindPropertyRelative("m_UpperAngle").floatValue = upperAngle;
+            serializedObject.ApplyModifiedProperties();
+        }*/
 
         Dictionary<HingeJoint2D, Vector2> worldConnectedAnchors =
             targets.Cast<HingeJoint2D>()
                 .ToDictionary(hingeJoint2D => hingeJoint2D,
                     hingeJoint2D => JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D));
 
+        
         EditorGUI.BeginChangeCheck();
         DrawDefaultInspector();
         if (EditorGUI.EndChangeCheck())
