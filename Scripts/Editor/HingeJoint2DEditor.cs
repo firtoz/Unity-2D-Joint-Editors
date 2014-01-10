@@ -485,7 +485,9 @@ public class HingeJoint2DEditor : JointEditor
     private static void DrawRadiusHandle(int controlID, IEnumerable<Transform> transforms, IEnumerable<Transform> rightTransforms,
         Vector2 midPoint)
     {
-        RadiusHandle(controlID, transforms,
+        RadiusHandle(controlID, 
+            transforms,
+            rightTransforms,
             midPoint,
             HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
             HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);

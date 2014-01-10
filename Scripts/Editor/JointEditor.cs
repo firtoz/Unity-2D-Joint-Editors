@@ -151,15 +151,61 @@ public class JointEditor : Editor
         public Vector2 previousPosition, originalPosition;
         public Dictionary<Transform, TransformInfo> originalTransformInfos;
         public float accum;
+        public int button;
     }
 
-    protected static void RadiusHandle(IEnumerable<Transform> transforms, Vector2 midPoint, float innerRadius,
+    protected static void RadiusHandle(
+        IEnumerable<Transform> transforms, 
+        IEnumerable<Transform> rightTransforms, 
+        Vector2 midPoint, 
+        float innerRadius,
         float radius)
     {
-        RadiusHandle(GUIUtility.GetControlID(FocusType.Passive), transforms, midPoint, innerRadius, radius);
+        RadiusHandle(
+            GUIUtility.GetControlID(FocusType.Passive), 
+            transforms,
+            rightTransforms,
+            midPoint, 
+            innerRadius, 
+            radius);
     }
 
-    protected static void RadiusHandle(int controlID, IEnumerable<Transform> transforms, Vector2 midPoint,
+    protected static void RadiusHandle(
+        IEnumerable<Transform> transforms, 
+        Vector2 midPoint, 
+        float innerRadius,
+        float radius)
+    {
+        RadiusHandle(
+            GUIUtility.GetControlID(FocusType.Passive), 
+            transforms,
+            null,
+            midPoint, 
+            innerRadius, 
+            radius);
+    }
+
+    protected static void RadiusHandle(
+        int controlID,
+        IEnumerable<Transform> transforms,
+        Vector2 midPoint,
+        float innerRadius,
+        float radius)
+    {
+        RadiusHandle(
+            controlID,
+            transforms,
+            null,
+            midPoint,
+            innerRadius,
+            radius);
+    }
+
+    protected static void RadiusHandle(
+        int controlID, 
+        IEnumerable<Transform> transforms,
+        IEnumerable<Transform> rightTransforms, 
+        Vector2 midPoint,
         float innerRadius,
         float radius)
     {
@@ -262,7 +308,7 @@ public class JointEditor : Editor
                 }
                 case EventType.mouseUp:
                 {
-                    if (Event.current.button == 0)
+                    if (Event.current.button == radiusHandleData.button)
                     {
                         Event.current.Use();
                         GUIUtility.hotControl = 0;
@@ -350,15 +396,30 @@ public class JointEditor : Editor
             switch (Event.current.type)
             {
                 case EventType.mouseDown:
-                    if (Event.current.button == 0 && GUIUtility.hotControl == 0)
+                    if (GUIUtility.hotControl == 0 &&
+                        (Event.current.button == 0 || (Event.current.button == 1 && (rightTransforms != null))))
                     {
+
                         GUIUtility.hotControl = controlID;
                         radiusHandleData.originalTransformInfos = new Dictionary<Transform, TransformInfo>();
-                        foreach (Transform transform in transforms)
+                        radiusHandleData.button = Event.current.button;
+                        if (Event.current.button == 0)
                         {
-                            radiusHandleData.originalTransformInfos.Add(transform,
-                                new TransformInfo(transform.position,
-                                    transform.rotation));
+                            foreach (Transform transform in transforms)
+                            {
+                                radiusHandleData.originalTransformInfos.Add(transform,
+                                    new TransformInfo(transform.position,
+                                        transform.rotation));
+                            }
+                        }
+                        else if(rightTransforms != null)
+                        {
+                            foreach (Transform transform in rightTransforms)
+                            {
+                                radiusHandleData.originalTransformInfos.Add(transform,
+                                    new TransformInfo(transform.position,
+                                        transform.rotation));
+                            }
                         }
                         radiusHandleData.previousPosition = Event.current.mousePosition;
                         radiusHandleData.originalPosition = Event.current.mousePosition;
