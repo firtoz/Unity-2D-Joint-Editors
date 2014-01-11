@@ -294,7 +294,7 @@ public class HingeJoint2DEditor : JointEditor
                 changed = true;
             }
 
-            float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor)*jointSettings.orbitRangeScale;
+            float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor)*editorSettings.orbitRangeScale;
             float distanceFromMain = HandleUtility.DistanceToCircle(worldAnchor, mainHandleSize*.5f);
             bool hoveringOverMain = distanceFromMain <= AnchorEpsilon;
             if (hoveringOverMain)
@@ -369,16 +369,16 @@ public class HingeJoint2DEditor : JointEditor
     {
         Vector3 center = GetAnchorPosition(hingeJoint2D, bias);
 
-        float handleSize = HandleUtility.GetHandleSize(center)*jointSettings.orbitRangeScale;
+        float handleSize = HandleUtility.GetHandleSize(center)*editorSettings.orbitRangeScale;
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
-        if (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
-            (jointSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
+        if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
+            (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
              (anchorInfo.showRadius && (inZone || anchorInfo.IsActive()))))
         {
             Vector3 bodyPosition = hingeJoint2D.transform.position;
-            using (new DisposableHandleColor(jointSettings.mainDiscColor))
+            using (new DisposableHandleColor(editorSettings.mainDiscColor))
             {
                 Handles.DrawLine(bodyPosition, center);
                 Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, bodyPosition));
@@ -386,7 +386,7 @@ public class HingeJoint2DEditor : JointEditor
 
             if (hingeJoint2D.connectedBody)
             {
-                using (new DisposableHandleColor(jointSettings.connectedDiscColor))
+                using (new DisposableHandleColor(editorSettings.connectedDiscColor))
                 {
                     Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, center);
                     Handles.DrawWireDisc(center, Vector3.forward,
@@ -467,7 +467,7 @@ public class HingeJoint2DEditor : JointEditor
         Vector3 position = GetAnchorPosition(hingeJoint2D, bias);
 
         EditorGUI.BeginChangeCheck();
-        position = AnchorSlider(sliderID, position, jointSettings.anchorScale, snapPositions, bias, hingeJoint2D);
+        position = AnchorSlider(sliderID, position, editorSettings.anchorScale, snapPositions, bias, hingeJoint2D);
 
         bool changed = false;
         if (EditorGUI.EndChangeCheck())
@@ -489,8 +489,8 @@ public class HingeJoint2DEditor : JointEditor
             transforms,
             rightTransforms,
             midPoint,
-            HandleUtility.GetHandleSize(midPoint)*jointSettings.anchorScale*0.5f,
-            HandleUtility.GetHandleSize(midPoint)*jointSettings.orbitRangeScale*0.5f);
+            HandleUtility.GetHandleSize(midPoint)*editorSettings.anchorScale*0.5f,
+            HandleUtility.GetHandleSize(midPoint)*editorSettings.orbitRangeScale*0.5f);
     }
 
     private bool DrawAngleLimits(HingeJoint2D hingeJoint2D)
@@ -512,8 +512,8 @@ public class HingeJoint2DEditor : JointEditor
 
         bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
             center,
-            HandleUtility.GetHandleSize(center)*jointSettings.lockButtonScale,
-            jointSettings.unlockButtonTexture, jointSettings.lockButtonTexture);
+            HandleUtility.GetHandleSize(center)*editorSettings.lockButtonScale,
+            editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture);
 
         if (lockPressed)
         {
@@ -535,8 +535,8 @@ public class HingeJoint2DEditor : JointEditor
 
         bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
             center,
-            HandleUtility.GetHandleSize(center)*jointSettings.lockButtonScale,
-            jointSettings.lockButtonTexture, jointSettings.unlockButtonTexture);
+            HandleUtility.GetHandleSize(center)*editorSettings.lockButtonScale,
+            editorSettings.lockButtonTexture, editorSettings.unlockButtonTexture);
 
         if (lockPressed)
         {
@@ -581,131 +581,143 @@ public class HingeJoint2DEditor : JointEditor
 
     public override void OnInspectorGUI()
     {
-        int grp = Undo.GetCurrentGroup();
-
         EditorGUI.BeginChangeCheck();
-
-        bool? lockAnchors = null;
-        bool? showJointGizmos = null;
-        bool valueDifferent = false;
-        bool gizmoValueDifferent = false;
-
-        foreach (HingeJoint2D hingeJoint2D in targets)
+        bool foldout = EditorGUILayout.Foldout(editorSettings.foldout, "Advanced Options");
+        if (EditorGUI.EndChangeCheck())
         {
-            HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
-            bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
-            bool wantsGizmos = hingeSettings == null || hingeSettings.showJointGizmos;
-            if (lockAnchors != null)
-            {
-                if (lockAnchors.Value != wantsLock)
-                {
-                    valueDifferent = true;
-                }
-            }
-            else
-            {
-                lockAnchors = wantsLock;
-            }
-            if (showJointGizmos != null)
-            {
-                if (showJointGizmos.Value != wantsGizmos)
-                {
-                    gizmoValueDifferent = true;
-                }
-            }
-            else
-            {
-                showJointGizmos = wantsGizmos;
-            }
+            editorSettings.foldout = foldout;
+            EditorUtility.SetDirty(editorSettings);
         }
-
-        using (new DisposableEditorGUIMixedValue(gizmoValueDifferent))
+        int grp = Undo.GetCurrentGroup();
+        EditorGUI.BeginChangeCheck();
+        if (foldout)
         {
-            bool enabled = true;
-            if (showJointGizmos == null)
+            using (new DisposableEditorGUIIndent())
             {
-                showJointGizmos = false;
-                enabled = false;
-            }
-            EditorGUI.BeginChangeCheck();
-            using (new DisposableGUIEnabled(enabled))
-            {
-                showJointGizmos = EditorGUILayout.Toggle("Show Gizmos", showJointGizmos.Value);
-            }
-            if (EditorGUI.EndChangeCheck())
-            {
+                bool? lockAnchors = null;
+                bool? showJointGizmos = null;
+                bool valueDifferent = false;
+                bool gizmoValueDifferent = false;
+
                 foreach (HingeJoint2D hingeJoint2D in targets)
                 {
-                    HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
-
-                    GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
-                    hingeSettings.showJointGizmos = showJointGizmos.Value;
-                    EditorUtility.SetDirty(hingeSettings);
-                }
-            }
-        }
-        using (new DisposableEditorGUIMixedValue(valueDifferent))
-        {
-            bool enabled = true;
-            if (lockAnchors == null)
-            {
-                lockAnchors = false;
-                enabled = false;
-            }
-            EditorGUI.BeginChangeCheck();
-            using (new DisposableGUIEnabled(enabled))
-            {
-                lockAnchors = EditorGUILayout.Toggle("Lock Anchors", lockAnchors.Value);
-            }
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                bool wantsContinue = true;
-                int choice = 1;
-
-                if (lockAnchors.Value)
-                {
-                    bool farAway = targets.Cast<HingeJoint2D>().Any(hingeJoint2D =>
-                        Vector2.Distance(
-                            JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D),
-                            JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
-                            ) > AnchorEpsilon);
-                    if (farAway)
+                    HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+                    bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
+                    bool wantsGizmos = hingeSettings == null || hingeSettings.showJointGizmos;
+                    if (lockAnchors != null)
                     {
-                        choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
-                            "Which anchor would you like to lock to?",
-                            "Main",
-                            "Connected",
-                            "Cancel");
-
-                        if (choice == 2)
+                        if (lockAnchors.Value != wantsLock)
                         {
-                            wantsContinue = false;
+                            valueDifferent = true;
+                        }
+                    }
+                    else
+                    {
+                        lockAnchors = wantsLock;
+                    }
+                    if (showJointGizmos != null)
+                    {
+                        if (showJointGizmos.Value != wantsGizmos)
+                        {
+                            gizmoValueDifferent = true;
+                        }
+                    }
+                    else
+                    {
+                        showJointGizmos = wantsGizmos;
+                    }
+                }
+
+                using (new DisposableEditorGUIMixedValue(gizmoValueDifferent))
+                {
+                    bool enabled = true;
+                    if (showJointGizmos == null)
+                    {
+                        showJointGizmos = false;
+                        enabled = false;
+                    }
+                    EditorGUI.BeginChangeCheck();
+                    using (new DisposableGUIEnabled(enabled))
+                    {
+                        showJointGizmos = EditorGUILayout.Toggle("Show Gizmos", showJointGizmos.Value);
+                    }
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        foreach (HingeJoint2D hingeJoint2D in targets)
+                        {
+                            HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                            GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
+                            hingeSettings.showJointGizmos = showJointGizmos.Value;
+                            EditorUtility.SetDirty(hingeSettings);
                         }
                     }
                 }
-                if (wantsContinue)
+                using (new DisposableEditorGUIMixedValue(valueDifferent))
                 {
-                    foreach (HingeJoint2D hingeJoint2D in targets)
+                    bool enabled = true;
+                    if (lockAnchors == null)
                     {
-                        HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+                        lockAnchors = false;
+                        enabled = false;
+                    }
+                    EditorGUI.BeginChangeCheck();
+                    using (new DisposableGUIEnabled(enabled))
+                    {
+                        lockAnchors = EditorGUILayout.Toggle("Lock Anchors", lockAnchors.Value);
+                    }
 
-                        GUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
-                        hingeSettings.lockAnchors = lockAnchors.Value;
-                        EditorUtility.SetDirty(hingeSettings);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        bool wantsContinue = true;
+                        int choice = 1;
 
                         if (lockAnchors.Value)
                         {
-                            AnchorBias bias = choice == 0 ? AnchorBias.Main : AnchorBias.Connected;
+                            bool farAway = targets.Cast<HingeJoint2D>().Any(hingeJoint2D =>
+                                Vector2.Distance(
+                                    JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D),
+                                    JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
+                                    ) > AnchorEpsilon);
+                            if (farAway)
+                            {
+                                choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
+                                    "Which anchor would you like to lock to?",
+                                    "Main",
+                                    "Connected",
+                                    "Cancel");
 
-                            GUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
-                            ReAlignAnchors(hingeJoint2D, bias);
-                            EditorUtility.SetDirty(hingeJoint2D);
+                                if (choice == 2)
+                                {
+                                    wantsContinue = false;
+                                }
+                            }
+                        }
+                        if (wantsContinue)
+                        {
+                            foreach (HingeJoint2D hingeJoint2D in targets)
+                            {
+                                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                                GUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
+                                hingeSettings.lockAnchors = lockAnchors.Value;
+                                EditorUtility.SetDirty(hingeSettings);
+
+                                if (lockAnchors.Value)
+                                {
+                                    AnchorBias bias = choice == 0 ? AnchorBias.Main : AnchorBias.Connected;
+
+                                    GUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
+                                    ReAlignAnchors(hingeJoint2D, bias);
+                                    EditorUtility.SetDirty(hingeJoint2D);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        
 
         /*SerializedProperty propertyIterator = serializedObject.GetIterator();
         do

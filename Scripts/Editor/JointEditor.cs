@@ -8,13 +8,13 @@ public class JointEditor : Editor
 {
     protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
 
-    private static JointEditorSettings _jointSettings;
+    private static JointEditorSettings _editorSettings;
 
-    protected static JointEditorSettings jointSettings
+    protected static JointEditorSettings editorSettings
     {
         get
         {
-            return _jointSettings ?? (_jointSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset"));
+            return _editorSettings ?? (_editorSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset"));
         }
     }
 
@@ -71,10 +71,10 @@ public class JointEditor : Editor
         {
             using (
                 DisposableGUITextureDrawer drawer =
-                    new DisposableGUITextureDrawer(jointSettings.hotHingeTexture,
+                    new DisposableGUITextureDrawer(editorSettings.hotHingeTexture,
                         Quaternion.AngleAxis(originalAngle,
                             Vector3.forward),
-                        jointSettings.anchorDisplayScale))
+                        editorSettings.anchorDisplayScale))
             {
                 drawer.DrawSquare(position, Quaternion.identity, handleSize);
             }
@@ -97,13 +97,13 @@ public class JointEditor : Editor
         switch (bias)
         {
             case AnchorBias.Main:
-                sliderTexture = jointSettings.mainHingeTexture;
+                sliderTexture = editorSettings.mainHingeTexture;
                 break;
             case AnchorBias.Connected:
-                sliderTexture = jointSettings.connectedHingeTexture;
+                sliderTexture = editorSettings.connectedHingeTexture;
                 break;
             case AnchorBias.Either:
-                sliderTexture = jointSettings.lockedHingeTexture;
+                sliderTexture = editorSettings.lockedHingeTexture;
                 break;
             default:
                 throw new ArgumentOutOfRangeException("bias");
@@ -113,7 +113,7 @@ public class JointEditor : Editor
                 new DisposableGUITextureDrawer(sliderTexture,
                     Quaternion.AngleAxis(originalAngle,
                         Vector3.forward),
-                    jointSettings.anchorDisplayScale))
+                    editorSettings.anchorDisplayScale))
         {
             result = Handles.Slider2D(controlID, position, Vector3.forward, Vector3.up, Vector3.right, handleSize,
                 drawer.DrawSquare, Vector2.zero);
@@ -331,8 +331,8 @@ public class JointEditor : Editor
                             float completion = 360 - arcAngle;
                             using (
                                 new DisposableHandleColor(spins%2 == 1
-                                    ? jointSettings.radiusColor
-                                    : jointSettings.alternateRadiusColor))
+                                    ? editorSettings.radiusColor
+                                    : editorSettings.alternateRadiusColor))
                             {
                                 Handles.DrawSolidArc(midPoint, Vector3.forward,
                                     (Quaternion.AngleAxis(originalAngle, Vector3.forward))*
@@ -342,8 +342,8 @@ public class JointEditor : Editor
                         }
                         using (
                             new DisposableHandleColor(spins%2 == 0
-                                ? jointSettings.radiusColor
-                                : jointSettings.alternateRadiusColor))
+                                ? editorSettings.radiusColor
+                                : editorSettings.alternateRadiusColor))
                         {
                             Handles.DrawSolidArc(midPoint, Vector3.forward,
                                 (Quaternion.AngleAxis(originalAngle, Vector3.forward))*
@@ -351,20 +351,20 @@ public class JointEditor : Editor
                                 arcAngle, radius);
                         }
 
-                        if (jointSettings.drawRadiusRings)
+                        if (editorSettings.drawRadiusRings)
                         {
                             using (new DisposableHandleColor())
                             {
                                 for (int i = 0; i <= spins; i++)
                                 {
                                     Handles.color = i%2 == 0
-                                        ? jointSettings.radiusColor
-                                        : jointSettings.alternateRadiusColor;
+                                        ? editorSettings.radiusColor
+                                        : editorSettings.alternateRadiusColor;
                                     Handles.DrawWireDisc(midPoint, Vector3.forward, radius + radius*i*0.125f);
                                 }
                                 Handles.color = Color.Lerp(Handles.color, spins%2 == 1
-                                    ? jointSettings.radiusColor
-                                    : jointSettings.alternateRadiusColor,
+                                    ? editorSettings.radiusColor
+                                    : editorSettings.alternateRadiusColor,
                                     Mathf.Abs(arcAngle/360));
                                 Handles.DrawWireDisc(midPoint, Vector3.forward, radius +
                                                                                 radius*(spins + Mathf.Abs(arcAngle/360))*
@@ -382,7 +382,7 @@ public class JointEditor : Editor
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
         {
             GUIHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
-            using (new DisposableHandleColor(jointSettings.previewRadiusColor))
+            using (new DisposableHandleColor(editorSettings.previewRadiusColor))
             {
                 Handles.DrawSolidDisc(midPoint, Vector3.forward, innerRadius);
                 Handles.DrawWireDisc(midPoint, Vector3.forward, radius);

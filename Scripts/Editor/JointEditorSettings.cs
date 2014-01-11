@@ -42,6 +42,7 @@ public class JointEditorSettings : ScriptableObject {
     public bool drawRadiusRings = true;
 
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
+    public bool foldout = false;
 
     public void OnEnable() {
         if (!_initialized) {
