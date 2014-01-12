@@ -12,9 +12,15 @@ public class JointEditor : Editor
 
     protected static JointEditorSettings editorSettings
     {
-        get
-        {
-            return _editorSettings ?? (_editorSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset"));
+        get {
+	        if (_editorSettings != null) {
+		        return _editorSettings;
+	        }
+	        _editorSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
+	        if (_editorSettings == null) {
+		        Debug.Log("deleted!");
+	        }
+	        return _editorSettings;
         }
     }
 
