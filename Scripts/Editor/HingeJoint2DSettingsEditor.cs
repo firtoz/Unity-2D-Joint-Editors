@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using toxicFork.GUIHelpers;
 using UnityEditor;
 using UnityEngine;
@@ -8,6 +9,7 @@ using UnityEngine;
 public class HingeJoint2DSettingsEditor : Editor {
 	public void OnEnable()
 	{
+		EditorApplication.update += Update;
 		foreach (HingeJoint2DSettings hingeJoint2DSettings in targets)
 		{
 			if (hingeJoint2DSettings.attachedJoint == null)
@@ -17,14 +19,36 @@ public class HingeJoint2DSettingsEditor : Editor {
 		}
 	}
 
+	private void Update() {
+		if (!EditorApplication.isPlayingOrWillChangePlaymode) {
+			foreach (HingeJoint2DSettings hingeJoint2DSettings in targets) {
+				HingeJoint2D hingeJoint2D = hingeJoint2DSettings.attachedJoint;
+				
+				Vector2 mainCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
+				Vector2 mainPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
+
+				hingeJoint2DSettings.mainAngle = JointEditorHelpers.AngleFromAnchor(mainCenter, mainPosition, JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Main));
+
+				if (hingeJoint2D.connectedBody) {
+					Vector2 connectedCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
+					Vector2 connectedPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
+
+					hingeJoint2DSettings.connectedAngle = JointEditorHelpers.AngleFromAnchor(connectedCenter, connectedPosition, JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected));
+				}
+			}
+		}
+	}
+
+
+
 	public void OnDisable() {
+		EditorApplication.update -= Update;
 		foreach (HingeJoint2DSettings hingeJoint2DSettings in targets) {
 			if (hingeJoint2DSettings.attachedJoint == null) {
 				DestroyImmediate(hingeJoint2DSettings);
 			}
 		}
 	}
-
 
     private static HingeJoint2DSettings Create(HingeJoint2D hingeJoint2D)
     {

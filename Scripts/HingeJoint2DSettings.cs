@@ -8,6 +8,8 @@ public class HingeJoint2DSettings : MonoBehaviour {
     public bool lockAnchors = false;
     public bool showJointGizmos = true;
     public HingeJoint2D attachedJoint;
+	public float mainAngle;
+	public float connectedAngle;
 //    public Vector2 worldAnchor; 
 //    public Vector2 worldConnectedAnchor; 
 
