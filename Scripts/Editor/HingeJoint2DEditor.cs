@@ -150,9 +150,10 @@ public class HingeJoint2DEditor : JointEditor
 
         bool anchorLock = hingeSettings != null && hingeSettings.lockAnchors;
 
-        if (EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPaused)
+        bool playing = EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPaused;
+        if (playing)
         {
-            anchorLock = false;
+//            anchorLock = false;
         }
 
         Vector2 worldAnchor = JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D);
@@ -168,7 +169,7 @@ public class HingeJoint2DEditor : JointEditor
 
         if (anchorLock)
         {
-            if (overlapping)
+            if (playing || overlapping)
             {
                 if (SingleAnchorGUI(hingeJoint2D, locked, otherAnchors, JointEditorHelpers.AnchorBias.Either))
                 {
@@ -190,22 +191,22 @@ public class HingeJoint2DEditor : JointEditor
         }
         else
         {
-            if (SingleAnchorGUI(hingeJoint2D, main, otherAnchors, JointEditorHelpers.AnchorBias.Main))
+            if (SingleAnchorGUI(hingeJoint2D, connected, otherAnchors, JointEditorHelpers.AnchorBias.Connected))
             {
                 changed = true;
             }
 
-            float mainHandleSize = HandleUtility.GetHandleSize(worldAnchor)*editorSettings.orbitRangeScale;
-            float distanceFromMain = HandleUtility.DistanceToCircle(worldAnchor, mainHandleSize*.5f);
-            bool hoveringOverMain = distanceFromMain <= AnchorEpsilon;
-            if (hoveringOverMain)
+            float handleSize = HandleUtility.GetHandleSize(worldConnectedAnchor) * editorSettings.orbitRangeScale;
+            float distance = HandleUtility.DistanceToCircle(worldConnectedAnchor, handleSize * .5f);
+            bool hovering = distance <= AnchorEpsilon;
+            if (hovering)
             {
                 connected.showRadius = false;
             }
 
             if (!overlapping)
             {
-                if (SingleAnchorGUI(hingeJoint2D, connected, otherAnchors, JointEditorHelpers.AnchorBias.Connected))
+                if (SingleAnchorGUI(hingeJoint2D, main, otherAnchors, JointEditorHelpers.AnchorBias.Main))
                 {
                     changed = true;
                 }
@@ -297,9 +298,19 @@ public class HingeJoint2DEditor : JointEditor
 			}
 
 
-			using(new DisposableHandleColor(editorSettings.angleLimitColor)) {
-				Handles.DrawLine(center, center + JointEditorHelpers.Rotated2DVector(angle - minLimit) * handleSize);
-				Handles.DrawLine(center, center + JointEditorHelpers.Rotated2DVector(angle - maxLimit) * handleSize);
+		    using (new DisposableHandleColor(Color.black))
+		    {
+                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 3), 6, handleSize + 10 / HandleUtility.GetHandleSize(center));
+                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 3), 6, handleSize);
+		    }
+			using(new DisposableHandleColor(Color.white)) {
+
+//                Vector3 minVector = JointEditorHelpers.Rotated2DVector(angle - minLimit);
+                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 1), 2, handleSize);
+                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 1), 2, handleSize);
+//
+//			    Handles.DrawLine(center, center + minVector * handleSize);
+//				Handles.DrawLine(center, center + JointEditorHelpers.Rotated2DVector(angle - maxLimit) * handleSize);
 			}
 
 		}

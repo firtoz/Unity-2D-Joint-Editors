@@ -313,57 +313,54 @@ public class JointEditor : Editor
                     break;
                 }
                 case EventType.repaint:
+                    int spins = Mathf.FloorToInt(Mathf.Abs(snappedAccum/360));
+                    float arcAngle = snappedAccum%360;
 
-                    if (Event.current.type == EventType.repaint)
+                    if (spins > 0)
                     {
-                        int spins = Mathf.FloorToInt(Mathf.Abs(snappedAccum/360));
-                        float arcAngle = snappedAccum%360;
-
-                        if (spins > 0)
-                        {
 //                            using (new DisposableHandleColor(Color.yellow))
 //                            {
 //                                Handles.DrawSolidDisc(midPoint, Vector3.forward, radius * Mathf.Abs(snappedAccum / 360) * 0.125f);
 //                            }
-                            float completion = 360 - arcAngle;
-                            using (
-                                new DisposableHandleColor(spins%2 == 1
-                                    ? editorSettings.radiusColor
-                                    : editorSettings.alternateRadiusColor))
-                            {
-                                Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                    JointEditorHelpers.Rotated2DVector(originalAngle),
-                                    -completion, radius);
-                            }
-                        }
+                        float completion = 360 - arcAngle;
                         using (
-                            new DisposableHandleColor(spins%2 == 0
+                            new DisposableHandleColor(spins%2 == 1
                                 ? editorSettings.radiusColor
-                                : editorSettings.alternateRadiusColor)) {
-	                        Handles.DrawSolidArc(midPoint, Vector3.forward,
-		                        JointEditorHelpers.Rotated2DVector(originalAngle),
-                                arcAngle, radius);
-                        }
-
-                        if (editorSettings.drawRadiusRings)
+                                : editorSettings.alternateRadiusColor))
                         {
-                            using (new DisposableHandleColor())
+                            Handles.DrawSolidArc(midPoint, Vector3.forward,
+                                JointEditorHelpers.Rotated2DVector(originalAngle),
+                                -completion, radius);
+                        }
+                    }
+                    using (
+                        new DisposableHandleColor(spins%2 == 0
+                            ? editorSettings.radiusColor
+                            : editorSettings.alternateRadiusColor))
+                    {
+                        Handles.DrawSolidArc(midPoint, Vector3.forward,
+                            JointEditorHelpers.Rotated2DVector(originalAngle),
+                            arcAngle, radius);
+                    }
+
+                    if (editorSettings.drawRadiusRings)
+                    {
+                        using (new DisposableHandleColor())
+                        {
+                            for (int i = 0; i <= spins; i++)
                             {
-                                for (int i = 0; i <= spins; i++)
-                                {
-                                    Handles.color = i%2 == 0
-                                        ? editorSettings.radiusColor
-                                        : editorSettings.alternateRadiusColor;
-                                    Handles.DrawWireDisc(midPoint, Vector3.forward, radius + radius*i*0.125f);
-                                }
-                                Handles.color = Color.Lerp(Handles.color, spins%2 == 1
+                                Handles.color = i%2 == 0
                                     ? editorSettings.radiusColor
-                                    : editorSettings.alternateRadiusColor,
-                                    Mathf.Abs(arcAngle/360));
-                                Handles.DrawWireDisc(midPoint, Vector3.forward, radius +
-                                                                                radius*(spins + Mathf.Abs(arcAngle/360))*
-                                                                                0.125f);
+                                    : editorSettings.alternateRadiusColor;
+                                Handles.DrawWireDisc(midPoint, Vector3.forward, radius + radius*i*0.125f);
                             }
+                            Handles.color = Color.Lerp(Handles.color, spins%2 == 1
+                                ? editorSettings.radiusColor
+                                : editorSettings.alternateRadiusColor,
+                                Mathf.Abs(arcAngle/360));
+                            Handles.DrawWireDisc(midPoint, Vector3.forward, radius +
+                                                                            radius*(spins + Mathf.Abs(arcAngle/360))*
+                                                                            0.125f);
                         }
                     }
                     break;
