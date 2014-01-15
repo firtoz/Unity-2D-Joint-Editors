@@ -258,13 +258,13 @@ public class HingeJoint2DEditor : JointEditor
             changed = true;
         }
 
-        DiscGui(hingeJoint2D, anchorInfo, bias);
-
-
 		if (DrawAngleLimits(hingeJoint2D, anchorInfo, bias))
 		{
 			changed = true;
 		}
+        DiscGui(hingeJoint2D, anchorInfo, bias);
+
+
 
         return changed;
     }
@@ -298,19 +298,30 @@ public class HingeJoint2DEditor : JointEditor
 			}
 
 
-		    using (new DisposableHandleColor(Color.black))
-		    {
-                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 3), 6, handleSize + 10 / HandleUtility.GetHandleSize(center));
-                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 3), 6, handleSize);
-		    }
-			using(new DisposableHandleColor(Color.white)) {
+//		    using (new DisposableHandleColor(Color.black))
+//		    {
+//                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 3), 6, handleSize + 10 * HandleUtility.GetHandleSize(center)/32);
+//                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 3), 6, handleSize);
+			//		    }
 
-//                Vector3 minVector = JointEditorHelpers.Rotated2DVector(angle - minLimit);
-                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 1), 2, handleSize);
-                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 1), 2, handleSize);
-//
-//			    Handles.DrawLine(center, center + minVector * handleSize);
-//				Handles.DrawLine(center, center + JointEditorHelpers.Rotated2DVector(angle - maxLimit) * handleSize);
+			float distanceFromCenter = (handleSize + (10 * HandleUtility.GetHandleSize(center) / 64));
+
+			using (new DisposableHandleColor(Color.gray))
+			{
+				Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit),
+					maxLimit - minLimit, distanceFromCenter);
+			}
+			using(new DisposableHandleColor(Color.white)) {
+				Vector3 minEnd = center + JointEditorHelpers.Rotated2DVector(angle - minLimit) * distanceFromCenter;
+				Handles.DrawLine(center, minEnd);
+				Handles.CircleCap(0, minEnd, Quaternion.identity, 10*HandleUtility.GetHandleSize(minEnd)/64);
+
+				Vector3 maxEnd = center + JointEditorHelpers.Rotated2DVector(angle - maxLimit) * distanceFromCenter;
+				Handles.DrawLine(center, maxEnd);
+				Handles.CircleCap(0, maxEnd, Quaternion.identity, 10 * HandleUtility.GetHandleSize(minEnd) / 64);
+
+				Handles.DrawWireArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit),
+					maxLimit - minLimit, distanceFromCenter);
 			}
 
 		}
