@@ -23,6 +23,9 @@ public class HingeJoint2DSettingsEditor : Editor {
 		if (!EditorApplication.isPlayingOrWillChangePlaymode) {
 			foreach (HingeJoint2DSettings hingeJoint2DSettings in targets) {
 				HingeJoint2D hingeJoint2D = hingeJoint2DSettings.attachedJoint;
+				if (hingeJoint2D == null) {
+					return;
+				}
 				
 				Vector2 mainCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
 				Vector2 mainPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
