@@ -306,12 +306,13 @@ public class HingeJoint2DEditor : JointEditor
 
 			float distanceFromCenter = (handleSize + (10 * HandleUtility.GetHandleSize(center) / 64));
 
-			using (new DisposableHandleColor(Color.gray))
+            using (new DisposableHandleColor(editorSettings.angleAreaColor))
 			{
 				Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit),
 					maxLimit - minLimit, distanceFromCenter);
 			}
-			using(new DisposableHandleColor(Color.white)) {
+            using (new DisposableHandleColor(editorSettings.angleLimitColor))
+            {
 				Vector3 minEnd = center + JointEditorHelpers.Rotated2DVector(angle - minLimit) * distanceFromCenter;
 				Handles.DrawLine(center, minEnd);
 				Handles.CircleCap(0, minEnd, Quaternion.identity, 10*HandleUtility.GetHandleSize(minEnd)/64);
@@ -337,14 +338,17 @@ public class HingeJoint2DEditor : JointEditor
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
+        Vector3 bodyPosition = hingeJoint2D.transform.position;
+        using (new DisposableHandleColor(editorSettings.mainDiscColor))
+        {
+            Handles.DrawLine(bodyPosition, center);
+        }
         if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
              (anchorInfo.showRadius && (inZone || anchorInfo.IsActive()))))
         {
-            Vector3 bodyPosition = hingeJoint2D.transform.position;
             using (new DisposableHandleColor(editorSettings.mainDiscColor))
             {
-                Handles.DrawLine(bodyPosition, center);
                 Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, bodyPosition));
             }
 
