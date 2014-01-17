@@ -272,7 +272,12 @@ public class HingeJoint2DEditor : JointEditor
 
 	private static bool DrawAngleLimits(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointEditorHelpers.AnchorBias bias)
 	{
-		bool changed = false;
+        bool changed = false;
+        HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
+	    if (settings && !settings.showAngleLimits)
+	    {
+	        return false;
+	    }
 
 		if (hingeJoint2D.useLimits)
 		{
@@ -286,7 +291,6 @@ public class HingeJoint2DEditor : JointEditor
 
 			Vector2 targetPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, bias);
 
-			HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
 			float angle;
 
 			if (settings) {
@@ -521,127 +525,18 @@ public class HingeJoint2DEditor : JointEditor
         {
             using (new DisposableEditorGUIIndent())
             {
-                bool? lockAnchors = null;
-                bool? showJointGizmos = null;
-                bool valueDifferent = false;
-                bool gizmoValueDifferent = false;
 
-                foreach (HingeJoint2D hingeJoint2D in targets)
+                List<Object> allSettings = targets.Cast<HingeJoint2D>().Select(hingeJoint2D => HingeJoint2DSettingsEditor.Get(hingeJoint2D))
+                    .Where(hingeSettings => hingeSettings != null).Cast<Object>().ToList();
+
+                SerializedObject serializedSettings = null;
+                if (allSettings.Count > 0)
                 {
-                    HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
-                    bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
-                    bool wantsGizmos = hingeSettings == null || hingeSettings.showJointGizmos;
-                    if (lockAnchors != null)
-                    {
-                        if (lockAnchors.Value != wantsLock)
-                        {
-                            valueDifferent = true;
-                        }
-                    }
-                    else
-                    {
-                        lockAnchors = wantsLock;
-                    }
-                    if (showJointGizmos != null)
-                    {
-                        if (showJointGizmos.Value != wantsGizmos)
-                        {
-                            gizmoValueDifferent = true;
-                        }
-                    }
-                    else
-                    {
-                        showJointGizmos = wantsGizmos;
-                    }
+                    serializedSettings = new SerializedObject(allSettings.ToArray());
                 }
-
-                using (new DisposableEditorGUIMixedValue(gizmoValueDifferent))
-                {
-                    bool enabled = true;
-                    if (showJointGizmos == null)
-                    {
-                        showJointGizmos = false;
-                        enabled = false;
-                    }
-                    EditorGUI.BeginChangeCheck();
-                    using (new DisposableGUIEnabled(enabled))
-                    {
-                        showJointGizmos = EditorGUILayout.Toggle("Show Gizmos", showJointGizmos.Value);
-                    }
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        foreach (HingeJoint2D hingeJoint2D in targets)
-                        {
-                            HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
-
-                            GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
-                            hingeSettings.showJointGizmos = showJointGizmos.Value;
-                            EditorUtility.SetDirty(hingeSettings);
-                        }
-                    }
-                }
-                using (new DisposableEditorGUIMixedValue(valueDifferent))
-                {
-                    bool enabled = true;
-                    if (lockAnchors == null)
-                    {
-                        lockAnchors = false;
-                        enabled = false;
-                    }
-                    EditorGUI.BeginChangeCheck();
-                    using (new DisposableGUIEnabled(enabled))
-                    {
-                        lockAnchors = EditorGUILayout.Toggle("Lock Anchors", lockAnchors.Value);
-                    }
-
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        bool wantsContinue = true;
-                        int choice = 1;
-
-                        if (lockAnchors.Value)
-                        {
-                            bool farAway = targets.Cast<HingeJoint2D>().Any(hingeJoint2D =>
-                                Vector2.Distance(
-                                    JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D),
-                                    JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
-                                    ) > AnchorEpsilon);
-                            if (farAway)
-                            {
-                                choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
-                                    "Which anchor would you like to lock to?",
-                                    "Main",
-                                    "Connected",
-                                    "Cancel");
-
-                                if (choice == 2)
-                                {
-                                    wantsContinue = false;
-                                }
-                            }
-                        }
-                        if (wantsContinue)
-                        {
-                            foreach (HingeJoint2D hingeJoint2D in targets)
-                            {
-                                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
-
-                                GUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
-                                hingeSettings.lockAnchors = lockAnchors.Value;
-                                EditorUtility.SetDirty(hingeSettings);
-
-                                if (lockAnchors.Value)
-                                {
-                                    JointEditorHelpers.AnchorBias bias = choice == 0 ? JointEditorHelpers.AnchorBias.Main : JointEditorHelpers.AnchorBias.Connected;
-
-                                    GUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
-                                    ReAlignAnchors(hingeJoint2D, bias);
-                                    EditorUtility.SetDirty(hingeJoint2D);
-                                }
-                            }
-                        }
-                    }
-                }
+                ToggleShowGizmos(serializedSettings);
+                ToggleAnchorLock(serializedSettings);
+                ToggleShowAngleLimits(serializedSettings);
             }
         }
         
@@ -658,19 +553,6 @@ public class HingeJoint2DEditor : JointEditor
         Vector2 originalAnchor = serializedObject.FindProperty("m_Anchor").vector2Value;
         Vector2 originalConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor").vector2Value;
         Object connectedRigidBody = serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue;
-
-        /*SerializedProperty angleLimits = serializedObject.FindProperty("m_AngleLimits");
-        float lowerAngle = angleLimits.FindPropertyRelative("m_LowerAngle").floatValue;
-        float upperAngle = angleLimits.FindPropertyRelative("m_UpperAngle").floatValue;
-        EditorGUI.BeginChangeCheck();
-        lowerAngle = EditorGUILayout.FloatField("Lower Angle", lowerAngle);
-        upperAngle = EditorGUILayout.FloatField("Upper Angle", upperAngle);
-        if (EditorGUI.EndChangeCheck())
-        {
-            angleLimits.FindPropertyRelative("m_LowerAngle").floatValue = lowerAngle;
-            angleLimits.FindPropertyRelative("m_UpperAngle").floatValue = upperAngle;
-            serializedObject.ApplyModifiedProperties();
-        }*/
 
         Dictionary<HingeJoint2D, Vector2> worldConnectedAnchors =
             targets.Cast<HingeJoint2D>()
@@ -732,6 +614,125 @@ public class HingeJoint2DEditor : JointEditor
             Undo.CollapseUndoOperations(grp);
             //Debug.Log("!!!");
             //hinge angle changed...
+        }
+    }
+
+    private void ToggleShowGizmos(SerializedObject serializedSettings)
+    {
+        EditorGUI.BeginChangeCheck();
+        bool value;
+        if (serializedSettings != null)
+        {
+            SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
+            EditorGUILayout.PropertyField(showJointGizmos);
+            value = showJointGizmos.boolValue;
+        }
+        else
+        {
+            value = EditorGUILayout.Toggle("Show Joint Gizmos", true);
+        }
+        if (EditorGUI.EndChangeCheck())
+        {
+            foreach (HingeJoint2D hingeJoint2D in targets)
+            {
+                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
+                hingeSettings.showJointGizmos = value;
+                EditorUtility.SetDirty(hingeSettings);
+            }   
+        }
+    }
+
+    private void ToggleShowAngleLimits(SerializedObject serializedSettings)
+    {
+        EditorGUI.BeginChangeCheck();
+        bool value;
+        if (serializedSettings != null)
+        {
+            SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
+            EditorGUILayout.PropertyField(showAngleLimits);
+            value = showAngleLimits.boolValue;
+        }
+        else
+        {
+            value = EditorGUILayout.Toggle("Show Angle Limits", true);
+        }
+        if (EditorGUI.EndChangeCheck())
+        {
+            foreach (HingeJoint2D hingeJoint2D in targets)
+            {
+                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                GUIHelpers.RecordUndo("toggle angle limits display", hingeSettings);
+                hingeSettings.showAngleLimits = value;
+                EditorUtility.SetDirty(hingeSettings);
+            }   
+        }
+    }
+    private void ToggleAnchorLock(SerializedObject serializedSettings)
+    {
+        EditorGUI.BeginChangeCheck();
+        bool value;
+        if (serializedSettings != null)
+        {
+            SerializedProperty lockAnchors = serializedSettings.FindProperty("lockAnchors");
+            EditorGUILayout.PropertyField(lockAnchors);
+            value = lockAnchors.boolValue;
+        }
+        else
+        {
+            value = EditorGUILayout.Toggle("Lock Anchors", false);
+        }
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            bool wantsContinue = true;
+            int choice = 1;
+
+            if (value)
+            {
+                bool farAway = targets.Cast<HingeJoint2D>().Any(hingeJoint2D =>
+                    Vector2.Distance(
+                        JointEditorHelpers.GetMainAnchorPosition(hingeJoint2D),
+                        JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D)
+                        ) > AnchorEpsilon);
+                if (farAway)
+                {
+                    choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
+                        "Which anchor would you like to lock to?",
+                        "Main",
+                        "Connected",
+                        "Cancel");
+
+                    if (choice == 2) //cancel
+                    {
+                        wantsContinue = false;
+                    }
+                }
+            }
+            if (wantsContinue)
+            {
+                foreach (HingeJoint2D hingeJoint2D in targets)
+                {
+                    HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
+
+                    GUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
+                    hingeSettings.lockAnchors = value;
+                    EditorUtility.SetDirty(hingeSettings);
+
+                    if (value)
+                    {
+                        JointEditorHelpers.AnchorBias bias = choice == 0
+                            ? JointEditorHelpers.AnchorBias.Main
+                            : JointEditorHelpers.AnchorBias.Connected;
+
+                        GUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
+                        ReAlignAnchors(hingeJoint2D, bias);
+                        EditorUtility.SetDirty(hingeJoint2D);
+                    }
+                }
+            }
         }
     }
 

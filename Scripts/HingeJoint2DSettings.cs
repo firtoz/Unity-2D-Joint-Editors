@@ -7,6 +7,7 @@ using UnityEngine;
 public class HingeJoint2DSettings : MonoBehaviour {
     public bool lockAnchors = false;
     public bool showJointGizmos = true;
+    public bool showAngleLimits = true;
     public HingeJoint2D attachedJoint;
 	public float mainAngle;
 	public float connectedAngle;
