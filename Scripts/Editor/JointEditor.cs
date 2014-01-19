@@ -68,7 +68,7 @@ public class JointEditor : Editor
             using (
                 DisposableGUITextureDrawer drawer =
                     new DisposableGUITextureDrawer(editorSettings.hotHingeTexture,
-                        JointEditorHelpers.Rotate2D(originalAngle),
+                        GUIHelpers.Rotate2D(originalAngle),
                         editorSettings.anchorDisplayScale))
             {
                 drawer.DrawSquare(anchorPosition, Quaternion.identity, handleSize);
@@ -110,7 +110,7 @@ public class JointEditor : Editor
         using (
             DisposableGUITextureDrawer drawer =
                 new DisposableGUITextureDrawer(sliderTexture,
-					JointEditorHelpers.Rotate2D(originalAngle),
+					GUIHelpers.Rotate2D(originalAngle),
                     editorSettings.anchorDisplayScale))
         {
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
@@ -213,14 +213,14 @@ public class JointEditor : Editor
             Vector2 mousePosition = Event.current.mousePosition;
             Vector2 previousPosition = radiusHandleData.previousPosition;
 
-            Vector2 worldMousePosition = HandleUtility.GUIPointToWorldRay(mousePosition).origin;
-            Vector2 worldPreviousPosition = HandleUtility.GUIPointToWorldRay(previousPosition).origin;
+            Vector2 worldMousePosition = GUIHelpers.HandlePointToWorld(mousePosition);
+            Vector2 worldPreviousPosition = GUIHelpers.HandlePointToWorld(previousPosition);
 
             Vector2 towardsMouse = worldMousePosition - midPoint;
             Vector2 towardsPrevious = worldPreviousPosition - midPoint;
 
-            float previousAngle = JointEditorHelpers.GetAngle(towardsPrevious);
-            float newAngle = JointEditorHelpers.GetAngle(towardsMouse);
+            float previousAngle = GUIHelpers.GetAngle(towardsPrevious);
+            float newAngle = GUIHelpers.GetAngle(towardsMouse);
 
             float mainAngleDiff = newAngle - previousAngle;
             if (mainAngleDiff > 180)
@@ -238,9 +238,9 @@ public class JointEditor : Editor
             var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
 
             var originalAngle =
-                JointEditorHelpers.GetAngle(
+                GUIHelpers.GetAngle(
                     (Vector2)
-                        HandleUtility.GUIPointToWorldRay(radiusHandleData.originalPosition).origin -
+                        GUIHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
                     midPoint);
 
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
@@ -260,7 +260,7 @@ public class JointEditor : Editor
                     {
                         GUI.changed = true;
                         GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
-                        Quaternion rotationDelta = JointEditorHelpers.Rotate2D(snappedAccum);
+                        Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
 
                         transform.rotation = rotationDelta*info.rot;
                     }
@@ -272,8 +272,8 @@ public class JointEditor : Editor
                     Vector2 currentTowardsObject = (currentPosition - midPoint);
                     Vector2 originalTowardsObject = (originalPosition - midPoint);
 
-                    float currentObjectAngle = JointEditorHelpers.GetAngle(currentTowardsObject);
-                    float originalObjectAngle = JointEditorHelpers.GetAngle(originalTowardsObject);
+                    float currentObjectAngle = GUIHelpers.GetAngle(currentTowardsObject);
+                    float originalObjectAngle = GUIHelpers.GetAngle(originalTowardsObject);
 
                     float snappedAngle = originalObjectAngle + snappedAccum;
 
@@ -284,7 +284,7 @@ public class JointEditor : Editor
 
                         float angleDelta = snappedAngle - currentObjectAngle;
 
-						Quaternion rotationDelta = JointEditorHelpers.Rotate2D(angleDelta);
+						Quaternion rotationDelta = GUIHelpers.Rotate2D(angleDelta);
 
                         transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject))
                                              + new Vector3(0, 0, info.pos.z);
@@ -329,7 +329,7 @@ public class JointEditor : Editor
                                 : editorSettings.alternateRadiusColor))
                         {
                             Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                JointEditorHelpers.Rotated2DVector(originalAngle),
+                                GUIHelpers.Rotated2DVector(originalAngle),
                                 -completion, radius);
                         }
                     }
@@ -339,7 +339,7 @@ public class JointEditor : Editor
                             : editorSettings.alternateRadiusColor))
                     {
                         Handles.DrawSolidArc(midPoint, Vector3.forward,
-                            JointEditorHelpers.Rotated2DVector(originalAngle),
+                            GUIHelpers.Rotated2DVector(originalAngle),
                             arcAngle, radius);
                     }
 
@@ -422,7 +422,7 @@ public class JointEditor : Editor
         }
     }
 
-	protected static JointEditorHelpers.AnchorBias GetBias(PositionChange change)
+    protected static JointEditorHelpers.AnchorBias GetBias(PositionChange change)
     {
         switch (change)
         {
