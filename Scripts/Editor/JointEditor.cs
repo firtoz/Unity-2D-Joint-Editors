@@ -150,6 +150,7 @@ public class JointEditor : Editor
         public Dictionary<Transform, TransformInfo> originalTransformInfos;
         public float accum;
         public int button;
+        public Vector2 midPoint;
     }
 
     protected static void RadiusHandle(
@@ -215,9 +216,10 @@ public class JointEditor : Editor
 
             Vector2 worldMousePosition = GUIHelpers.HandlePointToWorld(mousePosition);
             Vector2 worldPreviousPosition = GUIHelpers.HandlePointToWorld(previousPosition);
+            Vector2 center = radiusHandleData.midPoint;
 
-            Vector2 towardsMouse = worldMousePosition - midPoint;
-            Vector2 towardsPrevious = worldPreviousPosition - midPoint;
+            Vector2 towardsMouse = worldMousePosition - center;
+            Vector2 towardsPrevious = worldPreviousPosition - center;
 
             float previousAngle = GUIHelpers.GetAngle(towardsPrevious);
             float newAngle = GUIHelpers.GetAngle(towardsMouse);
@@ -241,7 +243,7 @@ public class JointEditor : Editor
                 GUIHelpers.GetAngle(
                     (Vector2)
                         GUIHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
-                    midPoint);
+                    center);
 
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
             {
@@ -249,7 +251,7 @@ public class JointEditor : Editor
                 TransformInfo info = kvp.Value;
 
                 Vector2 currentPosition = transform.position;
-                if (Vector3.Distance(currentPosition, midPoint) <= JointEditorSettings.AnchorEpsilon)
+                if (Vector3.Distance(currentPosition, center) <= JointEditorSettings.AnchorEpsilon)
                 {
                     float currentObjectAngle = transform.rotation.eulerAngles.z;
                     float originalObjectAngle = info.rot.eulerAngles.z;
@@ -268,29 +270,20 @@ public class JointEditor : Editor
                 else
                 {
                     Vector2 originalPosition = info.pos;
+                    Quaternion originalRotation = info.rot;
 
-                    Vector2 currentTowardsObject = (currentPosition - midPoint);
-                    Vector2 originalTowardsObject = (originalPosition - midPoint);
-
-                    float currentObjectAngle = GUIHelpers.GetAngle(currentTowardsObject);
-                    float originalObjectAngle = GUIHelpers.GetAngle(originalTowardsObject);
-
-                    float snappedAngle = originalObjectAngle + snappedAccum;
-
-                    if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
+                    if (Mathf.Abs(snappedAccum) > Mathf.Epsilon)
                     {
                         GUI.changed = true;
                         GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
 
-                        float angleDelta = snappedAngle - currentObjectAngle;
+                        Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
+                        Vector2 originalTowardsObject = (originalPosition - center);
 
-						Quaternion rotationDelta = GUIHelpers.Rotate2D(angleDelta);
-
-                        transform.position = ((Vector3) midPoint + ((rotationDelta)*currentTowardsObject))
+                        transform.position = (Vector3)(center + (Vector2)((rotationDelta) * originalTowardsObject))
                                              + new Vector3(0, 0, info.pos.z);
 
-                        transform.rotation = rotationDelta*transform.rotation;
-//                        transform.rotation = info.rot * rotationDelta;
+                        transform.rotation = rotationDelta * originalRotation;
                     }
                 }
             }
@@ -394,6 +387,7 @@ public class JointEditor : Editor
                         GUIUtility.hotControl = controlID;
                         radiusHandleData.originalTransformInfos = new Dictionary<Transform, TransformInfo>();
                         radiusHandleData.button = Event.current.button;
+                        radiusHandleData.midPoint = midPoint;
                         if (Event.current.button == 0)
                         {
                             foreach (Transform transform in transforms)
