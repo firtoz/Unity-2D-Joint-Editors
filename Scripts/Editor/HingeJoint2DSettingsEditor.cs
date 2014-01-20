@@ -34,7 +34,7 @@ public class HingeJoint2DSettingsEditor : Editor {
 
 				if (hingeJoint2D.connectedBody) {
 					Vector2 connectedCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
-					Vector2 connectedPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
+					Vector2 connectedPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected);
 
 					hingeJoint2DSettings.connectedAngle = JointEditorHelpers.AngleFromAnchor(connectedCenter, connectedPosition, JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected));
 				}

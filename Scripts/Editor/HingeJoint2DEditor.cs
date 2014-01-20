@@ -274,8 +274,7 @@ public class HingeJoint2DEditor : JointEditor
     }
 
 
-    private static bool DrawAngleLimits(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo,
-        JointEditorHelpers.AnchorBias bias)
+    private static bool DrawAngleLimits(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointEditorHelpers.AnchorBias bias)
     {
         bool changed = false;
         HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.Get(hingeJoint2D);
@@ -286,81 +285,152 @@ public class HingeJoint2DEditor : JointEditor
 
         if (hingeJoint2D.useLimits)
         {
-            Vector2 center = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, bias);
-
-            float handleSize = HandleUtility.GetHandleSize(center)*editorSettings.orbitRangeScale*.5f;
-
             JointAngleLimits2D limits = hingeJoint2D.limits;
             float minLimit = limits.min;
             float maxLimit = limits.max;
 
-            Vector2 targetPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, bias);
-
-            float targetAngle;
-
-            if (settings)
+            if (hingeJoint2D.connectedBody)
             {
-                targetAngle = bias == JointEditorHelpers.AnchorBias.Connected ? settings.connectedAngle : settings.mainAngle;
+                Vector2 center = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, bias);
+
+                Vector2 mainPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D,
+                    JointEditorHelpers.AnchorBias.Main);
+                Vector2 connectedPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected);
+
+                float mainAngle, connectedAngle;
+
+                if (settings) {
+                    mainAngle = Mathf.Repeat(settings.mainAngle, 360f);
+                    connectedAngle = Mathf.Repeat(settings.connectedAngle, 360f);
+                }
+                else {
+                    mainAngle = JointEditorHelpers.AngleFromAnchor(center, mainPosition,
+                        JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Main));
+                    connectedAngle = JointEditorHelpers.AngleFromAnchor(center, connectedPosition,
+                        JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected));
+                }
+
+                float handleSize = HandleUtility.GetHandleSize(center) * editorSettings.orbitRangeScale * .5f;
+                float distanceFromCenter = (handleSize + (10 * HandleUtility.GetHandleSize(center) / 64));
+                float finalAngle = JointEditorHelpers.AngleFromAnchor(center, mainPosition,
+                        JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Main)) + (connectedAngle - mainAngle);
+                float minAngle = finalAngle + minLimit;
+                float maxAngle = finalAngle + maxLimit;
+
+                using (new DisposableHandleColor(editorSettings.angleAreaColor))
+                {
+                    Handles.DrawSolidArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(minAngle) * distanceFromCenter,
+                        maxLimit - minLimit, distanceFromCenter);
+                }
+                using (new DisposableHandleColor(editorSettings.angleLimitColor))
+                {
+
+                    Vector3 minEnd = center + GUIHelpers.Rotated2DVector(minAngle) * distanceFromCenter;
+                    Handles.DrawLine(center, minEnd);
+
+                    Vector3 maxEnd = center + GUIHelpers.Rotated2DVector(maxAngle) * distanceFromCenter;
+                    Handles.DrawLine(center, maxEnd);
+
+                    if ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0))
+                    {
+                        using (new DisposableHandleColor(Color.red))
+                        {
+                            Handles.DrawWireArc(center, Vector3.forward,
+                                GUIHelpers.Rotated2DVector(minAngle),
+                                maxLimit - minLimit, distanceFromCenter);
+                        }
+                    }
+                    else
+                    {
+                        Handles.DrawWireArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(minAngle),
+                            maxLimit - minLimit, distanceFromCenter);
+                    }
+
+                    EditorGUI.BeginChangeCheck();
+                    using (DisposableHandleDrawerBase drawer = new DisposableRectangleDrawer(Color.white, Color.black))
+                    {
+                        minAngle = GUIHelpers.AngleSlider(anchorInfo.lowerAngleID, drawer, center, minAngle,
+                            distanceFromCenter, 10 * HandleUtility.GetHandleSize(minEnd) / 64);
+                        maxAngle = GUIHelpers.AngleSlider(anchorInfo.upperAngleID, drawer, center, maxAngle,
+                            distanceFromCenter, 10 * HandleUtility.GetHandleSize(maxEnd) / 64);
+                    }
+
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
+                        limits.min = minAngle - finalAngle;
+                        limits.max = maxAngle - finalAngle;
+                        hingeJoint2D.limits = limits;
+                        changed = true;
+                    }
+                }
             }
-            else
-            {
-                targetAngle = JointEditorHelpers.AngleFromAnchor(center, targetPosition,
-                    JointEditorHelpers.GetTargetRotation(hingeJoint2D, bias));
-            }
+            else {
+                Vector2 center = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
+                float handleSize = HandleUtility.GetHandleSize(center)*editorSettings.orbitRangeScale*.5f;
 
-//		    using (new DisposableHandleColor(Color.black))
-//		    {
-//                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - minLimit - 3), 6, handleSize + 10 * HandleUtility.GetHandleSize(center)/32);
-//                Handles.DrawSolidArc(center, Vector3.forward, JointEditorHelpers.Rotated2DVector(angle - maxLimit - 3), 6, handleSize);
-            //		    }
+                Vector2 targetPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, bias);
 
-            float distanceFromCenter = (handleSize + (10*HandleUtility.GetHandleSize(center)/64));
+                float targetAngle;
 
-            using (new DisposableHandleColor(editorSettings.angleAreaColor))
-            {
-                Handles.DrawSolidArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(targetAngle - maxLimit),
-                    maxLimit - minLimit, distanceFromCenter);
-            }
-            using (new DisposableHandleColor(editorSettings.angleLimitColor))
-            {
-                float minAngle = targetAngle - minLimit;
-                float maxAngle = targetAngle - maxLimit;
+                if (settings) {
+                    targetAngle = bias == JointEditorHelpers.AnchorBias.Connected
+                        ? settings.connectedAngle
+                        : settings.mainAngle;
+                }
+                else {
+                    targetAngle = JointEditorHelpers.AngleFromAnchor(center, targetPosition,
+                        JointEditorHelpers.GetTargetRotation(hingeJoint2D, bias));
+                }
 
-                Vector3 minEnd = center + GUIHelpers.Rotated2DVector(minAngle)*distanceFromCenter;
-                Handles.DrawLine(center, minEnd);
+                float distanceFromCenter = (handleSize + (10*HandleUtility.GetHandleSize(center)/64));
 
-                Vector3 maxEnd = center + GUIHelpers.Rotated2DVector(targetAngle - maxLimit) * distanceFromCenter;
-                Handles.DrawLine(center, maxEnd);
+                using (new DisposableHandleColor(editorSettings.angleAreaColor)) {
+                    Handles.DrawSolidArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(targetAngle - maxLimit),
+                        maxLimit - minLimit, distanceFromCenter);
+                }
+                using (new DisposableHandleColor(editorSettings.angleLimitColor)) {
+                    float minAngle = targetAngle - minLimit;
+                    float maxAngle = targetAngle - maxLimit;
 
-                if ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0)) {
-                    using (new DisposableHandleColor(Color.red)) {
+                    Vector3 minEnd = center + GUIHelpers.Rotated2DVector(minAngle)*distanceFromCenter;
+                    Handles.DrawLine(center, minEnd);
+
+                    Vector3 maxEnd = center + GUIHelpers.Rotated2DVector(targetAngle - maxLimit)*distanceFromCenter;
+                    Handles.DrawLine(center, maxEnd);
+
+                    if ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0)) {
+                        using (new DisposableHandleColor(Color.red)) {
+                            Handles.DrawWireArc(center, Vector3.forward,
+                                GUIHelpers.Rotated2DVector(targetAngle - maxLimit),
+                                maxLimit - minLimit, distanceFromCenter);
+                        }
+                    }
+                    else {
                         Handles.DrawWireArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(targetAngle - maxLimit),
                             maxLimit - minLimit, distanceFromCenter);
                     }
+
+
+                    EditorGUI.BeginChangeCheck();
+                    using (DisposableHandleDrawerBase drawer = new DisposableRectangleDrawer(Color.white, Color.black)) {
+                        minAngle = GUIHelpers.AngleSlider(anchorInfo.lowerAngleID, drawer, center, minAngle,
+                            distanceFromCenter, 10*HandleUtility.GetHandleSize(minEnd)/64);
+                        maxAngle = GUIHelpers.AngleSlider(anchorInfo.upperAngleID, drawer, center, maxAngle,
+                            distanceFromCenter, 10*HandleUtility.GetHandleSize(maxEnd)/64);
+                    }
+
+
+                    if (EditorGUI.EndChangeCheck()) {
+                        GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
+                        limits.min = targetAngle - minAngle;
+                        limits.max = targetAngle - maxAngle;
+                        hingeJoint2D.limits = limits;
+                        changed = true;
+                    }
+
                 }
-                else {
-                    Handles.DrawWireArc(center, Vector3.forward, GUIHelpers.Rotated2DVector(targetAngle - maxLimit),
-                        maxLimit - minLimit, distanceFromCenter);
-                }
-
-
-                EditorGUI.BeginChangeCheck();
-                using (DisposableHandleDrawerBase drawer = new DisposableRectangleDrawer(Color.white, Color.black)) {
-                    minAngle = GUIHelpers.AngleSlider(anchorInfo.lowerAngleID, drawer, center, minAngle, distanceFromCenter,10*HandleUtility.GetHandleSize(minEnd)/64);
-                    maxAngle = GUIHelpers.AngleSlider(anchorInfo.upperAngleID, drawer, center, maxAngle, distanceFromCenter, 10 * HandleUtility.GetHandleSize(maxEnd) / 64);
-                }
-
-
-                if (EditorGUI.EndChangeCheck())
-                {
-                    GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                    limits.min = targetAngle - minAngle;
-                    limits.max = targetAngle - maxAngle;
-                    hingeJoint2D.limits = limits;
-                    changed = true;
-                }
-
             }
         }
 
@@ -375,10 +445,17 @@ public class HingeJoint2DEditor : JointEditor
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
-        Vector3 bodyPosition = hingeJoint2D.transform.position;
+        Vector2 bodyPosition = hingeJoint2D.transform.position;
         using (new DisposableHandleColor(editorSettings.mainDiscColor))
         {
             Handles.DrawLine(bodyPosition, center);
+        }
+        if (hingeJoint2D.connectedBody)
+        {
+            using (new DisposableHandleColor(editorSettings.connectedDiscColor))
+            {
+                Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, center);
+            }
         }
         if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
@@ -393,7 +470,6 @@ public class HingeJoint2DEditor : JointEditor
             {
                 using (new DisposableHandleColor(editorSettings.connectedDiscColor))
                 {
-                    Handles.DrawLine(hingeJoint2D.connectedBody.transform.position, center);
                     Handles.DrawWireDisc(center, Vector3.forward,
                         Vector2.Distance(center,
                             hingeJoint2D.connectedBody.transform.position));
