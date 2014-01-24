@@ -11,8 +11,14 @@ public class HingeJoint2DSettings : MonoBehaviour {
     public HingeJoint2D attachedJoint;
 	public float mainAngle;
 	public float connectedAngle;
-//    public Vector2 worldAnchor; 
-//    public Vector2 worldConnectedAnchor; 
+
+    public enum AngleLimitsDisplayMode {
+        Main,
+        Connected,
+        Both
+    }
+
+    public AngleLimitsDisplayMode angleLimitsDisplayMode = AngleLimitsDisplayMode.Main;
 
     public void OnEnable()
     {
