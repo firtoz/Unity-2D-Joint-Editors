@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.Disposable;
 using UnityEditor;
 using UnityEngine;
 
@@ -80,7 +81,7 @@ public class JointEditor : Editor
         bool inZone = distanceFromInner <= 0;
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
         {
-            GUIHelpers.SetEditorCursor(MouseCursor.MoveArrow, controlID);
+            EditorGUIHelpers.SetEditorCursor(MouseCursor.MoveArrow, controlID);
 
 			using (new DisposableHandleColor(editorSettings.previewRadiusColor))
 			{
@@ -214,8 +215,8 @@ public class JointEditor : Editor
             Vector2 mousePosition = Event.current.mousePosition;
             Vector2 previousPosition = radiusHandleData.previousPosition;
 
-            Vector2 worldMousePosition = GUIHelpers.HandlePointToWorld(mousePosition);
-            Vector2 worldPreviousPosition = GUIHelpers.HandlePointToWorld(previousPosition);
+            Vector2 worldMousePosition = EditorGUIHelpers.HandlePointToWorld(mousePosition);
+            Vector2 worldPreviousPosition = EditorGUIHelpers.HandlePointToWorld(previousPosition);
             Vector2 center = radiusHandleData.midPoint;
 
             Vector2 towardsMouse = worldMousePosition - center;
@@ -242,7 +243,7 @@ public class JointEditor : Editor
             var originalAngle =
                 GUIHelpers.GetAngle(
                     (Vector2)
-                        GUIHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
+                        EditorGUIHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
                     center);
 
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
@@ -261,7 +262,7 @@ public class JointEditor : Editor
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
                     {
                         GUI.changed = true;
-                        GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
+                        EditorGUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
                         Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
 
                         transform.rotation = rotationDelta*info.rot;
@@ -275,7 +276,7 @@ public class JointEditor : Editor
                     if (Mathf.Abs(snappedAccum) > Mathf.Epsilon)
                     {
                         GUI.changed = true;
-                        GUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
+                        EditorGUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
 
                         Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
                         Vector2 originalTowardsObject = (originalPosition - center);
@@ -365,7 +366,7 @@ public class JointEditor : Editor
         bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointEditorSettings.AnchorEpsilon;
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
         {
-            GUIHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
+            EditorGUIHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
             using (new DisposableHandleColor(editorSettings.previewRadiusColor))
             {
                 Handles.DrawSolidDisc(midPoint, Vector3.forward, innerRadius);
@@ -442,7 +443,7 @@ public class JointEditor : Editor
         public static void Record(HingeJoint2D hingeJoint2D)
         {
 //            HingeJoint2DSettings settings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
-//            GUIHelpers.RecordUndo(null, settings);
+//            EditorGUIHelpers.RecordUndo(null, settings);
 //            settings.worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
 //            settings.worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
 //            EditorUtility.SetDirty(settings);

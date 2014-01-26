@@ -44,4 +44,8 @@ public class HingeJoint2DSettings : MonoBehaviour {
 //        worldAnchor = JointEditorHelpers.GetAnchorPosition(hingeJoint2D);
 //        worldConnectedAnchor = JointEditorHelpers.GetConnectedAnchorPosition(hingeJoint2D);
     }
+
+	void OnDrawGizmos()
+	{
+	}
 }

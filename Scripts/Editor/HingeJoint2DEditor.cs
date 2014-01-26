@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.Disposable;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -315,16 +316,16 @@ public class HingeJoint2DEditor : JointEditor {
 
                         EditorGUI.BeginChangeCheck();
                         using (DisposableHandleDrawerBase drawer = new DisposableCircleDrawer(Color.white, Color.black)) {
-                            minMainAngle = GUIHelpers.AngleSlider(anchorInfo.lowerMainAngleID, drawer, center,
+                            minMainAngle = EditorGUIHelpers.AngleSlider(anchorInfo.lowerMainAngleID, drawer, center,
                                 minMainAngle,
                                 distanceFromCenter, 10*HandleUtility.GetHandleSize(minMainEnd)/64);
-                            maxMainAngle = GUIHelpers.AngleSlider(anchorInfo.upperMainAngleID, drawer, center,
+                            maxMainAngle = EditorGUIHelpers.AngleSlider(anchorInfo.upperMainAngleID, drawer, center,
                                 maxMainAngle,
                                 distanceFromCenter, 10*HandleUtility.GetHandleSize(maxMainEnd)/64);
                         }
 
                         if (EditorGUI.EndChangeCheck()) {
-                            GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
+                            EditorGUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
                             limits.min = mainAngle - minMainAngle;
                             limits.max = mainAngle - maxMainAngle;
                             hingeJoint2D.limits = limits;
@@ -369,18 +370,18 @@ public class HingeJoint2DEditor : JointEditor {
                             using (
                                 DisposableHandleDrawerBase drawer = new DisposableCircleDrawer(Color.white, Color.black)
                                 ) {
-                                minConnectedAngle = GUIHelpers.AngleSlider(anchorInfo.lowerConnectedAngleID, drawer,
+                                minConnectedAngle = EditorGUIHelpers.AngleSlider(anchorInfo.lowerConnectedAngleID, drawer,
                                     center,
                                     minConnectedAngle,
                                     distanceFromCenter, 10*HandleUtility.GetHandleSize(minConnectedEnd)/64);
-                                maxConnectedAngle = GUIHelpers.AngleSlider(anchorInfo.upperConnectedAngleID, drawer,
+                                maxConnectedAngle = EditorGUIHelpers.AngleSlider(anchorInfo.upperConnectedAngleID, drawer,
                                     center,
                                     maxConnectedAngle,
                                     distanceFromCenter, 10*HandleUtility.GetHandleSize(maxConnectedEnd)/64);
                             }
 
                             if (EditorGUI.EndChangeCheck()) {
-                                GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
+                                EditorGUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
                                 limits.min = minConnectedAngle - liveConnectedAngle;
                                 limits.max = maxConnectedAngle - liveConnectedAngle;
                                 hingeJoint2D.limits = limits;
@@ -440,15 +441,15 @@ public class HingeJoint2DEditor : JointEditor {
 
                     EditorGUI.BeginChangeCheck();
                     using (DisposableHandleDrawerBase drawer = new DisposableCircleDrawer(Color.white, Color.black)) {
-                        minAngle = GUIHelpers.AngleSlider(anchorInfo.lowerMainAngleID, drawer, center, minAngle,
+                        minAngle = EditorGUIHelpers.AngleSlider(anchorInfo.lowerMainAngleID, drawer, center, minAngle,
                             distanceFromCenter, 10*HandleUtility.GetHandleSize(minEnd)/64);
-                        maxAngle = GUIHelpers.AngleSlider(anchorInfo.upperMainAngleID, drawer, center, maxAngle,
+                        maxAngle = EditorGUIHelpers.AngleSlider(anchorInfo.upperMainAngleID, drawer, center, maxAngle,
                             distanceFromCenter, 10*HandleUtility.GetHandleSize(maxEnd)/64);
                     }
 
 
                     if (EditorGUI.EndChangeCheck()) {
-                        GUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
+                        EditorGUIHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
                         limits.min = targetAngle - minAngle;
                         limits.max = targetAngle - maxAngle;
                         hingeJoint2D.limits = limits;
@@ -558,7 +559,7 @@ public class HingeJoint2DEditor : JointEditor {
 
         bool changed = false;
         if (EditorGUI.EndChangeCheck()) {
-            GUIHelpers.RecordUndo("Anchor Move", hingeJoint2D);
+            EditorGUIHelpers.RecordUndo("Anchor Move", hingeJoint2D);
             changed = true;
 
             JointEditorHelpers.SetAnchorPosition(hingeJoint2D, position, bias);
@@ -582,7 +583,7 @@ public class HingeJoint2DEditor : JointEditor {
     private static bool ToggleLockButton(int controlID, HingeJoint2D hingeJoint2D, JointEditorHelpers.AnchorBias bias) {
         Vector3 center = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-        bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
+        bool lockPressed = EditorGUIHelpers.CustomHandleButton(controlID,
             center,
             HandleUtility.GetHandleSize(center)*editorSettings.lockButtonScale,
             editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture);
@@ -590,7 +591,7 @@ public class HingeJoint2DEditor : JointEditor {
         if (lockPressed) {
             HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-            GUIHelpers.RecordUndo("Lock Anchors", hingeSettings, hingeJoint2D);
+            EditorGUIHelpers.RecordUndo("Lock Anchors", hingeSettings, hingeJoint2D);
             hingeSettings.lockAnchors = true;
             EditorUtility.SetDirty(hingeSettings);
 
@@ -603,7 +604,7 @@ public class HingeJoint2DEditor : JointEditor {
     private static bool ToggleUnlockButton(int controlID, HingeJoint2D hingeJoint2D, JointEditorHelpers.AnchorBias bias) {
         Vector3 center = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-        bool lockPressed = GUIHelpers.CustomHandleButton(controlID,
+        bool lockPressed = EditorGUIHelpers.CustomHandleButton(controlID,
             center,
             HandleUtility.GetHandleSize(center)*editorSettings.lockButtonScale,
             editorSettings.lockButtonTexture, editorSettings.unlockButtonTexture);
@@ -611,7 +612,7 @@ public class HingeJoint2DEditor : JointEditor {
         if (lockPressed) {
             HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-            GUIHelpers.RecordUndo("Unlock Anchors", hingeSettings);
+            EditorGUIHelpers.RecordUndo("Unlock Anchors", hingeSettings);
             hingeSettings.lockAnchors = false;
             EditorUtility.SetDirty(hingeSettings);
         }
@@ -697,7 +698,7 @@ public class HingeJoint2DEditor : JointEditor {
                     bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
 
                     if (wantsLock) {
-                        GUIHelpers.RecordUndo("Inspector", hingeJoint2D);
+                        EditorGUIHelpers.RecordUndo("Inspector", hingeJoint2D);
                         ReAlignAnchors(hingeJoint2D, bias);
                         EditorUtility.SetDirty(hingeJoint2D);
                     }
@@ -706,7 +707,7 @@ public class HingeJoint2DEditor : JointEditor {
 
             if (connectedRigidBody != serializedObject.FindProperty("m_ConnectedRigidBody").objectReferenceValue) {
                 foreach (HingeJoint2D hingeJoint2D in targets) {
-                    GUIHelpers.RecordUndo("Inspector", hingeJoint2D);
+                    EditorGUIHelpers.RecordUndo("Inspector", hingeJoint2D);
                     JointEditorHelpers.SetWorldConnectedAnchorPosition(hingeJoint2D, worldConnectedAnchors[hingeJoint2D]);
 
                     EditorUtility.SetDirty(hingeJoint2D);
@@ -739,7 +740,7 @@ public class HingeJoint2DEditor : JointEditor {
             foreach (HingeJoint2D hingeJoint2D in targets) {
                 HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-                GUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
+                EditorGUIHelpers.RecordUndo("toggle gizmo display", hingeSettings);
                 hingeSettings.showJointGizmos = value;
                 EditorUtility.SetDirty(hingeSettings);
             }
@@ -783,7 +784,7 @@ public class HingeJoint2DEditor : JointEditor {
             foreach (HingeJoint2D hingeJoint2D in targets) {
                 HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-                GUIHelpers.RecordUndo("toggle angle limits display mode", hingeSettings);
+                EditorGUIHelpers.RecordUndo("toggle angle limits display mode", hingeSettings);
                 hingeSettings.angleLimitsDisplayMode = value;
                 EditorUtility.SetDirty(hingeSettings);
             }
@@ -815,7 +816,7 @@ public class HingeJoint2DEditor : JointEditor {
             foreach (HingeJoint2D hingeJoint2D in targets) {
                 HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-                GUIHelpers.RecordUndo("toggle angle limits display", hingeSettings);
+                EditorGUIHelpers.RecordUndo("toggle angle limits display", hingeSettings);
                 hingeSettings.showAngleLimits = value;
                 EditorUtility.SetDirty(hingeSettings);
             }
@@ -865,7 +866,7 @@ public class HingeJoint2DEditor : JointEditor {
                 foreach (HingeJoint2D hingeJoint2D in targets) {
                     HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate(hingeJoint2D);
 
-                    GUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
+                    EditorGUIHelpers.RecordUndo("toggle anchor locking", hingeSettings);
                     hingeSettings.lockAnchors = value;
                     EditorUtility.SetDirty(hingeSettings);
 
@@ -874,7 +875,7 @@ public class HingeJoint2DEditor : JointEditor {
                             ? JointEditorHelpers.AnchorBias.Main
                             : JointEditorHelpers.AnchorBias.Connected;
 
-                        GUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
+                        EditorGUIHelpers.RecordUndo("toggle anchor locking", hingeJoint2D);
                         ReAlignAnchors(hingeJoint2D, bias);
                         EditorUtility.SetDirty(hingeJoint2D);
                     }

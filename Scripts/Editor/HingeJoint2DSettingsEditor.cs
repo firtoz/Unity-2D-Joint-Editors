@@ -56,7 +56,7 @@ public class HingeJoint2DSettingsEditor : Editor {
     {
         HingeJoint2DSettings settings = Undo.AddComponent<HingeJoint2DSettings>(hingeJoint2D.gameObject);
 
-        GUIHelpers.RecordUndo(null, settings);
+        EditorGUIHelpers.RecordUndo(null, settings);
         settings.Setup(hingeJoint2D);
         //        worldAnchor = 
         //		settings.hideFlags = HideFlags.HideInInspector;
