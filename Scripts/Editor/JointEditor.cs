@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.Disposable;
+using toxicFork.GUIHelpers.DisposableGUI;
+using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,7 +28,7 @@ public class JointEditor : Editor
     }
 
     protected static Vector2 AnchorSlider(Vector2 position, float handleScale, IEnumerable<Vector2> snapPositions,
-        JointEditorHelpers.AnchorBias bias, Joint2D joint)
+        JointHelpers.AnchorBias bias, Joint2D joint)
     {
         int controlID = GUIUtility.GetControlID(FocusType.Native);
         return AnchorSlider(controlID, position, handleScale, snapPositions, bias, joint);
@@ -34,19 +36,19 @@ public class JointEditor : Editor
 
 
 	protected static Vector2 AnchorSlider(int controlID, float handleScale,
-		IEnumerable<Vector2> snapPositions, JointEditorHelpers.AnchorBias bias, HingeJoint2D joint) {
-		Vector2 position = JointEditorHelpers.GetAnchorPosition(joint, bias);
+		IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, HingeJoint2D joint) {
+		Vector2 position = JointHelpers.GetAnchorPosition(joint, bias);
 
 		return AnchorSlider(controlID, position, handleScale, snapPositions, bias, joint);
 	}
 
 	protected static Vector2 AnchorSlider(int controlID, Vector2 anchorPosition, float handleScale,
-        IEnumerable<Vector2> snapPositions, JointEditorHelpers.AnchorBias bias, Joint2D joint)
+        IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, Joint2D joint)
     {
         float handleSize = HandleUtility.GetHandleSize(anchorPosition)*handleScale;
         EditorGUI.BeginChangeCheck();
         Vector2 targetPosition;
-        if (bias == JointEditorHelpers.AnchorBias.Connected)
+        if (bias == JointHelpers.AnchorBias.Connected)
         {
             if (joint.connectedBody)
             {
@@ -62,14 +64,14 @@ public class JointEditor : Editor
             targetPosition = joint.gameObject.transform.position;
         }
 
-		float originalAngle = JointEditorHelpers.AngleFromAnchor(anchorPosition, targetPosition, joint.gameObject.transform.rotation.eulerAngles.z);
+		float originalAngle = JointHelpers.AngleFromAnchor(anchorPosition, targetPosition, joint.gameObject.transform.rotation.eulerAngles.z);
 
         if (GUIUtility.hotControl == controlID)
         {
             using (
-                DisposableGUITextureDrawer drawer =
-                    new DisposableGUITextureDrawer(editorSettings.hotHingeTexture,
-                        GUIHelpers.Rotate2D(originalAngle),
+                GUITextureDrawer drawer =
+                    new GUITextureDrawer(editorSettings.hotHingeTexture,
+                        Helpers.Rotate2D(originalAngle),
                         editorSettings.anchorDisplayScale))
             {
                 drawer.DrawSquare(anchorPosition, Quaternion.identity, handleSize);
@@ -81,9 +83,9 @@ public class JointEditor : Editor
         bool inZone = distanceFromInner <= 0;
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
         {
-            EditorGUIHelpers.SetEditorCursor(MouseCursor.MoveArrow, controlID);
+            EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow, controlID);
 
-			using (new DisposableHandleColor(editorSettings.previewRadiusColor))
+			using (new HandleColor(editorSettings.previewRadiusColor))
 			{
 				Handles.DrawSolidDisc(anchorPosition, Vector3.forward, handleSize * .5f);
 				Handles.DrawWireDisc(anchorPosition, Vector3.forward, handleSize * .5f);
@@ -96,22 +98,22 @@ public class JointEditor : Editor
 
         switch (bias)
         {
-            case JointEditorHelpers.AnchorBias.Main:
+            case JointHelpers.AnchorBias.Main:
                 sliderTexture = editorSettings.mainHingeTexture;
                 break;
-            case JointEditorHelpers.AnchorBias.Connected:
+            case JointHelpers.AnchorBias.Connected:
                 sliderTexture = editorSettings.connectedHingeTexture;
                 break;
-            case JointEditorHelpers.AnchorBias.Either:
+            case JointHelpers.AnchorBias.Either:
                 sliderTexture = editorSettings.lockedHingeTexture;
                 break;
             default:
                 throw new ArgumentOutOfRangeException("bias");
         }
         using (
-            DisposableGUITextureDrawer drawer =
-                new DisposableGUITextureDrawer(sliderTexture,
-					GUIHelpers.Rotate2D(originalAngle),
+            GUITextureDrawer drawer =
+                new GUITextureDrawer(sliderTexture,
+					Helpers.Rotate2D(originalAngle),
                     editorSettings.anchorDisplayScale))
         {
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
@@ -215,15 +217,15 @@ public class JointEditor : Editor
             Vector2 mousePosition = Event.current.mousePosition;
             Vector2 previousPosition = radiusHandleData.previousPosition;
 
-            Vector2 worldMousePosition = EditorGUIHelpers.HandlePointToWorld(mousePosition);
-            Vector2 worldPreviousPosition = EditorGUIHelpers.HandlePointToWorld(previousPosition);
+            Vector2 worldMousePosition = EditorHelpers.HandlePointToWorld(mousePosition);
+            Vector2 worldPreviousPosition = EditorHelpers.HandlePointToWorld(previousPosition);
             Vector2 center = radiusHandleData.midPoint;
 
             Vector2 towardsMouse = worldMousePosition - center;
             Vector2 towardsPrevious = worldPreviousPosition - center;
 
-            float previousAngle = GUIHelpers.GetAngle(towardsPrevious);
-            float newAngle = GUIHelpers.GetAngle(towardsMouse);
+            float previousAngle = Helpers.GetAngle(towardsPrevious);
+            float newAngle = Helpers.GetAngle(towardsMouse);
 
             float mainAngleDiff = newAngle - previousAngle;
             if (mainAngleDiff > 180)
@@ -241,9 +243,9 @@ public class JointEditor : Editor
             var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
 
             var originalAngle =
-                GUIHelpers.GetAngle(
+                Helpers.GetAngle(
                     (Vector2)
-                        EditorGUIHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
+                        EditorHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
                     center);
 
             foreach (KeyValuePair<Transform, TransformInfo> kvp in radiusHandleData.originalTransformInfos)
@@ -252,7 +254,7 @@ public class JointEditor : Editor
                 TransformInfo info = kvp.Value;
 
                 Vector2 currentPosition = transform.position;
-                if (Vector3.Distance(currentPosition, center) <= JointEditorSettings.AnchorEpsilon)
+                if (Vector3.Distance(currentPosition, center) <= JointHelpers.AnchorEpsilon)
                 {
                     float currentObjectAngle = transform.rotation.eulerAngles.z;
                     float originalObjectAngle = info.rot.eulerAngles.z;
@@ -262,8 +264,8 @@ public class JointEditor : Editor
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon)
                     {
                         GUI.changed = true;
-                        EditorGUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
-                        Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
+                        EditorHelpers.RecordUndo("Orbit", transform, transform.gameObject);
+                        Quaternion rotationDelta = Helpers.Rotate2D(snappedAccum);
 
                         transform.rotation = rotationDelta*info.rot;
                     }
@@ -276,9 +278,9 @@ public class JointEditor : Editor
                     if (Mathf.Abs(snappedAccum) > Mathf.Epsilon)
                     {
                         GUI.changed = true;
-                        EditorGUIHelpers.RecordUndo("Orbit", transform, transform.gameObject);
+                        EditorHelpers.RecordUndo("Orbit", transform, transform.gameObject);
 
-                        Quaternion rotationDelta = GUIHelpers.Rotate2D(snappedAccum);
+                        Quaternion rotationDelta = Helpers.Rotate2D(snappedAccum);
                         Vector2 originalTowardsObject = (originalPosition - center);
 
                         transform.position = (Vector3)(center + (Vector2)((rotationDelta) * originalTowardsObject))
@@ -318,28 +320,28 @@ public class JointEditor : Editor
 //                            }
                         float completion = 360 - arcAngle;
                         using (
-                            new DisposableHandleColor(spins%2 == 1
+                            new HandleColor(spins%2 == 1
                                 ? editorSettings.radiusColor
                                 : editorSettings.alternateRadiusColor))
                         {
                             Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                GUIHelpers.Rotated2DVector(originalAngle),
+                                Helpers.Rotated2DVector(originalAngle),
                                 -completion, radius);
                         }
                     }
                     using (
-                        new DisposableHandleColor(spins%2 == 0
+                        new HandleColor(spins%2 == 0
                             ? editorSettings.radiusColor
                             : editorSettings.alternateRadiusColor))
                     {
                         Handles.DrawSolidArc(midPoint, Vector3.forward,
-                            GUIHelpers.Rotated2DVector(originalAngle),
+                            Helpers.Rotated2DVector(originalAngle),
                             arcAngle, radius);
                     }
 
                     if (editorSettings.drawRadiusRings)
                     {
-                        using (new DisposableHandleColor())
+                        using (new HandleColor())
                         {
                             for (int i = 0; i <= spins; i++)
                             {
@@ -363,11 +365,11 @@ public class JointEditor : Editor
 
         float distanceFromInner = HandleUtility.DistanceToCircle(midPoint, innerRadius);
         float distanceFromOuter = HandleUtility.DistanceToCircle(midPoint, radius);
-        bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointEditorSettings.AnchorEpsilon;
+        bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointHelpers.AnchorEpsilon;
         if ((inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl)
         {
-            EditorGUIHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
-            using (new DisposableHandleColor(editorSettings.previewRadiusColor))
+            EditorHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
+            using (new HandleColor(editorSettings.previewRadiusColor))
             {
                 Handles.DrawSolidDisc(midPoint, Vector3.forward, innerRadius);
                 Handles.DrawWireDisc(midPoint, Vector3.forward, radius);
@@ -417,16 +419,16 @@ public class JointEditor : Editor
         }
     }
 
-    protected static JointEditorHelpers.AnchorBias GetBias(PositionChange change)
+    protected static JointHelpers.AnchorBias GetBias(PositionChange change)
     {
         switch (change)
         {
             case PositionChange.MainChanged:
-                return JointEditorHelpers.AnchorBias.Main;
+                return JointHelpers.AnchorBias.Main;
             case PositionChange.ConnectedChanged:
-                return JointEditorHelpers.AnchorBias.Connected;
+                return JointHelpers.AnchorBias.Connected;
             default:
-                return JointEditorHelpers.AnchorBias.Either;
+                return JointHelpers.AnchorBias.Either;
         }
     }
 

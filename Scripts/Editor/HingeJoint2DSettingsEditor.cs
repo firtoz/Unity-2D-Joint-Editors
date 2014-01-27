@@ -19,26 +19,7 @@ public class HingeJoint2DSettingsEditor : Editor {
 	}
 
 	private void Update() {
-		if (!EditorApplication.isPlayingOrWillChangePlaymode) {
-			foreach (HingeJoint2DSettings hingeJoint2DSettings in targets) {
-				HingeJoint2D hingeJoint2D = hingeJoint2DSettings.attachedJoint;
-				if (hingeJoint2D == null) {
-					return;
-				}
-				
-				Vector2 mainCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
-				Vector2 mainPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
-
-				hingeJoint2DSettings.mainAngle = JointEditorHelpers.AngleFromAnchor(mainCenter, mainPosition, JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Main));
-
-				if (hingeJoint2D.connectedBody) {
-					Vector2 connectedCenter = JointEditorHelpers.GetAnchorPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Main);
-					Vector2 connectedPosition = JointEditorHelpers.GetTargetPosition(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected);
-
-					hingeJoint2DSettings.connectedAngle = JointEditorHelpers.AngleFromAnchor(connectedCenter, connectedPosition, JointEditorHelpers.GetTargetRotation(hingeJoint2D, JointEditorHelpers.AnchorBias.Connected));
-				}
-			}
-		}
+		
 	}
 
 
@@ -56,14 +37,14 @@ public class HingeJoint2DSettingsEditor : Editor {
     {
         HingeJoint2DSettings settings = Undo.AddComponent<HingeJoint2DSettings>(hingeJoint2D.gameObject);
 
-        EditorGUIHelpers.RecordUndo(null, settings);
+        EditorHelpers.RecordUndo(null, settings);
         settings.Setup(hingeJoint2D);
         //        worldAnchor = 
         //		settings.hideFlags = HideFlags.HideInInspector;
         return settings;
     }
 
-    public static HingeJoint2DSettings Get(HingeJoint2D hingeJoint2D)
+    private static HingeJoint2DSettings Get(HingeJoint2D hingeJoint2D)
     {
         HingeJoint2DSettings[] allSettings = hingeJoint2D.GetComponents<HingeJoint2DSettings>();
 

@@ -1,16 +1,16 @@
 ﻿using toxicFork.GUIHelpers;
 using UnityEngine;
 
-public class JointEditorHelpers {
+public class JointHelpers {
+    public const float AnchorEpsilon = 0.0001f;
 
-
-	public static Vector2 GetMainAnchorPosition(HingeJoint2D joint2D) {
-		return GUIHelpers.Transform2DPoint(joint2D.transform, joint2D.anchor);
+    public static Vector2 GetMainAnchorPosition(HingeJoint2D joint2D) {
+		return Helpers.Transform2DPoint(joint2D.transform, joint2D.anchor);
 	}
 
 	public static Vector2 GetConnectedAnchorPosition(HingeJoint2D joint2D) {
 		if (joint2D.connectedBody) {
-			return GUIHelpers.Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
+			return Helpers.Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
 		}
 		return joint2D.connectedAnchor;
 	}
@@ -46,12 +46,12 @@ public class JointEditorHelpers {
 	}
 
 	public static void SetWorldAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldAnchor) {
-		hingeJoint2D.anchor = GUIHelpers.InverseTransform2DPoint(hingeJoint2D.transform, worldAnchor);
+		hingeJoint2D.anchor = Helpers.InverseTransform2DPoint(hingeJoint2D.transform, worldAnchor);
 	}
 
 	public static void SetWorldConnectedAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldConnectedAnchor) {
 		if (hingeJoint2D.connectedBody) {
-			hingeJoint2D.connectedAnchor = GUIHelpers.InverseTransform2DPoint(hingeJoint2D.connectedBody.transform,
+			hingeJoint2D.connectedAnchor = Helpers.InverseTransform2DPoint(hingeJoint2D.connectedBody.transform,
 				worldConnectedAnchor);
 		}
 		else {
@@ -88,11 +88,11 @@ public class JointEditorHelpers {
 	public static float AngleFromAnchor(Vector2 anchorPosition, Vector2 targetPosition, float targetRotation)
 	{
 		float angle;
-		if (Vector3.Distance(targetPosition, anchorPosition) > JointEditorSettings.AnchorEpsilon)
+		if (Vector3.Distance(targetPosition, anchorPosition) > AnchorEpsilon)
 		{
 			Vector3 towardsTarget = (targetPosition - anchorPosition).normalized;
 
-			angle = GUIHelpers.GetAngle(towardsTarget);
+			angle = Helpers.GetAngle(towardsTarget);
 		}
 		else
 		{

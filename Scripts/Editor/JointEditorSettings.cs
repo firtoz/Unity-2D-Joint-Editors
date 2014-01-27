@@ -10,7 +10,6 @@ public class JointEditorSettings : ScriptableObject {
         Never
     }
 
-    public const float AnchorEpsilon = 0.0001f;
 
     [SerializeField]
     private bool _initialized;
