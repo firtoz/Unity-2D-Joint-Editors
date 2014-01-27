@@ -75,7 +75,7 @@ public class HingeJoint2DSettings : MonoBehaviour {
 
         Ray ray = HandleUtility.GUIPointToWorldRay(HandleUtility.WorldToGUIPoint(anchorPosition));
 
-        float radius = HandleUtility.GetHandleSize(ray.origin) * 0.25f;
+        float radius = HandleUtility.GetHandleSize(ray.origin) * 0.125f;
 
         Vector3 screenAnchorPosition = ray.origin + ray.direction * radius*2;
 

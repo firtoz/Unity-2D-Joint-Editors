@@ -77,6 +77,41 @@ public class HingeJoint2DEditor : JointEditor {
 //                }
     }
 
+    public bool HasFrameBounds() {
+        return true;
+    }
+
+    public Bounds OnGetFrameBounds() {
+        Bounds bounds;
+        if (Selection.activeGameObject.renderer)
+        {
+            bounds = Selection.activeGameObject.renderer.bounds;
+        }
+        else
+        {
+            bounds = new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
+        }
+        foreach (Transform selectedTransform in Selection.transforms)
+        {
+            bounds.Encapsulate((Vector2) selectedTransform.position);
+        }
+
+        foreach (HingeJoint2D hingeJoint2D in targets.Cast<HingeJoint2D>())
+        {
+            Vector2 midPoint = (JointHelpers.GetAnchorPosition(hingeJoint2D) +
+                                JointHelpers.GetConnectedAnchorPosition(hingeJoint2D)) * .5f;
+            float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
+            if (hingeJoint2D.connectedBody) {
+                float connectedDistance = Vector2.Distance(midPoint, hingeJoint2D.connectedBody.transform.position);
+                distance = Mathf.Max(distance, connectedDistance);
+            }
+            Bounds hingeBounds = new Bounds(midPoint, Vector2.one * distance*0.5f);
+            bounds.Encapsulate(hingeBounds);
+        }
+
+        return bounds;
+    }
+
     public void OnSceneGUI() {
         HingeJoint2D hingeJoint2D = target as HingeJoint2D;
         if (hingeJoint2D == null) {
