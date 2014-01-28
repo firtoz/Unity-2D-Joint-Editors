@@ -1,17 +1,15 @@
-﻿using toxicFork.GUIHelpers.Disposable;
+﻿using toxicFork.GUIHelpers.DisposableHandles;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class HingeJoint2DSettings : MonoBehaviour {
+public class HingeJoint2DSettings : Joint2DSettings {
     public bool lockAnchors = false;
-    public bool showJointGizmos = true;
     public bool showAngleLimits = true;
-    public HingeJoint2D attachedJoint;
-	public float mainAngle;
-	public float connectedAngle;
+    public float mainAngle;
+    public float connectedAngle;
 
     public enum AngleLimitsDisplayMode {
         Main,
@@ -21,19 +19,16 @@ public class HingeJoint2DSettings : MonoBehaviour {
 
     public AngleLimitsDisplayMode angleLimitsDisplayMode = AngleLimitsDisplayMode.Main;
 
-    public void OnEnable()
-    {
-    }
+    public new void Update() {
+        base.Update();
 
-    public void Update() {
-        if (attachedJoint == null)
-        {
-            DestroyImmediate(this);
+        if (attachedJoint == null) {
+            return;
         }
 
 #if UNITY_EDITOR
         if (!(EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying)) {
-            HingeJoint2D hingeJoint2D = attachedJoint;
+            HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
             if (hingeJoint2D == null) {
                 return;
             }
@@ -60,27 +55,37 @@ public class HingeJoint2DSettings : MonoBehaviour {
 #endif
     }
 
-    public void Setup(HingeJoint2D hingeJoint2D) {
-        attachedJoint = hingeJoint2D;
-    }
-    
+
 #if UNITY_EDITOR
-    public void OnDrawGizmos()
-    {
+    public void OnDrawGizmos() {
         if (Selection.Contains(gameObject)) {
             return;
         }
 
-	    Vector2 anchorPosition = JointHelpers.GetAnchorPosition(attachedJoint);
+        HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
+        if (hingeJoint2D == null) {
+            return;
+        }
+
+        Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D);
 
         Ray ray = HandleUtility.GUIPointToWorldRay(HandleUtility.WorldToGUIPoint(anchorPosition));
 
-        float radius = HandleUtility.GetHandleSize(ray.origin) * 0.125f;
+        float radius = HandleUtility.GetHandleSize(ray.origin)*0.125f;
 
-        Vector3 screenAnchorPosition = ray.origin + ray.direction * radius*2;
+        Vector3 screenAnchorPosition = ray.origin + ray.direction*radius*2;
 
-        Handles.CircleCap(0, screenAnchorPosition, Quaternion.LookRotation(ray.direction), radius * 1.1f);
+        Handles.CircleCap(0, screenAnchorPosition, Quaternion.LookRotation(ray.direction), radius*1.1f);
         Gizmos.DrawSphere(screenAnchorPosition, radius);
-	}
+        using (new HandleColor(Color.green)) {
+            Handles.DrawLine(screenAnchorPosition, transform.position);
+        }
+        if (hingeJoint2D.connectedBody) {
+            using (new HandleColor(Color.red))
+            {
+                Handles.DrawLine(screenAnchorPosition, hingeJoint2D.connectedBody.transform.position);
+            }
+        }
+    }
 #endif
 }
