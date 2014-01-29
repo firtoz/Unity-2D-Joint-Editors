@@ -25,7 +25,7 @@ public class HingeJoint2DEditor : JointEditor {
     }
 
 
-    private Dictionary<HingeJoint2D, PositionInfo> positions = new Dictionary<HingeJoint2D, PositionInfo>();
+    private readonly Dictionary<HingeJoint2D, PositionInfo> positions = new Dictionary<HingeJoint2D, PositionInfo>();
     public void OnPreSceneGUI()
     {
         //gets called before gizmos!
@@ -42,14 +42,14 @@ public class HingeJoint2DEditor : JointEditor {
 
 
         foreach (HingeJoint2D hingeJoint2D in targets.Cast<HingeJoint2D>()) {
-            PositionChange change = positions[hingeJoint2D].Changed(hingeJoint2D);
+            PositionInfo.Change change = positions[hingeJoint2D].Changed(hingeJoint2D);
             var settings = HingeJoint2DSettingsEditor.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
             Vector2 main = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
             Vector2 connected = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-            if (settings.lockAnchors && Vector2.Distance(main, connected) > JointHelpers.AnchorEpsilon && change != PositionChange.NoChange) {
+            if (settings.lockAnchors && Vector2.Distance(main, connected) > JointHelpers.AnchorEpsilon && change != PositionInfo.Change.NoChange) {
                 EditorHelpers.RecordUndo("Realign", hingeJoint2D);
-                ReAlignAnchors(hingeJoint2D, GetBias(change));
+                ReAlignAnchors(hingeJoint2D, JointHelpers.GetBias(change));
                 EditorUtility.SetDirty(hingeJoint2D);
             }
         }
@@ -624,13 +624,7 @@ public class HingeJoint2DEditor : JointEditor {
         return lockPressed;
     }
 
-    public override void OnInspectorGUI() {
-        EditorGUI.BeginChangeCheck();
-        bool foldout = EditorGUILayout.Foldout(editorSettings.foldout, "Advanced Options");
-        if (EditorGUI.EndChangeCheck()) {
-            editorSettings.foldout = foldout;
-            EditorUtility.SetDirty(editorSettings);
-        }
+    protected override void InspectorGUI(bool foldout) {
         int grp = Undo.GetCurrentGroup();
         EditorGUI.BeginChangeCheck();
         if (foldout) {
@@ -643,15 +637,14 @@ public class HingeJoint2DEditor : JointEditor {
                 if (allSettings.Count > 0) {
                     serializedSettings = new SerializedObject(allSettings.ToArray());
                 }
+                using (new Indent()) {
+                    ToggleShowRadiusHandles(serializedSettings);
+                    ToggleShowAngleLimits(serializedSettings);
+                    SelectAngleLimitsMode(serializedSettings);
+                }
                 EditorGUILayout.LabelField("Features:");
                 using (new Indent()) {
                     ToggleAnchorLock(serializedSettings);
-                }
-                EditorGUILayout.LabelField("Display:");
-                using (new Indent()) {
-                    ToggleShowGizmos(serializedSettings);
-                    ToggleShowAngleLimits(serializedSettings);
-                    SelectAngleLimitsMode(serializedSettings);
                 }
             }
         }
@@ -726,30 +719,6 @@ public class HingeJoint2DEditor : JointEditor {
         }
     }
 
-    private static readonly GUIContent JointGizmosContent =
-        new GUIContent("Joint Gizmos", "Toggles the display of advanced joint gizmos on the scene GUI.");
-
-    private void ToggleShowGizmos(SerializedObject serializedSettings) {
-        EditorGUI.BeginChangeCheck();
-        bool value;
-        if (serializedSettings != null) {
-            SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
-            EditorGUILayout.PropertyField(showJointGizmos, JointGizmosContent);
-            value = showJointGizmos.boolValue;
-        }
-        else {
-            value = EditorGUILayout.Toggle(JointGizmosContent, true);
-        }
-        if (EditorGUI.EndChangeCheck()) {
-            foreach (HingeJoint2D hingeJoint2D in targets) {
-                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
-
-                EditorHelpers.RecordUndo("toggle gizmo display", hingeSettings);
-                hingeSettings.showJointGizmos = value;
-                EditorUtility.SetDirty(hingeSettings);
-            }
-        }
-    }
 
     private static readonly GUIContent AngleLimitsModeContent =
         new GUIContent("Anchor Priority",
@@ -796,29 +765,43 @@ public class HingeJoint2DEditor : JointEditor {
     }
 
 
+
+    private static readonly GUIContent RadiusHandlesContent =
+        new GUIContent("Radius Handles", "Toggles the display of radius handles on the scene GUI.");
+
+    private void ToggleShowRadiusHandles(SerializedObject serializedSettings) {
+        EditorGUI.BeginChangeCheck();
+        bool value;
+
+        SerializedProperty showRadiusHandles = serializedSettings.FindProperty("showRadiusHandles");
+
+        bool enabled = GUI.enabled && (showRadiusHandles.boolValue || showRadiusHandles.hasMultipleDifferentValues);
+        if (EditorGUI.EndChangeCheck()) {
+            
+        }
+    }
+
     private static readonly GUIContent AngleLimitsContent =
-        new GUIContent("Angle Limits", "Toggles the display of angle limits on the scene GUI.");
+            new GUIContent("Angle Limits", "Toggles the display of angle limits on the scene GUI.");
 
     private void ToggleShowAngleLimits(SerializedObject serializedSettings) {
         EditorGUI.BeginChangeCheck();
         bool value;
-        if (serializedSettings != null) {
-            SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
+        
+        SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
 
-            bool enabled = GUI.enabled && (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
+        bool enabled = GUI.enabled && (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
 
-            using (new GUIEnabled(enabled)) {
-                SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
-                EditorGUILayout.PropertyField(showAngleLimits, AngleLimitsContent);
-                value = showAngleLimits.boolValue;
-            }
+        using (new GUIEnabled(enabled)) {
+            SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
+            EditorGUILayout.PropertyField(showAngleLimits, AngleLimitsContent);
+            value = showAngleLimits.boolValue;
         }
-        else {
-            value = EditorGUILayout.Toggle(AngleLimitsContent, true);
-        }
+
         if (EditorGUI.EndChangeCheck()) {
             foreach (HingeJoint2D hingeJoint2D in targets) {
-                HingeJoint2DSettings hingeSettings = HingeJoint2DSettingsEditor.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
+                HingeJoint2DSettings hingeSettings =
+                    HingeJoint2DSettingsEditor.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
                 EditorHelpers.RecordUndo("toggle angle limits display", hingeSettings);
                 hingeSettings.showAngleLimits = value;

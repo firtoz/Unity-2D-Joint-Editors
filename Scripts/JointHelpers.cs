@@ -21,7 +21,20 @@ public class JointHelpers {
 		Either
 	}
 
-	public static Vector2 GetAnchorPosition(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either) {
+    public static AnchorBias GetBias(PositionInfo.Change change)
+    {
+        switch (change)
+        {
+            case PositionInfo.Change.MainChanged:
+                return AnchorBias.Main;
+            case PositionInfo.Change.ConnectedChanged:
+                return AnchorBias.Connected;
+            default:
+                return AnchorBias.Either;
+        }
+    }
+
+    public static Vector2 GetAnchorPosition(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either) {
 		switch (bias) {
 			case AnchorBias.Connected:
 				return GetConnectedAnchorPosition(hingeJoint2D);

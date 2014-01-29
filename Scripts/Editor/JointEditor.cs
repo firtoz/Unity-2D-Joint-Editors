@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using toxicFork.GUIHelpers;
-using toxicFork.GUIHelpers.Disposable;
+using toxicFork.GUIHelpers.DisposableEditorGUI;
 using toxicFork.GUIHelpers.DisposableGUI;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
-public class JointEditor : Editor
+public abstract class JointEditor : Editor
 {
     protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
 
@@ -419,50 +421,61 @@ public class JointEditor : Editor
         }
     }
 
-    protected static JointHelpers.AnchorBias GetBias(PositionChange change)
+    private static readonly GUIContent JointGizmosContent =
+        new GUIContent("Joint Gizmos", "Toggles the display of advanced joint gizmos on the scene GUI.");
+
+    
+    protected void ToggleShowGizmos(SerializedObject serializedSettings) {
+        EditorGUI.BeginChangeCheck();
+        SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
+        EditorGUILayout.PropertyField(showJointGizmos, JointGizmosContent);
+        bool value = showJointGizmos.boolValue;
+        if (EditorGUI.EndChangeCheck()) {
+            serializedSettings.ApplyModifiedProperties();
+//            foreach (
+//                Joint2DSettings joint2DSettings in
+//                    from Joint2D joint2D in targets select HingeJoint2DSettingsEditor.GetOrCreate(joint2D)) {
+//                EditorHelpers.RecordUndo("toggle gizmo display", joint2DSettings);
+//                joint2DSettings.showJointGizmos = value;
+//                EditorUtility.SetDirty(joint2DSettings);
+//            }
+        }
+    }
+
+    public sealed override void OnInspectorGUI()
     {
-        switch (change)
+        EditorGUI.BeginChangeCheck();
+        bool foldout = EditorGUILayout.Foldout(editorSettings.foldout, "Advanced Options");
+        if (EditorGUI.EndChangeCheck())
         {
-            case PositionChange.MainChanged:
-                return JointHelpers.AnchorBias.Main;
-            case PositionChange.ConnectedChanged:
-                return JointHelpers.AnchorBias.Connected;
-            default:
-                return JointHelpers.AnchorBias.Either;
+            //no need to record undo here.
+            editorSettings.foldout = foldout;
+            EditorUtility.SetDirty(editorSettings);
         }
+        if (foldout) {
+            using (new Indent())
+            {
+                List<Object> allSettings =
+                        targets.Cast<Joint2D>().Select(joint2D => HingeJoint2DSettingsEditor.GetOrCreate(joint2D))
+                            .Where(hingeSettings => hingeSettings != null).Cast<Object>().ToList();
+
+                SerializedObject serializedSettings = null;
+                if (allSettings.Count > 0)
+                {
+                    serializedSettings = new SerializedObject(allSettings.ToArray());
+                }
+                EditorGUILayout.LabelField("Display:");
+                using (new Indent())
+                {
+                    ToggleShowGizmos(serializedSettings);
+
+                }
+            }
+        }
+        InspectorGUI(foldout);
     }
 
-    public enum PositionChange
-    {
-        NoChange,
-        MainChanged,
-        ConnectedChanged,
-        BothChanged
-    }
-
-    protected struct PositionInfo {
-        private readonly Vector2 worldAnchor, worldConnectedAnchor;
-        public PositionInfo(HingeJoint2D hingeJoint2D) {
-            worldAnchor = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-            worldConnectedAnchor = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-;        }
-
-        public PositionChange Changed(HingeJoint2D hingeJoint2D) {
-            PositionChange result = PositionChange.NoChange;
-
-            Vector2 main = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-            Vector2 connected = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-
-            bool mainChanged = Vector3.Distance(worldAnchor, main) > JointHelpers.AnchorEpsilon;
-            bool connectedChanged = Vector3.Distance(worldConnectedAnchor, connected) > JointHelpers.AnchorEpsilon;
-            
-            if (mainChanged) {
-                result = connectedChanged ? PositionChange.BothChanged : PositionChange.MainChanged;
-            }
-            else if (connectedChanged) {
-                result = PositionChange.ConnectedChanged;
-            }
-            return result;
-        }
+    protected virtual void InspectorGUI(bool foldout) {
+        DrawDefaultInspector();
     }
 }

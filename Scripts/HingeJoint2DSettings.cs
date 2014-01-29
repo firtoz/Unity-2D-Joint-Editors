@@ -7,6 +7,7 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class HingeJoint2DSettings : Joint2DSettings {
     public bool lockAnchors = false;
+    public bool showRadiusHandles = false;
     public bool showAngleLimits = true;
     public float mainAngle;
     public float connectedAngle;

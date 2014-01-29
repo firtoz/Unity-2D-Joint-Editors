@@ -25,4 +25,14 @@ public class HingeJoint2DSettingsEditor : Editor {
     {
         return Get<T>(joint2D) ?? Create<T>(joint2D) as T;
     }
+
+    public static Joint2DSettings GetOrCreate(Joint2D joint2D) {
+        if (joint2D is HingeJoint2D) {
+            return GetOrCreate<HingeJoint2DSettings>(joint2D);
+        }
+        if (joint2D is DistanceJoint2D) {
+            return GetOrCreate<DistanceJoint2DSettings>(joint2D);
+        }
+        throw new ArgumentException();
+    }
 }
