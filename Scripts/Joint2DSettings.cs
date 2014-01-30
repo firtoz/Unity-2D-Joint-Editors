@@ -5,17 +5,18 @@ public abstract class Joint2DSettings : MonoBehaviour
     public bool showJointGizmos = true;
     public Joint2D attachedJoint;
     [SerializeField]
-    private bool isSetup = false;
+    private bool setupComplete = false;
 
     public void Setup(Joint2D hingeJoint2D)
     {
-        isSetup = true;
+		Debug.Log("!!");
+        setupComplete = true;
         attachedJoint = hingeJoint2D;
     }
 
     public void OnEnable()
     {
-        if (isSetup && attachedJoint == null)
+        if (setupComplete && attachedJoint == null)
         {
             Debug.Log("!!!");
             //       DestroyImmediate(this);
@@ -24,7 +25,7 @@ public abstract class Joint2DSettings : MonoBehaviour
 
     public void Update()
     {
-        if (isSetup && attachedJoint == null) {
+        if (attachedJoint == null) {
             DestroyImmediate(this);
         }
     }

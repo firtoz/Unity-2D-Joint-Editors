@@ -12,6 +12,7 @@ public class HingeJoint2DSettingsEditor : Editor {
 
         EditorHelpers.RecordUndo(null, settings);
         settings.Setup(joint2D);
+		EditorUtility.SetDirty(settings);
         return settings;
     }
 

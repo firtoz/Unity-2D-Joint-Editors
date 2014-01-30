@@ -9,8 +9,6 @@ public class HingeJoint2DSettings : Joint2DSettings {
     public bool lockAnchors = false;
     public bool showRadiusHandles = false;
     public bool showAngleLimits = true;
-    public float mainAngle;
-    public float connectedAngle;
 
     public enum AngleLimitsDisplayMode {
         Main,
@@ -22,38 +20,6 @@ public class HingeJoint2DSettings : Joint2DSettings {
 
     public new void Update() {
         base.Update();
-
-        if (attachedJoint == null) {
-            return;
-        }
-
-#if UNITY_EDITOR
-        if (!(EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying)) {
-            HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
-            if (hingeJoint2D == null) {
-                return;
-            }
-
-            Vector2 mainCenter = JointHelpers.GetAnchorPosition(hingeJoint2D,
-                JointHelpers.AnchorBias.Main);
-            Vector2 mainPosition = JointHelpers.GetTargetPosition(hingeJoint2D,
-                JointHelpers.AnchorBias.Main);
-
-            mainAngle = JointHelpers.AngleFromAnchor(mainCenter, mainPosition,
-                JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main));
-
-            if (hingeJoint2D.connectedBody) {
-                Vector2 connectedCenter = JointHelpers.GetAnchorPosition(hingeJoint2D,
-                    JointHelpers.AnchorBias.Main);
-                Vector2 connectedPosition = JointHelpers.GetTargetPosition(hingeJoint2D,
-                    JointHelpers.AnchorBias.Connected);
-
-                connectedAngle = JointHelpers.AngleFromAnchor(connectedCenter,
-                    connectedPosition,
-                    JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected));
-            }
-        }
-#endif
     }
 
 
