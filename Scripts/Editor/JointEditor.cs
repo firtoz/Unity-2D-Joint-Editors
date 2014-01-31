@@ -429,16 +429,8 @@ public abstract class JointEditor : Editor
         EditorGUI.BeginChangeCheck();
         SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
         EditorGUILayout.PropertyField(showJointGizmos, JointGizmosContent);
-        bool value = showJointGizmos.boolValue;
         if (EditorGUI.EndChangeCheck()) {
             serializedSettings.ApplyModifiedProperties();
-//            foreach (
-//                Joint2DSettings joint2DSettings in
-//                    from Joint2D joint2D in targets select HingeJoint2DSettingsEditor.GetOrCreate(joint2D)) {
-//                EditorHelpers.RecordUndo("toggle gizmo display", joint2DSettings);
-//                joint2DSettings.showJointGizmos = value;
-//                EditorUtility.SetDirty(joint2DSettings);
-//            }
         }
     }
 
@@ -456,7 +448,7 @@ public abstract class JointEditor : Editor
             using (new Indent())
             {
                 List<Object> allSettings =
-                        targets.Cast<Joint2D>().Select(joint2D => HingeJoint2DSettingsEditor.GetOrCreate(joint2D))
+                        targets.Cast<Joint2D>().Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
                             .Where(hingeSettings => hingeSettings != null).Cast<Object>().ToList();
 
                 SerializedObject serializedSettings = null;

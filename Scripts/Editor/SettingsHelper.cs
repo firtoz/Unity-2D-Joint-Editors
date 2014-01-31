@@ -4,9 +4,7 @@ using toxicFork.GUIHelpers;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof (HingeJoint2DSettings))]
-[CanEditMultipleObjects]
-public class HingeJoint2DSettingsEditor : Editor {
+public class SettingsHelper {
     private static T Create<T>(Joint2D joint2D) where T : Joint2DSettings {
         T settings = Undo.AddComponent<T>(joint2D.gameObject);
 
@@ -24,7 +22,7 @@ public class HingeJoint2DSettingsEditor : Editor {
 
     public static T GetOrCreate<T>(Joint2D joint2D) where T : Joint2DSettings
     {
-        return Get<T>(joint2D) ?? Create<T>(joint2D) as T;
+        return Get<T>(joint2D) ?? Create<T>(joint2D);
     }
 
     public static Joint2DSettings GetOrCreate(Joint2D joint2D) {

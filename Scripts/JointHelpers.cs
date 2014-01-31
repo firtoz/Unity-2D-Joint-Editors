@@ -2,7 +2,7 @@
 using UnityEngine;
 
 public class JointHelpers {
-    public const float AnchorEpsilon = 0.0001f;
+    public const float AnchorEpsilon = 0.001f;
 
     public static Vector2 GetMainAnchorPosition(HingeJoint2D joint2D) {
 		return Helpers.Transform2DPoint(joint2D.transform, joint2D.anchor);

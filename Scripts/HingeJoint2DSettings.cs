@@ -4,7 +4,6 @@ using UnityEditor;
 #endif
 using UnityEngine;
 
-[ExecuteInEditMode]
 public class HingeJoint2DSettings : Joint2DSettings {
     public bool lockAnchors = false;
     public bool showRadiusHandles = false;
@@ -17,11 +16,6 @@ public class HingeJoint2DSettings : Joint2DSettings {
     }
 
     public AngleLimitsDisplayMode angleLimitsDisplayMode = AngleLimitsDisplayMode.Main;
-
-    public new void Update() {
-        base.Update();
-    }
-
 
 #if UNITY_EDITOR
     public void OnDrawGizmos() {

@@ -1,4 +1,4 @@
-﻿public class DistanceJoint2DSettings : Joint2DSettings
+﻿
+public class DistanceJoint2DSettings : Joint2DSettings
 {
-
 }

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[ExecuteInEditMode]
 public abstract class Joint2DSettings : MonoBehaviour
 {
     public bool showJointGizmos = true;
@@ -9,7 +10,6 @@ public abstract class Joint2DSettings : MonoBehaviour
 
     public void Setup(Joint2D hingeJoint2D)
     {
-		Debug.Log("!!");
         setupComplete = true;
         attachedJoint = hingeJoint2D;
     }

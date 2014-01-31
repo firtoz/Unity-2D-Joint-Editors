@@ -12,7 +12,7 @@ public class JointEditorSettings : ScriptableObject {
 
 
     [SerializeField]
-    private bool _initialized;
+    private bool initialized;
 
     public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected";
     public Texture2D connectedHingeTexture;
@@ -33,6 +33,8 @@ public class JointEditorSettings : ScriptableObject {
     public float orbitRangeScale = 1.5f;
     public float lockButtonScale = 0.5f;
 
+    public float angleHandleSize = 5.0f;
+
     public Color previewRadiusColor = new Color(1f, 1f, 0.5f, 0.125f);
     public Color radiusColor = new Color(1f, 1f, 0f, 0.5f);
     public Color alternateRadiusColor = new Color(0f, 1f, 1f, 0.5f);
@@ -46,8 +48,8 @@ public class JointEditorSettings : ScriptableObject {
     public bool foldout = false;
 
     public void OnEnable() {
-        if (!_initialized) {
-            _initialized = true;
+        if (!initialized) {
+            initialized = true;
             connectedHingeTexture = Resources.Load<Texture2D>(ConnectedHingeTexturePath);
             mainHingeTexture = Resources.Load<Texture2D>(MainHingeTexturePath);
             lockedHingeTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);
