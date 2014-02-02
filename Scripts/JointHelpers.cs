@@ -81,6 +81,9 @@ public class JointHelpers {
 	public static Vector2 GetTargetPosition(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either) {
 		Transform transform = GetTargetTransform(joint2D, bias);
 
+	    if (transform == null) {
+	        return Vector2.zero;
+	    }
 		return transform.position;
 	}
 
@@ -89,14 +92,18 @@ public class JointHelpers {
 	{
 		Transform transform = GetTargetTransform(joint2D, bias);
 
+        if (transform == null) {
+            return 0;
+        }
+
 		return transform.rotation.eulerAngles.z;
 	}
 
-    private static Transform GetTargetTransform(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
+    public static Transform GetTargetTransform(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
     {
 		Transform transform;
 		if (bias == AnchorBias.Connected) {
-			transform = joint2D.connectedBody ? joint2D.connectedBody.transform : joint2D.transform;
+			transform = joint2D.connectedBody ? joint2D.connectedBody.transform : null;
 		}
 		else {
 			transform = joint2D.transform;

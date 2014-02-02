@@ -77,9 +77,9 @@ public class HingeJoint2DEditor : JointEditor {
         foreach (HingeJoint2D hingeJoint2D in targets.Cast<HingeJoint2D>()) {
             Vector2 midPoint = (JointHelpers.GetAnchorPosition(hingeJoint2D) +
                                 JointHelpers.GetConnectedAnchorPosition(hingeJoint2D))*.5f;
-            float distance = Vector2.Distance(midPoint, hingeJoint2D.transform.position);
+            float distance = Vector2.Distance(midPoint, GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main));
             if (hingeJoint2D.connectedBody) {
-                float connectedDistance = Vector2.Distance(midPoint, hingeJoint2D.connectedBody.transform.position);
+                float connectedDistance = Vector2.Distance(midPoint, GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected));
                 distance = Mathf.Max(distance, connectedDistance);
             }
             Bounds hingeBounds = new Bounds(midPoint, Vector2.one*distance*0.5f);
@@ -130,6 +130,8 @@ public class HingeJoint2DEditor : JointEditor {
         public readonly int sliderID = GUIUtility.GetControlID(FocusType.Passive);
         public readonly int lockID = GUIUtility.GetControlID(FocusType.Passive);
         public readonly int radiusID = GUIUtility.GetControlID(FocusType.Passive);
+        public readonly int mainOffsetID = GUIUtility.GetControlID(FocusType.Passive);
+        public readonly int connectedOffsetID = GUIUtility.GetControlID(FocusType.Passive);
         public readonly int lowerMainAngleID = GUIUtility.GetControlID(FocusType.Passive);
         public readonly int upperMainAngleID = GUIUtility.GetControlID(FocusType.Passive);
         public readonly int lowerConnectedAngleID = GUIUtility.GetControlID(FocusType.Passive);
@@ -146,7 +148,7 @@ public class HingeJoint2DEditor : JointEditor {
     private void AnchorGUI(HingeJoint2D hingeJoint2D, List<Vector2> otherAnchors) {
         HingeJoint2DSettings hingeSettings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
-        bool anchorLock = hingeSettings != null && hingeSettings.lockAnchors;
+        bool anchorLock = hingeSettings.lockAnchors;
 
         bool playing = EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPaused;
         if (playing) {
@@ -163,6 +165,43 @@ public class HingeJoint2DEditor : JointEditor {
         AnchorInfo main = new AnchorInfo(),
             connected = new AnchorInfo(),
             locked = new AnchorInfo();
+
+
+        {
+            Vector2 localOffset = hingeSettings.GetOffset(JointHelpers.AnchorBias.Main);
+            Transform transform = JointHelpers.GetTargetTransform(hingeJoint2D, JointHelpers.AnchorBias.Main);
+            Vector2 worldOffset = Helpers.Transform2DPoint(transform, localOffset);
+
+            EditorGUI.BeginChangeCheck();
+                worldOffset = Handles.Slider2D(main.mainOffsetID,
+                    worldOffset, Vector3.forward, Vector3.up, Vector3.right,
+                    HandleUtility.GetHandleSize(worldOffset) * 0.25f,
+                    Handles.SphereCap, Vector2.zero);
+            if (EditorGUI.EndChangeCheck()) {
+                EditorHelpers.RecordUndo("Change Main Offset", hingeSettings);
+                hingeSettings.SetOffset(JointHelpers.AnchorBias.Main, Helpers.InverseTransform2DPoint(transform, worldOffset));
+                EditorUtility.SetDirty(hingeSettings);
+            } 
+        }
+        {
+            Vector2 localOffset = hingeSettings.GetOffset(JointHelpers.AnchorBias.Connected);
+            Transform transform = JointHelpers.GetTargetTransform(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+            if (transform != null) {
+                Vector2 worldOffset = Helpers.Transform2DPoint(transform, localOffset);
+
+                EditorGUI.BeginChangeCheck();
+                worldOffset = Handles.Slider2D(main.connectedOffsetID,
+                    worldOffset, Vector3.forward, Vector3.up, Vector3.right,
+                    HandleUtility.GetHandleSize(worldOffset)*0.25f,
+                    Handles.SphereCap, Vector2.zero);
+                if (EditorGUI.EndChangeCheck()) {
+                    EditorHelpers.RecordUndo("Change Connected Offset", hingeSettings);
+                    hingeSettings.SetOffset(JointHelpers.AnchorBias.Connected,
+                        Helpers.InverseTransform2DPoint(transform, worldOffset));
+                    EditorUtility.SetDirty(hingeSettings);
+                }
+            }
+        }
 
         if (anchorLock) {
             if (playing || overlapping) {
@@ -253,13 +292,13 @@ public class HingeJoint2DEditor : JointEditor {
             float maxLimit = limits.max;
 
             float angleHandleSize = editorSettings.angleHandleSize;
-            HingeJoint2DSettings.AngleLimitsDisplayMode angleLimitsDisplayMode = settings.angleLimitsDisplayMode;
+            HingeJoint2DSettings.AnchorPriority anchorPriority = settings.anchorPriority;
 
-            bool showMain = angleLimitsDisplayMode == HingeJoint2DSettings.AngleLimitsDisplayMode.Main ||
-                            angleLimitsDisplayMode == HingeJoint2DSettings.AngleLimitsDisplayMode.Both;
+            bool showMain = anchorPriority == HingeJoint2DSettings.AnchorPriority.Main ||
+                            anchorPriority == HingeJoint2DSettings.AnchorPriority.Both;
 
-            bool showConnected = (angleLimitsDisplayMode == HingeJoint2DSettings.AngleLimitsDisplayMode.Connected ||
-                                  angleLimitsDisplayMode == HingeJoint2DSettings.AngleLimitsDisplayMode.Both);
+            bool showConnected = (anchorPriority == HingeJoint2DSettings.AnchorPriority.Connected ||
+                                  anchorPriority == HingeJoint2DSettings.AnchorPriority.Both);
 
             Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
@@ -270,13 +309,15 @@ public class HingeJoint2DEditor : JointEditor {
                 ? hingeJoint2D.jointAngle
                 : 0;
 
-            float mainBodyAngle = JointHelpers.AngleFromAnchor(anchorPosition, JointHelpers.GetTargetPosition(hingeJoint2D,
-                JointHelpers.AnchorBias.Main),
+            Vector2 mainBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main);
+
+            float mainBodyAngle = JointHelpers.AngleFromAnchor(anchorPosition, mainBodyPosition,
                 JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main));
 
+            Vector2 connectedBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+
             float connectedBodyAngle = hingeJoint2D.connectedBody
-                ? JointHelpers.AngleFromAnchor(anchorPosition, JointHelpers.GetTargetPosition(hingeJoint2D,
-                    JointHelpers.AnchorBias.Connected),
+                ? JointHelpers.AngleFromAnchor(anchorPosition, connectedBodyPosition,
                     JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected))
                 : 0;
 
@@ -401,6 +442,18 @@ public class HingeJoint2DEditor : JointEditor {
         return changed;
     }
 
+    private static Vector2 GetTargetPositionWithOffset(HingeJoint2D hingeJoint2D, JointHelpers.AnchorBias bias) {
+        Transform transform = JointHelpers.GetTargetTransform(hingeJoint2D, bias);
+        Vector2 offset = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D).GetOffset(bias);
+
+        Vector2 worldOffset = offset;
+        if (transform != null) {
+            worldOffset = Helpers.Transform2DVector(transform, worldOffset);
+        }
+
+        return JointHelpers.GetTargetPosition(hingeJoint2D, bias) + worldOffset;
+    }
+
     private static void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         Vector2 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
@@ -411,18 +464,18 @@ public class HingeJoint2DEditor : JointEditor {
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
-        Vector2 bodyPosition = hingeJoint2D.transform.position;
+        Vector2 mainBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main);
         using (new HandleColor(editorSettings.mainDiscColor)) {
-            if (Vector2.Distance(bodyPosition, center) > AnchorEpsilon) {
-                Handles.DrawLine(bodyPosition, center);
+            if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
+                Handles.DrawLine(mainBodyPosition, center);
             }
             else {
                 float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main);
                 Handles.DrawLine(center, center + Helpers.Rotated2DVector(rot) * handleSize);
             }
         }
+        Vector2 connectedBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected);
         if (hingeJoint2D.connectedBody) {
-            Vector2 connectedBodyPosition = hingeJoint2D.connectedBody.transform.position;
             using (new HandleColor(editorSettings.connectedDiscColor)) {
                 if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(connectedBodyPosition, center);
@@ -438,18 +491,19 @@ public class HingeJoint2DEditor : JointEditor {
                 Handles.DrawLine(center, center + Helpers.Rotated2DVector(0) * handleSize);
             }
         }
+
         if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
              (anchorInfo.showRadius && (inZone || anchorInfo.IsActive())))) {
             using (new HandleColor(editorSettings.mainDiscColor)) {
-                Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, bodyPosition));
+                Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
             }
 
             if (hingeJoint2D.connectedBody) {
                 using (new HandleColor(editorSettings.connectedDiscColor)) {
                     Handles.DrawWireDisc(center, Vector3.forward,
                         Vector2.Distance(center,
-                            hingeJoint2D.connectedBody.transform.position));
+                            connectedBodyPosition));
                 }
             }
         }
@@ -502,10 +556,14 @@ public class HingeJoint2DEditor : JointEditor {
     private static bool SliderGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors,
         JointHelpers.AnchorBias bias) {
         int sliderID = anchorInfo.sliderID;
-        List<Vector2> snapPositions = new List<Vector2> {hingeJoint2D.transform.position};
+        List<Vector2> snapPositions = new List<Vector2> {
+            GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main),
+            JointHelpers.GetTargetTransform(hingeJoint2D, JointHelpers.AnchorBias.Main).position
+        };
 
         if (hingeJoint2D.connectedBody) {
-            snapPositions.Add(hingeJoint2D.connectedBody.transform.position);
+            snapPositions.Add(GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected));
+            snapPositions.Add(JointHelpers.GetTargetTransform(hingeJoint2D, JointHelpers.AnchorBias.Connected).position);
         }
 
         switch (bias) {
@@ -597,20 +655,24 @@ public class HingeJoint2DEditor : JointEditor {
                         .Where(hingeSettings => hingeSettings != null).Cast<Object>().ToList();
 
                 SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
-                using (new Indent()) {
-                    SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
+                SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
 
-                    bool enabled = GUI.enabled &&
-                                   (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
+                bool enabled = GUI.enabled &&
+                               (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
+
+                using (new Indent()) {
                     ToggleShowRadiusHandles(serializedSettings, enabled);
                     ToggleShowAngleLimits(serializedSettings, enabled);
-                    using (new Indent()) {
-                        SelectAngleLimitsMode(serializedSettings, enabled);
+                    using (new Indent())
+                    {
+                        SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
+                        SelectAngleLimitsMode(serializedSettings, enabled && (showAngleLimits.boolValue || showAngleLimits.hasMultipleDifferentValues));
                     }
                 }
                 EditorGUILayout.LabelField("Features:");
                 using (new Indent()) {
                     ToggleAnchorLock(serializedSettings);
+                    AlterOffsets(serializedSettings, enabled);
                 }
             }
         }
@@ -692,22 +754,14 @@ public class HingeJoint2DEditor : JointEditor {
 
     private void SelectAngleLimitsMode(SerializedObject serializedSettings, bool enabled) {
         EditorGUI.BeginChangeCheck();
-        HingeJoint2DSettings.AngleLimitsDisplayMode value;
-
-        SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
-
-        if (enabled) {
-            if (!showAngleLimits.boolValue && !showAngleLimits.hasMultipleDifferentValues) {
-                enabled = false;
-            }
-        }
+        HingeJoint2DSettings.AnchorPriority value;
 
         using (new GUIEnabled(enabled)) {
-            SerializedProperty angleLimitsDisplayMode = serializedSettings.FindProperty("angleLimitsDisplayMode");
-            EditorGUILayout.PropertyField(angleLimitsDisplayMode, AngleLimitsModeContent);
-            value = (HingeJoint2DSettings.AngleLimitsDisplayMode)
-                Enum.Parse(typeof (HingeJoint2DSettings.AngleLimitsDisplayMode),
-                    angleLimitsDisplayMode.enumNames[angleLimitsDisplayMode.enumValueIndex]);
+            SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
+            EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
+            value = (HingeJoint2DSettings.AnchorPriority)
+                Enum.Parse(typeof (HingeJoint2DSettings.AnchorPriority),
+                    anchorPriority.enumNames[anchorPriority.enumValueIndex]);
         }
 
         if (EditorGUI.EndChangeCheck()) {
@@ -715,7 +769,7 @@ public class HingeJoint2DEditor : JointEditor {
                 HingeJoint2DSettings hingeSettings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
                 EditorHelpers.RecordUndo("toggle angle limits display mode", hingeSettings);
-                hingeSettings.angleLimitsDisplayMode = value;
+                hingeSettings.anchorPriority = value;
                 EditorUtility.SetDirty(hingeSettings);
             }
         }
@@ -760,6 +814,29 @@ public class HingeJoint2DEditor : JointEditor {
         }
 
         if (EditorGUI.EndChangeCheck()) {
+            serializedSettings.ApplyModifiedProperties();
+        }
+    }
+
+    private static readonly GUIContent MainOffsetContent = new GUIContent("Main Offset",
+        "This offset is used to display the current angle of the object that owns the joint.");
+    private static readonly GUIContent ConnectedOffsetContent = new GUIContent("Connected Offset",
+        "This offset is used to display the current angle of the object that is connected by joint.");
+
+    private void AlterOffsets(SerializedObject serializedSettings, bool enabled) {
+        EditorGUI.BeginChangeCheck();
+
+        using (new GUIEnabled(enabled))
+        {
+            SerializedProperty mainBodyOffset = serializedSettings.FindProperty("mainBodyOffset");
+            EditorGUILayout.PropertyField(mainBodyOffset, MainOffsetContent);
+
+            SerializedProperty connectedBodyOffset = serializedSettings.FindProperty("connectedBodyOffset");
+            EditorGUILayout.PropertyField(connectedBodyOffset, ConnectedOffsetContent);
+        }
+
+        if (EditorGUI.EndChangeCheck())
+        {
             serializedSettings.ApplyModifiedProperties();
         }
     }

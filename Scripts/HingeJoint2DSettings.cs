@@ -9,13 +9,16 @@ public class HingeJoint2DSettings : Joint2DSettings {
     public bool showRadiusHandles = false;
     public bool showAngleLimits = true;
 
-    public enum AngleLimitsDisplayMode {
+    public Vector2 mainBodyOffset = Vector2.zero;
+    public Vector2 connectedBodyOffset = Vector2.zero;
+
+    public enum AnchorPriority {
         Main,
         Connected,
         Both
     }
 
-    public AngleLimitsDisplayMode angleLimitsDisplayMode = AngleLimitsDisplayMode.Main;
+    public AnchorPriority anchorPriority = AnchorPriority.Main;
 
 #if UNITY_EDITOR
     public void OnDrawGizmos() {
@@ -42,11 +45,25 @@ public class HingeJoint2DSettings : Joint2DSettings {
             Handles.DrawLine(screenAnchorPosition, transform.position);
         }
         if (hingeJoint2D.connectedBody) {
-            using (new HandleColor(Color.red))
-            {
+            using (new HandleColor(Color.red)) {
                 Handles.DrawLine(screenAnchorPosition, hingeJoint2D.connectedBody.transform.position);
             }
         }
     }
 #endif
+
+    public Vector2 GetOffset(JointHelpers.AnchorBias bias) {
+        if (bias == JointHelpers.AnchorBias.Connected) {
+            return connectedBodyOffset;
+        }
+        return mainBodyOffset;
+    }
+
+    public void SetOffset(JointHelpers.AnchorBias bias, Vector2 newOffset) {
+        if (bias == JointHelpers.AnchorBias.Connected) {
+            connectedBodyOffset = newOffset;
+            return;
+        }
+        mainBodyOffset = newOffset;
+    }
 }
