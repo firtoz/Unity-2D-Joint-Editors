@@ -4,11 +4,12 @@ using UnityEngine;
 public class JointHelpers {
     public const float AnchorEpsilon = 0.001f;
 
-    public static Vector2 GetMainAnchorPosition(HingeJoint2D joint2D) {
+    public static Vector2 GetMainAnchorPosition(AnchoredJoint2D joint2D) {
 		return Helpers.Transform2DPoint(joint2D.transform, joint2D.anchor);
 	}
 
-	public static Vector2 GetConnectedAnchorPosition(HingeJoint2D joint2D) {
+    public static Vector2 GetConnectedAnchorPosition(AnchoredJoint2D joint2D)
+    {
 		if (joint2D.connectedBody) {
 			return Helpers.Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
 		}
@@ -34,66 +35,71 @@ public class JointHelpers {
         }
     }
 
-    public static Vector2 GetAnchorPosition(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either) {
+    public static Vector2 GetAnchorPosition(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
+    {
 		switch (bias) {
 			case AnchorBias.Connected:
-				return GetConnectedAnchorPosition(hingeJoint2D);
+				return GetConnectedAnchorPosition(joint2D);
 			default:
-				return GetMainAnchorPosition(hingeJoint2D);
+				return GetMainAnchorPosition(joint2D);
 		}
 	}
 
-	public static void SetAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 position, AnchorBias bias) {
+    public static void SetAnchorPosition(AnchoredJoint2D joint2D, Vector2 position, AnchorBias bias)
+    {
 		switch (bias) {
 			case AnchorBias.Connected:
-				SetWorldConnectedAnchorPosition(hingeJoint2D, position);
+				SetWorldConnectedAnchorPosition(joint2D, position);
 				break;
 			case AnchorBias.Main:
-				SetWorldAnchorPosition(hingeJoint2D, position);
+				SetWorldAnchorPosition(joint2D, position);
 				break;
 			case AnchorBias.Either:
-				SetWorldAnchorPosition(hingeJoint2D, position);
-				SetWorldConnectedAnchorPosition(hingeJoint2D, position);
+				SetWorldAnchorPosition(joint2D, position);
+				SetWorldConnectedAnchorPosition(joint2D, position);
 				break;
 		}
 	}
 
-	public static void SetWorldAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldAnchor) {
-		hingeJoint2D.anchor = Helpers.InverseTransform2DPoint(hingeJoint2D.transform, worldAnchor);
+    public static void SetWorldAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldAnchor)
+    {
+		joint2D.anchor = Helpers.InverseTransform2DPoint(joint2D.transform, worldAnchor);
 	}
 
-	public static void SetWorldConnectedAnchorPosition(HingeJoint2D hingeJoint2D, Vector2 worldConnectedAnchor) {
-		if (hingeJoint2D.connectedBody) {
-			hingeJoint2D.connectedAnchor = Helpers.InverseTransform2DPoint(hingeJoint2D.connectedBody.transform,
+    public static void SetWorldConnectedAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldConnectedAnchor)
+    {
+		if (joint2D.connectedBody) {
+			joint2D.connectedAnchor = Helpers.InverseTransform2DPoint(joint2D.connectedBody.transform,
 				worldConnectedAnchor);
 		}
 		else {
-			hingeJoint2D.connectedAnchor = worldConnectedAnchor;
+			joint2D.connectedAnchor = worldConnectedAnchor;
 		}
 	}
 
 
-	public static Vector2 GetTargetPosition(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either) {
-		Transform transform = GetTargetTransform(hingeJoint2D, bias);
+	public static Vector2 GetTargetPosition(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either) {
+		Transform transform = GetTargetTransform(joint2D, bias);
 
 		return transform.position;
 	}
 
 
-	public static float GetTargetRotation(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either)
+    public static float GetTargetRotation(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
 	{
-		Transform transform = GetTargetTransform(hingeJoint2D, bias);
+		Transform transform = GetTargetTransform(joint2D, bias);
 
 		return transform.rotation.eulerAngles.z;
 	}
 
-	private static Transform GetTargetTransform(HingeJoint2D hingeJoint2D, AnchorBias bias = AnchorBias.Either) {
+    private static Transform GetTargetTransform(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
+    {
 		Transform transform;
 		if (bias == AnchorBias.Connected) {
-			transform = hingeJoint2D.connectedBody ? hingeJoint2D.connectedBody.transform : hingeJoint2D.transform;
+			transform = joint2D.connectedBody ? joint2D.connectedBody.transform : joint2D.transform;
 		}
 		else {
-			transform = hingeJoint2D.transform;
+			transform = joint2D.transform;
 		}
 		return transform;
 	}
