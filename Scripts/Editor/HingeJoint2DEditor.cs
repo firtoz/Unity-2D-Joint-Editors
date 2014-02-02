@@ -362,13 +362,13 @@ public class HingeJoint2DEditor : JointEditor {
                             distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(minMainEnd)/64);
                         maxMainAngle = EditorHelpers.AngleSlider(anchorInfo.upperMainAngleID, drawer, anchorPosition,
                             maxMainAngle,
-                            distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(maxMainEnd)/64);
+                            distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(maxMainEnd) / 64);
                     }
 
                     if (EditorGUI.EndChangeCheck()) {
                         EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                        limits.min = liveMainAngle - minMainAngle;
-                        limits.max = liveMainAngle - maxMainAngle;
+                        limits.min = Handles.SnapValue(liveMainAngle - minMainAngle,45);
+                        limits.max = Handles.SnapValue(liveMainAngle - maxMainAngle, 45);
                         hingeJoint2D.limits = limits;
                         changed = true;
                     }
@@ -420,17 +420,17 @@ public class HingeJoint2DEditor : JointEditor {
                             minConnectedAngle = EditorHelpers.AngleSlider(anchorInfo.lowerConnectedAngleID, drawer,
                                 anchorPosition,
                                 minConnectedAngle,
-                                distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(minConnectedEnd)/64);
+                                distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(minConnectedEnd) / 64);
                             maxConnectedAngle = EditorHelpers.AngleSlider(anchorInfo.upperConnectedAngleID, drawer,
                                 anchorPosition,
                                 maxConnectedAngle,
-                                distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(maxConnectedEnd)/64);
+                                distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(maxConnectedEnd) / 64);
                         }
 
                         if (EditorGUI.EndChangeCheck()) {
                             EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                            limits.min = minConnectedAngle - liveConnectedAngle;
-                            limits.max = maxConnectedAngle - liveConnectedAngle;
+                            limits.min = Handles.SnapValue(minConnectedAngle - liveConnectedAngle, 45);
+                            limits.max = Handles.SnapValue(maxConnectedAngle - liveConnectedAngle, 45);
                             hingeJoint2D.limits = limits;
                             changed = true;
                         }
