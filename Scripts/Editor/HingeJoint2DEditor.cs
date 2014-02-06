@@ -738,7 +738,7 @@ public class HingeJoint2DEditor : JointEditor {
                 }
                 foreach (HingeJoint2D hingeJoint2D in targets) {
                     HingeJoint2DSettings hingeSettings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
-                    bool wantsLock = hingeSettings != null && hingeSettings.lockAnchors;
+                    bool wantsLock = hingeSettings.lockAnchors;
 
                     if (wantsLock) {
                         EditorHelpers.RecordUndo("Inspector", hingeJoint2D);
@@ -910,47 +910,6 @@ public class HingeJoint2DEditor : JointEditor {
                         EditorUtility.SetDirty(hingeJoint2D);
                     }
                 }
-            }
-        }
-    }
-
-    private static void ReAlignAnchors(HingeJoint2D hingeJoint2D,
-        JointHelpers.AnchorBias bias = JointHelpers.AnchorBias.Either) {
-        Transform transform = hingeJoint2D.transform;
-
-        Vector2 connectedAnchor = hingeJoint2D.connectedAnchor;
-        Vector2 worldAnchor = Helpers.Transform2DPoint(transform, hingeJoint2D.anchor);
-
-        if (hingeJoint2D.connectedBody) {
-            Rigidbody2D connectedBody = hingeJoint2D.connectedBody;
-            Transform connectedTransform = connectedBody.transform;
-
-            if (bias != JointHelpers.AnchorBias.Main
-                && (bias == JointHelpers.AnchorBias.Connected
-                    || (!transform.rigidbody2D.isKinematic && connectedBody.isKinematic))) {
-                //other body is static or there is a bias
-                Vector2 worldConnectedAnchor = Helpers.Transform2DPoint(connectedTransform, connectedAnchor);
-                hingeJoint2D.anchor = Helpers.InverseTransform2DPoint(transform, worldConnectedAnchor);
-            }
-            else if (bias == JointHelpers.AnchorBias.Main
-                     || (transform.rigidbody2D.isKinematic && !connectedBody.isKinematic)) {
-                //this body is static or there is a bias
-                hingeJoint2D.connectedAnchor = Helpers.InverseTransform2DPoint(connectedTransform,
-                    worldAnchor);
-            }
-            else {
-                Vector2 midPoint = (Helpers.Transform2DPoint(connectedTransform, connectedAnchor) +
-                                    worldAnchor)*.5f;
-                hingeJoint2D.anchor = Helpers.InverseTransform2DPoint(transform, midPoint);
-                hingeJoint2D.connectedAnchor = Helpers.InverseTransform2DPoint(connectedTransform, midPoint);
-            }
-        }
-        else {
-            if (bias == JointHelpers.AnchorBias.Main) {
-                hingeJoint2D.connectedAnchor = worldAnchor;
-            }
-            else {
-                hingeJoint2D.anchor = Helpers.InverseTransform2DPoint(transform, connectedAnchor);
             }
         }
     }

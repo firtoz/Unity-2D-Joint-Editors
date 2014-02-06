@@ -1,4 +1,5 @@
-﻿using toxicFork.GUIHelpers.DisposableHandles;
+﻿using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.DisposableHandles;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -39,7 +40,9 @@ public class HingeJoint2DSettings : Joint2DSettings {
 
         Vector3 screenAnchorPosition = ray.origin + ray.direction*radius*2;
 
-        Handles.CircleCap(0, screenAnchorPosition, Quaternion.LookRotation(ray.direction), radius*1.1f);
+        Quaternion lookRotation = Quaternion.LookRotation(ray.direction);
+        Handles.CircleCap(0, screenAnchorPosition, lookRotation, radius*1.1f);
+        
         Gizmos.DrawSphere(screenAnchorPosition, radius);
         using (new HandleColor(Color.green)) {
             Handles.DrawLine(screenAnchorPosition, transform.position);
