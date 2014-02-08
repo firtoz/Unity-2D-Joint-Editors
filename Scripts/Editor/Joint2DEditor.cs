@@ -9,7 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public abstract class JointEditor : Editor
+public abstract class Joint2DEditor : Editor
 {
     protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
 
@@ -83,6 +83,54 @@ public abstract class JointEditor : Editor
     {
         int controlID = GUIUtility.GetControlID(FocusType.Native);
         return AnchorSlider(controlID, handleScale, snapPositions, bias, joint);
+    }
+
+    public bool HasFrameBounds()
+    {
+        AnchoredJoint2D anchoredJoint2D = target as HingeJoint2D;
+        if (anchoredJoint2D == null || !anchoredJoint2D.enabled)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    protected virtual bool WantsLocking()
+    {
+        return false;
+    }
+
+    protected virtual Vector2 GetTargetPosition(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
+        return JointHelpers.GetTargetPosition(joint2D, bias);
+    }
+
+    public Bounds OnGetFrameBounds()
+    {
+        Bounds bounds = Selection.activeGameObject.renderer
+            ? Selection.activeGameObject.renderer.bounds
+            : new Bounds((Vector2)Selection.activeGameObject.transform.position, Vector2.zero);
+        foreach (Transform selectedTransform in Selection.transforms)
+        {
+            bounds.Encapsulate((Vector2)selectedTransform.position);
+        }
+
+        foreach (AnchoredJoint2D hingeJoint2D in targets.Cast<AnchoredJoint2D>())
+        {
+            Vector2 midPoint = (JointHelpers.GetAnchorPosition(hingeJoint2D) +
+                                JointHelpers.GetConnectedAnchorPosition(hingeJoint2D)) * .5f;
+            float distance = Vector2.Distance(midPoint,
+                GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main));
+            if (hingeJoint2D.connectedBody)
+            {
+                float connectedDistance = Vector2.Distance(midPoint,
+                    GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected));
+                distance = Mathf.Max(distance, connectedDistance);
+            }
+            Bounds hingeBounds = new Bounds(midPoint, Vector2.one * distance * 0.5f);
+            bounds.Encapsulate(hingeBounds);
+        }
+
+        return bounds;
     }
 
 	protected static Vector2 AnchorSlider(int controlID, float handleScale,
@@ -552,5 +600,36 @@ public abstract class JointEditor : Editor
 
     protected virtual void InspectorGUI(bool foldout) {
         DrawDefaultInspector();
+    }
+
+
+    protected static List<Vector2> GetAllAnchorsInSelection(AnchoredJoint2D hingeJoint2D)
+    {
+        List<Vector2> otherAnchors = new List<Vector2>();
+        foreach (AnchoredJoint2D otherHingeObject in Selection.GetFiltered(typeof(AnchoredJoint2D), SelectionMode.Deep))
+        {
+            foreach (AnchoredJoint2D otherHingeJoint in otherHingeObject.GetComponents<AnchoredJoint2D>())
+            {
+                if (otherHingeJoint == hingeJoint2D)
+                {
+                    continue;
+                }
+
+                Vector2 otherWorldAnchor = Helpers.Transform2DPoint(otherHingeJoint.transform,
+                    otherHingeJoint.anchor);
+                Vector2 otherConnectedWorldAnchor = otherHingeJoint.connectedBody
+                    ? Helpers.Transform2DPoint(
+                        otherHingeJoint
+                            .connectedBody
+                            .transform,
+                        otherHingeJoint
+                            .connectedAnchor)
+                    : otherHingeJoint.connectedAnchor;
+
+                otherAnchors.Add(otherWorldAnchor);
+                otherAnchors.Add(otherConnectedWorldAnchor);
+            }
+        }
+        return otherAnchors;
     }
 }

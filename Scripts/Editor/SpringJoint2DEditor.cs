@@ -3,7 +3,7 @@ using UnityEngine;
 
 [CustomEditor(typeof(SpringJoint2D))]
 [CanEditMultipleObjects]
-public class SpringJoint2DEditor : JointEditor
+public class SpringJoint2DEditor : Joint2DEditor
 {
 
 }
