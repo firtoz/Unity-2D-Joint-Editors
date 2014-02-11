@@ -1,17 +1,6 @@
-﻿using toxicFork.GUIHelpers;
-using toxicFork.GUIHelpers.DisposableHandles;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-using UnityEngine;
-
-public class HingeJoint2DSettings : Joint2DSettings {
-    public bool lockAnchors = false;
+﻿public class HingeJoint2DSettings : Joint2DSettings {
     public bool showRadiusHandles = false;
     public bool showAngleLimits = true;
-
-    public Vector2 mainBodyOffset = Vector2.zero;
-    public Vector2 connectedBodyOffset = Vector2.zero;
 
     public enum AnchorPriority {
         Main,
@@ -21,52 +10,4 @@ public class HingeJoint2DSettings : Joint2DSettings {
 
     public AnchorPriority anchorPriority = AnchorPriority.Main;
 
-#if UNITY_EDITOR
-    public void OnDrawGizmos() {
-        if (Selection.Contains(gameObject)) {
-            return;
-        }
-
-        HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
-        if (hingeJoint2D == null) {
-            return;
-        }
-
-        Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D);
-
-        Ray ray = HandleUtility.GUIPointToWorldRay(HandleUtility.WorldToGUIPoint(anchorPosition));
-
-        float radius = HandleUtility.GetHandleSize(ray.origin)*0.125f;
-
-        Vector3 screenAnchorPosition = ray.origin + ray.direction*radius*2;
-
-        Quaternion lookRotation = Quaternion.LookRotation(ray.direction);
-        Handles.CircleCap(0, screenAnchorPosition, lookRotation, radius*1.1f);
-        
-        Gizmos.DrawSphere(screenAnchorPosition, radius);
-        using (new HandleColor(Color.green)) {
-            Handles.DrawLine(screenAnchorPosition, transform.position);
-        }
-        if (hingeJoint2D.connectedBody) {
-            using (new HandleColor(Color.red)) {
-                Handles.DrawLine(screenAnchorPosition, hingeJoint2D.connectedBody.transform.position);
-            }
-        }
-    }
-#endif
-
-    public Vector2 GetOffset(JointHelpers.AnchorBias bias) {
-        if (bias == JointHelpers.AnchorBias.Connected) {
-            return connectedBodyOffset;
-        }
-        return mainBodyOffset;
-    }
-
-    public void SetOffset(JointHelpers.AnchorBias bias, Vector2 newOffset) {
-        if (bias == JointHelpers.AnchorBias.Connected) {
-            connectedBodyOffset = newOffset;
-            return;
-        }
-        mainBodyOffset = newOffset;
-    }
 }
