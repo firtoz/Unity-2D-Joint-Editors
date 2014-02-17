@@ -11,18 +11,18 @@ public class PositionInfo
     }
 
     private readonly Vector2 worldAnchor, worldConnectedAnchor;
-    public PositionInfo(HingeJoint2D hingeJoint2D)
+    public PositionInfo(AnchoredJoint2D joint2D)
     {
-        worldAnchor = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-        worldConnectedAnchor = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+        worldAnchor = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+        worldConnectedAnchor = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
     }
 
-    public Change Changed(HingeJoint2D hingeJoint2D)
+    public Change Changed(AnchoredJoint2D joint2D)
     {
         Change result = Change.NoChange;
 
-        Vector2 main = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-        Vector2 connected = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+        Vector2 main = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+        Vector2 connected = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
 
         bool mainChanged = Vector3.Distance(worldAnchor, main) > JointHelpers.AnchorEpsilon;
         bool connectedChanged = Vector3.Distance(worldConnectedAnchor, connected) > JointHelpers.AnchorEpsilon;

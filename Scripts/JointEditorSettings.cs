@@ -1,5 +1,4 @@
-﻿using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
@@ -15,13 +14,13 @@ public class JointEditorSettings : ScriptableObject {
     private bool initialized;
 
     public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected";
-    public Texture2D connectedHingeTexture;
+    public Texture2D connectedAnchorTexture;
     public const string MainHingeTexturePath = "2d_joint_editor_hinge_main";
-    public Texture2D mainHingeTexture;
+    public Texture2D mainAnchorTexture;
     public const string LockedHingeTexturePath = "2d_joint_editor_hinge_locked";
-    public Texture2D lockedHingeTexture;
+    public Texture2D lockedAnchorTexture;
     public const string HotHingeTexturePath = "2d_joint_editor_hinge_hot";
-    public Texture2D hotHingeTexture;
+    public Texture2D hotAnchorTexture;
 
     public const string LockButtonTexturePath = "2d_joint_editor_lock_button";
     public Texture2D lockButtonTexture;
@@ -50,14 +49,13 @@ public class JointEditorSettings : ScriptableObject {
     public void OnEnable() {
         if (!initialized) {
             initialized = true;
-            connectedHingeTexture = Resources.Load<Texture2D>(ConnectedHingeTexturePath);
-            mainHingeTexture = Resources.Load<Texture2D>(MainHingeTexturePath);
-            lockedHingeTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);
-            hotHingeTexture = Resources.Load<Texture2D>(HotHingeTexturePath);
+            connectedAnchorTexture = Resources.Load<Texture2D>(ConnectedHingeTexturePath);
+            mainAnchorTexture = Resources.Load<Texture2D>(MainHingeTexturePath);
+            lockedAnchorTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);
+            hotAnchorTexture = Resources.Load<Texture2D>(HotHingeTexturePath);
 
             lockButtonTexture = Resources.Load<Texture2D>(LockButtonTexturePath);
             unlockButtonTexture = Resources.Load<Texture2D>(UnlockButtonTexturePath);
-            EditorUtility.SetDirty(this);
         }
     }
 

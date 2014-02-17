@@ -12,49 +12,7 @@ using Object = UnityEngine.Object;
 [CustomEditor(typeof (HingeJoint2D))]
 [CanEditMultipleObjects]
 public class HingeJoint2DEditor : Joint2DEditor {
-    public void OnEnable() {
-        SceneView.onSceneGUIDelegate += OnSceneGUIDelegate;
-    }
-
-    public void OnDisable() {
-// ReSharper disable DelegateSubtraction
-        SceneView.onSceneGUIDelegate -= OnSceneGUIDelegate;
-// ReSharper restore DelegateSubtraction
-    }
-
-
-    private readonly Dictionary<HingeJoint2D, PositionInfo> positions = new Dictionary<HingeJoint2D, PositionInfo>();
-
-    public void OnPreSceneGUI() {
-        //gets called before gizmos!
-        HingeJoint2D hingeJoint2D = target as HingeJoint2D;
-        if (hingeJoint2D) {
-            positions[hingeJoint2D] = new PositionInfo(hingeJoint2D);
-        }
-//        positions[target as HingeJoint2D] = new PositionInfo();
-    }
-
-    public void OnSceneGUIDelegate(SceneView sceneView) {
-        //gets called after gizmos!
-
-
-        foreach (HingeJoint2D hingeJoint2D in targets.Cast<HingeJoint2D>()) {
-            if (hingeJoint2D == null || !hingeJoint2D.enabled) {
-                continue;
-            }
-            PositionInfo.Change change = positions[hingeJoint2D].Changed(hingeJoint2D);
-            var settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
-
-            Vector2 main = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-            Vector2 connected = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-            if (settings.lockAnchors && Vector2.Distance(main, connected) > JointHelpers.AnchorEpsilon &&
-                change != PositionInfo.Change.NoChange) {
-                EditorHelpers.RecordUndo("Realign", hingeJoint2D);
-                ReAlignAnchors(hingeJoint2D, JointHelpers.GetBias(change));
-                EditorUtility.SetDirty(hingeJoint2D);
-            }
-        }
-    }
+    
 
     protected override bool WantsLocking() {
         return true;
@@ -83,7 +41,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(hingeJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(hingeJoint2D);
-        if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > Double.Epsilon) {
+        if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
             using (new HandleColor(Color.green)) {
                 Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
             }
@@ -92,7 +50,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
     }
 
 
-    private static bool DrawAngleLimits(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
+    private bool DrawAngleLimits(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         bool changed = false;
         HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
         if (!settings.showAngleLimits) {
@@ -122,12 +80,12 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 ? hingeJoint2D.jointAngle
                 : 0;
 
-            Vector2 mainBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main);
+            Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
 
             float mainBodyAngle = JointHelpers.AngleFromAnchor(anchorPosition, mainBodyPosition,
                 JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main));
 
-            Vector2 connectedBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+            Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
 
             float connectedBodyAngle = hingeJoint2D.connectedBody
                 ? JointHelpers.AngleFromAnchor(anchorPosition, connectedBodyPosition,
@@ -277,23 +235,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
         return changed;
     }
 
-    protected override Vector2 GetTargetPosition(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        return GetTargetPositionWithOffset(joint2D, bias);
-    }
 
-    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D hingeJoint2D, JointHelpers.AnchorBias bias) {
-        Transform transform = JointHelpers.GetTargetTransform(hingeJoint2D, bias);
-        Vector2 offset = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D).GetOffset(bias);
-
-        Vector2 worldOffset = offset;
-        if (transform != null) {
-            worldOffset = Helpers.Transform2DVector(transform, worldOffset);
-        }
-
-        return JointHelpers.GetTargetPosition(hingeJoint2D, bias) + worldOffset;
-    }
-
-    private static void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
+    private void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         Vector2 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
         HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
@@ -303,7 +246,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
-        Vector2 mainBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main);
+        Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
         using (new HandleColor(editorSettings.mainDiscColor)) {
             if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                 Handles.DrawLine(mainBodyPosition, center);
@@ -313,7 +256,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 Handles.DrawLine(center, center + Helpers.Rotated2DVector(rot)*handleSize);
             }
         }
-        Vector2 connectedBodyPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+        Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
         if (hingeJoint2D.connectedBody) {
             using (new HandleColor(editorSettings.connectedDiscColor)) {
                 if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {

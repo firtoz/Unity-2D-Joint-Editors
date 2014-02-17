@@ -1,4 +1,5 @@
-﻿using toxicFork.GUIHelpers.DisposableHandles;
+﻿using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -7,12 +8,35 @@ using UnityEditor;
 [ExecuteInEditMode]
 public abstract class Joint2DSettings : MonoBehaviour
 {
+#if UNITY_EDITOR
+    protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
+
+    private static JointEditorSettings _editorSettings;
+
+    protected static JointEditorSettings editorSettings
+    {
+        get
+        {
+            if (_editorSettings != null)
+            {
+                return _editorSettings;
+            }
+            _editorSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
+            if (_editorSettings == null)
+            {
+                Debug.Log("deleted!");
+            }
+            return _editorSettings;
+        }
+    }
+#endif
+
     public bool showJointGizmos = true;
     public bool lockAnchors = false;
 
     public Joint2D attachedJoint;
     [SerializeField]
-    private bool setupComplete = false;
+    private bool setupComplete;
 
     public void Setup(Joint2D hingeJoint2D)
     {
@@ -54,18 +78,20 @@ public abstract class Joint2DSettings : MonoBehaviour
 
         DrawSphereOnScreen(mainAnchorPosition, (1f/8));
         DrawSphereOnScreen(connectedAnchorPosition, (1f / 8));
+    }
 
-        using (new HandleColor(Color.green))
+    protected Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
+    {
+        Transform targetTransform = JointHelpers.GetTargetTransform(joint2D, bias);
+        Vector2 offset = GetOffset(bias);
+
+        Vector2 worldOffset = offset;
+        if (targetTransform != null)
         {
-            Handles.DrawLine(mainAnchorPosition, transform.position);
+            worldOffset = Helpers.Transform2DVector(targetTransform, worldOffset);
         }
-        if (joint2D.connectedBody)
-        {
-            using (new HandleColor(Color.red))
-            {
-                Handles.DrawLine(mainAnchorPosition, joint2D.connectedBody.transform.position);
-            }
-        }
+
+        return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;
     }
 
     private static void DrawSphereOnScreen(Vector2 position, float radius) {
