@@ -1,5 +1,4 @@
 ﻿using toxicFork.GUIHelpers;
-using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -38,10 +37,10 @@ public abstract class Joint2DSettings : MonoBehaviour
     [SerializeField]
     private bool setupComplete;
 
-    public void Setup(Joint2D hingeJoint2D)
+    public void Setup(Joint2D joint2D)
     {
         setupComplete = true;
-        attachedJoint = hingeJoint2D;
+        attachedJoint = joint2D;
     }
 
     public void OnEnable()
@@ -53,9 +52,11 @@ public abstract class Joint2DSettings : MonoBehaviour
         }
     }
 
-    public void Update()
-    {
-        if (attachedJoint == null) {
+    public abstract bool IsValidType();
+
+    public void Update() {
+        if (attachedJoint == null || !IsValidType())
+        {
             DestroyImmediate(this);
         }
     }
@@ -75,6 +76,7 @@ public abstract class Joint2DSettings : MonoBehaviour
 
         Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
         Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+
 
         DrawSphereOnScreen(mainAnchorPosition, (1f/8));
         DrawSphereOnScreen(connectedAnchorPosition, (1f / 8));

@@ -27,6 +27,10 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             }
         }
 
+        SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(distanceJoint2D).DrawDistance();
+
+        Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
+
         if(bias == JointHelpers.AnchorBias.Main)
         {
             Vector2 mainBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Main);
