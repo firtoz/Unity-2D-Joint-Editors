@@ -40,7 +40,7 @@ public class DistanceJoint2DSettings : Joint2DSettings
     }
 
 
-    public void DrawDistance()
+    private void DrawDistance()
     {
         DistanceJoint2D joint2D = attachedJoint as DistanceJoint2D;
         if (joint2D == null)
@@ -59,7 +59,6 @@ public class DistanceJoint2DSettings : Joint2DSettings
         using (new HandleColor(Color.white))
         {
             Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff * joint2D.distance;
-//            Vector2 wantedConnectedAnchorPosition = mainAnchorPosition + normalizedDiff*joint2D.distance;
 
             Handles.DrawLine(wantedMainAnchorPosition, connectedAnchorPosition);
 
@@ -67,8 +66,6 @@ public class DistanceJoint2DSettings : Joint2DSettings
                               HandleUtility.GetHandleSize(connectedAnchorPosition) * 0.125f;
             Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition + tangent);
             Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition - tangent);
-//            Handles.DrawLine(wantedConnectedAnchorPosition, wantedConnectedAnchorPosition + tangent);
-//            Handles.DrawLine(wantedConnectedAnchorPosition, wantedConnectedAnchorPosition - tangent);
         }
     }
 #endif

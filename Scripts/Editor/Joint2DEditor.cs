@@ -35,6 +35,8 @@ public abstract class Joint2DEditor : Editor {
         return Empty;
     }
 
+    private List<string> controlNames;
+
     protected static void ReAlignAnchors(AnchoredJoint2D joint2D,
         JointHelpers.AnchorBias bias = JointHelpers.AnchorBias.Either) {
         Transform transform = joint2D.transform;
@@ -875,8 +877,6 @@ public abstract class Joint2DEditor : Editor {
 
         bool changed = false;
 
-        List<string> controlNames = new List<string> {"slider", "lock", "offset"}.Concat(GetControlNames()).ToList();
-
         AnchorInfo main = new AnchorInfo(controlNames),
             connected = new AnchorInfo(controlNames),
             locked = new AnchorInfo(controlNames);
@@ -943,6 +943,7 @@ public abstract class Joint2DEditor : Editor {
     }
     public void OnEnable()
     {
+        controlNames = new List<string> {"slider", "lock", "offset"}.Concat(GetControlNames()).ToList();
         if (WantsLocking())
         {
             SceneView.onSceneGUIDelegate += OnSceneGUIDelegate;
