@@ -164,10 +164,11 @@ public abstract class Joint2DEditor : Editor {
         }
 
 
-        float distanceFromInner = HandleUtility.DistanceToCircle(anchorPosition, handleSize*.5f);
-        bool inZone = distanceFromInner <= 0;
+        //float distanceFromInner = HandleUtility.DistanceToCircle(anchorPosition, handleSize*.5f);
+        //bool inZone = distanceFromInner <= 0;
+        bool hovering = HandleUtility.nearestControl == controlID;
 
-        bool showCursor = (inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
+        bool showCursor = (hovering) || controlID == GUIUtility.hotControl;
 
         SetCursor(showCursor, MouseCursor.MoveArrow, controlID);
 
