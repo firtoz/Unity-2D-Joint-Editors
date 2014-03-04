@@ -32,6 +32,9 @@ public class SettingsHelper {
         if (joint2D is DistanceJoint2D) {
             return GetOrCreate<DistanceJoint2DSettings>(joint2D);
         }
+        if (joint2D is SliderJoint2D) {
+            return GetOrCreate<SliderJoint2DSettings>(joint2D);
+        }
         throw new ArgumentException("There are no editors defined for the joint2D: " + joint2D.GetType());
     }
 }
