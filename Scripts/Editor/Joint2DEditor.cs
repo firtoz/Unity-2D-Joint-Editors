@@ -163,12 +163,11 @@ public abstract class Joint2DEditor : Editor {
             }
         }
 
-
         //float distanceFromInner = HandleUtility.DistanceToCircle(anchorPosition, handleSize*.5f);
         //bool inZone = distanceFromInner <= 0;
         bool hovering = HandleUtility.nearestControl == controlID;
 
-        bool showCursor = (hovering) || controlID == GUIUtility.hotControl;
+        bool showCursor = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
 
         SetCursor(showCursor, MouseCursor.MoveArrow, controlID);
 
@@ -246,7 +245,8 @@ public abstract class Joint2DEditor : Editor {
         }
         if (EditorGUI.EndChangeCheck() && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
-                if (Vector2.Distance(result, snapPosition) < handleSize*0.25f) {
+                float distance = Vector2.Distance(result, snapPosition);
+                if (distance < handleSize*0.25f) {
                     result = snapPosition;
                     break;
                 }
@@ -763,6 +763,13 @@ public abstract class Joint2DEditor : Editor {
         return lockPressed;
     }
 
+    private static readonly List<Vector2> SnapPositions = new List<Vector2>();
+
+    protected virtual IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
+    {
+        return SnapPositions;
+    }
+
     protected bool SliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors,
         JointHelpers.AnchorBias bias) {
         int sliderID = anchorInfo.GetControlID("slider");
@@ -787,6 +794,7 @@ public abstract class Joint2DEditor : Editor {
         }
 
         snapPositions.AddRange(otherAnchors);
+        snapPositions.AddRange(GetSnapPositions(joint2D, anchorInfo, bias));
 
         EditorGUI.BeginChangeCheck();
         Vector2 position = AnchorSlider(sliderID, editorSettings.anchorScale, snapPositions, bias, joint2D);
