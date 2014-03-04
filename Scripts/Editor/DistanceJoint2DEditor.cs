@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
@@ -86,9 +87,28 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return new List<Vector2> {wantedMainAnchorPosition};
     }
 
-    private Vector2 Intersect2DPlane(Ray ray) {
-        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
-        return ray.GetPoint(d);
+//    private Vector2 Intersect2DPlane(Ray ray) {
+//        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
+//        return ray.GetPoint(d);
+//    }
+
+    public override Bounds OnGetFrameBounds() {
+        Bounds baseBounds = base.OnGetFrameBounds();
+
+        foreach (DistanceJoint2D joint2D in targets.Cast<DistanceJoint2D>()) {
+            Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+            Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+            Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
+            if (diff.magnitude <= Mathf.Epsilon) {
+                diff = -Vector2.up;
+            }
+            Vector2 normalizedDiff = diff.normalized;
+            Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*joint2D.distance;
+
+            baseBounds.Encapsulate(wantedMainAnchorPosition);
+        }
+
+        return baseBounds;
     }
 
     private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo) {
@@ -131,12 +151,9 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             }
             else {
                 float distance = Vector2.Distance(wantedMainAnchorPosition, mainAnchorPosition);
-                if (distance < HandleUtility.GetHandleSize(mainAnchorPosition)*0.25f) {
-                    joint2D.distance = Vector2.Distance(connectedAnchorPosition, mainAnchorPosition);
-                }
-                else {
-                    joint2D.distance = DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
-                }
+                joint2D.distance = distance < HandleUtility.GetHandleSize(mainAnchorPosition)*0.125f
+                    ? Vector2.Distance(connectedAnchorPosition, mainAnchorPosition)
+                    : DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
             }
 
             EditorUtility.SetDirty(joint2D);

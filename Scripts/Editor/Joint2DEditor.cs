@@ -107,7 +107,7 @@ public abstract class Joint2DEditor : Editor {
         return JointHelpers.GetTargetPosition(joint2D, bias);
     }
 
-    public Bounds OnGetFrameBounds() {
+    public virtual Bounds OnGetFrameBounds() {
         Bounds bounds = Selection.activeGameObject.renderer
             ? Selection.activeGameObject.renderer.bounds
             : new Bounds((Vector2) Selection.activeGameObject.transform.position, Vector2.zero);
