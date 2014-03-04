@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
 using UnityEngine;
-using System.Collections;
 
 [CustomEditor(typeof (DistanceJoint2D))]
 [CanEditMultipleObjects]
@@ -61,9 +59,36 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return false;
     }
 
-    public static float DistanceToLine(Ray ray, Vector3 point)
-    {
+    public static float DistanceToLine(Ray ray, Vector3 point) {
         return Vector3.Cross(ray.direction, point - ray.origin).magnitude;
+    }
+
+    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
+        JointHelpers.AnchorBias bias) {
+        if (bias == JointHelpers.AnchorBias.Connected) {
+            return base.GetSnapPositions(joint2D, anchorInfo, bias);
+        }
+
+        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint2D;
+        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+//        if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
+//            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+//            Vector2 intersection = Intersect2DPlane(ray);
+//            mainAnchorPosition = intersection;
+//        }
+        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+        Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
+        if (diff.magnitude <= Mathf.Epsilon) {
+            diff = -Vector2.up;
+        }
+        Vector2 normalizedDiff = diff.normalized;
+        Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*distanceJoint2D.distance;
+        return new List<Vector2> {wantedMainAnchorPosition};
+    }
+
+    private Vector2 Intersect2DPlane(Ray ray) {
+        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
+        return ray.GetPoint(d);
     }
 
     private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo) {
@@ -88,13 +113,13 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         DistanceSliderState state = StateObject.Get<DistanceSliderState>(distanceControlID);
 
         EditorGUI.BeginChangeCheck();
-        wantedMainAnchorPosition = Handles.Slider2D(distanceControlID, 
-            wantedMainAnchorPosition, 
-            tangent, 
-            tangent, 
-            normalizedDiff,
-            tangent.magnitude*2, 
-            DrawFunc, 
+        wantedMainAnchorPosition = Handles.Slider2D(distanceControlID,
+            wantedMainAnchorPosition,
+            Vector3.forward,
+            Vector3.up,
+            Vector3.right,
+            tangent.magnitude*2,
+            DrawFunc,
             Vector2.zero);
         if (EditorGUI.EndChangeCheck()) {
             EditorHelpers.RecordUndo("Change Distance", joint2D);
@@ -103,8 +128,15 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 Vector2.Dot(wantedMainAnchorPosition - connectedAnchorPosition,
                     mainAnchorPosition - connectedAnchorPosition) < 0) {
                 joint2D.distance = 0;
-            } else {
-                joint2D.distance = DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
+            }
+            else {
+                float distance = Vector2.Distance(wantedMainAnchorPosition, mainAnchorPosition);
+                if (distance < HandleUtility.GetHandleSize(mainAnchorPosition)*0.25f) {
+                    joint2D.distance = Vector2.Distance(connectedAnchorPosition, mainAnchorPosition);
+                }
+                else {
+                    joint2D.distance = DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
+                }
             }
 
             EditorUtility.SetDirty(joint2D);
@@ -131,10 +163,10 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                     color = Color.yellow;
                     drawScale = 2;
                 }
-                using (new HandleColor(Color.white))
-                Handles.DrawLine(wantedMainAnchorPosition, connectedAnchorPosition);
+                using (new HandleColor(Color.white)) {
+                    Handles.DrawLine(wantedMainAnchorPosition, connectedAnchorPosition);
+                }
                 using (new HandleColor(color)) {
-
                     Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition + tangent*drawScale);
                     Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition - tangent*drawScale);
                 }

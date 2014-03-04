@@ -1,10 +1,4 @@
-﻿using System;
-using UnityEngine;
-
-#if UNITY_EDITOR
-using toxicFork.GUIHelpers.DisposableHandles;
-using UnityEditor;
-#endif
+﻿using UnityEngine;
 
 public class HingeJoint2DSettings : Joint2DSettings {
     public bool showRadiusHandles = false;
@@ -33,24 +27,7 @@ public class HingeJoint2DSettings : Joint2DSettings {
             return;
         }
 
-
-        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-        Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
-
-        using (new HandleColor(editorSettings.mainDiscColor))
-        {
-            Vector2 mainPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Main);
-            Handles.DrawLine(mainAnchorPosition, mainPosition);
-        }
-        if (hingeJoint2D.connectedBody)
-        {
-            using (new HandleColor(editorSettings.connectedDiscColor))
-            {
-                Vector2 connectedPosition = GetTargetPositionWithOffset(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-                Handles.DrawLine(connectedAnchorPosition, connectedPosition);
-            }
-        }
+        DrawAnchorLines();
     }
 #endif
 

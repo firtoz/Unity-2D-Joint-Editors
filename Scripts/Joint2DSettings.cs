@@ -1,7 +1,8 @@
-﻿using toxicFork.GUIHelpers;
-using UnityEngine;
+﻿using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
+using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.DisposableHandles;
 #endif
 
 [ExecuteInEditMode]
@@ -26,6 +27,33 @@ public abstract class Joint2DSettings : MonoBehaviour
                 Debug.Log("deleted!");
             }
             return _editorSettings;
+        }
+    }
+
+    protected void DrawAnchorLines()
+    {
+        DistanceJoint2D joint2D = attachedJoint as DistanceJoint2D;
+        if (joint2D == null)
+        {
+            return;
+        }
+
+        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+        Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
+
+        using (new HandleColor(editorSettings.mainDiscColor))
+        {
+            Vector2 mainPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Main);
+            Handles.DrawLine(mainAnchorPosition, mainPosition);
+        }
+        if (joint2D.connectedBody)
+        {
+            using (new HandleColor(editorSettings.connectedDiscColor))
+            {
+                Vector2 connectedPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Connected);
+                Handles.DrawLine(connectedAnchorPosition, connectedPosition);
+            }
         }
     }
 #endif
