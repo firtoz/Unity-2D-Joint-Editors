@@ -5,13 +5,13 @@ public class JointHelpers {
     public const float AnchorEpsilon = 0.001f;
 
     public static Vector2 GetMainAnchorPosition(AnchoredJoint2D joint2D) {
-		return Helpers.Transform2DPoint(joint2D.transform, joint2D.anchor);
+		return Helpers2D.Transform2DPoint(joint2D.transform, joint2D.anchor);
 	}
 
     public static Vector2 GetConnectedAnchorPosition(AnchoredJoint2D joint2D)
     {
 		if (joint2D.connectedBody) {
-			return Helpers.Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
+			return Helpers2D.Transform2DPoint(joint2D.connectedBody.transform, joint2D.connectedAnchor);
 		}
 		return joint2D.connectedAnchor;
 	}
@@ -63,13 +63,13 @@ public class JointHelpers {
 
     public static void SetWorldAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldAnchor)
     {
-		joint2D.anchor = Helpers.InverseTransform2DPoint(joint2D.transform, worldAnchor);
+		joint2D.anchor = Helpers2D.InverseTransform2DPoint(joint2D.transform, worldAnchor);
 	}
 
     public static void SetWorldConnectedAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldConnectedAnchor)
     {
 		if (joint2D.connectedBody) {
-			joint2D.connectedAnchor = Helpers.InverseTransform2DPoint(joint2D.connectedBody.transform,
+			joint2D.connectedAnchor = Helpers2D.InverseTransform2DPoint(joint2D.connectedBody.transform,
 				worldConnectedAnchor);
 		}
 		else {
@@ -118,7 +118,7 @@ public class JointHelpers {
 		{
 			Vector3 towardsTarget = (targetPosition - anchorPosition).normalized;
 
-			angle = Helpers.GetAngle(towardsTarget);
+			angle = Helpers2D.GetAngle2D(towardsTarget);
 		}
 		else
 		{

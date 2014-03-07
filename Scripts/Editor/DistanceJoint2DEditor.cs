@@ -52,7 +52,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                     }
                     else {
                         float rot = JointHelpers.GetTargetRotation(distanceJoint2D, JointHelpers.AnchorBias.Connected);
-                        Handles.DrawLine(center, center + Helpers.Rotated2DVector(rot)*handleSize);
+                        Handles.DrawLine(center, center + Helpers2D.Rotated2DVector(rot)*handleSize);
                     }
                 }
             }
@@ -60,37 +60,68 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return false;
     }
 
-    public static float DistanceToLine(Ray ray, Vector3 point) {
-        return Vector3.Cross(ray.direction, point - ray.origin).magnitude;
-    }
-
-    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
-        JointHelpers.AnchorBias bias) {
+    protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
+        JointHelpers.AnchorBias bias, float snapDistance) {
         if (bias == JointHelpers.AnchorBias.Connected) {
-            return base.GetSnapPositions(joint2D, anchorInfo, bias);
+            return base.AlterDragResult(sliderID, position, joint, bias, snapDistance);
         }
+        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint;
 
-        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint2D;
-        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-//        if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
-//            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-//            Vector2 intersection = Intersect2DPlane(ray);
-//            mainAnchorPosition = intersection;
-//        }
-        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+        AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
+        Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+        Vector2 currentWantedAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
+        Vector2 previousMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition - Event.current.delta);
+        Vector2 previousWantedAnchorPosition = previousMousePosition - anchorSliderState.mouseOffset;
+
+
+        Vector2 mainAnchorPosition = currentWantedAnchorPosition;
+
+        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(distanceJoint2D,
+            JointHelpers.AnchorBias.Connected);
         Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon) {
             diff = -Vector2.up;
         }
         Vector2 normalizedDiff = diff.normalized;
+
         Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*distanceJoint2D.distance;
-        return new List<Vector2> {wantedMainAnchorPosition};
+
+       
+
+        float currentDistance = Vector2.Distance(currentWantedAnchorPosition, wantedMainAnchorPosition);
+        if (Vector2.Distance(position, wantedMainAnchorPosition) < snapDistance
+//            && Vector2.Distance(previousWantedAnchorPosition, wantedMainAnchorPosition) > currentDistance
+            )
+        {
+            return wantedMainAnchorPosition;
+        }
+
+        return position;
     }
 
-//    private Vector2 Intersect2DPlane(Ray ray) {
-//        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
-//        return ray.GetPoint(d);
+//    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
+//        JointHelpers.AnchorBias bias) {
+//        if (bias == JointHelpers.AnchorBias.Connected) {
+//            return base.GetSnapPositions(joint2D, anchorInfo, bias);
+//        }
+//
+//        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint2D;
+//        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+////        if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
+////            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+////            Vector2 intersection = Intersect2DPlane(ray);
+////            mainAnchorPosition = intersection;
+////        }
+//        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+//        Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
+//        if (diff.magnitude <= Mathf.Epsilon) {
+//            diff = -Vector2.up;
+//        }
+//        Vector2 normalizedDiff = diff.normalized;
+//        Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*distanceJoint2D.distance;
+//        return new List<Vector2> {wantedMainAnchorPosition};
 //    }
+
 
     public override Bounds OnGetFrameBounds() {
         Bounds baseBounds = base.OnGetFrameBounds();
@@ -153,7 +184,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 float distance = Vector2.Distance(wantedMainAnchorPosition, mainAnchorPosition);
                 joint2D.distance = distance < HandleUtility.GetHandleSize(mainAnchorPosition)*0.125f
                     ? Vector2.Distance(connectedAnchorPosition, mainAnchorPosition)
-                    : DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
+                    : Helpers2D.DistanceToLine(new Ray(connectedAnchorPosition, tangent), wantedMainAnchorPosition);
             }
 
             EditorUtility.SetDirty(joint2D);
@@ -198,5 +229,10 @@ public class DistanceJoint2DEditor : Joint2DEditor {
     public class DistanceSliderState {
         public bool hovering = false;
         public Vector2 mousePos = Vector2.zero;
+    }
+
+    public Vector2 Intersect2DPlane(Ray ray) {
+        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
+        return ray.GetPoint(d);
     }
 }
