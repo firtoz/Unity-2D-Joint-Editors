@@ -150,7 +150,3 @@ public class SliderJoint2DEditor : Joint2DEditor {
         }
     }
 }
-
-internal class HoverState {
-    public bool hovering;
-}

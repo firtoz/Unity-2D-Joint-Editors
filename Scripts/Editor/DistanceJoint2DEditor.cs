@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableHandles;
@@ -139,7 +140,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         if (bias != JointHelpers.AnchorBias.Connected) {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
-            DistanceSliderState state = StateObject.Get<DistanceSliderState>(distanceControlID);
+			HoverState state = StateObject.Get<HoverState>(distanceControlID);
 
             EditorGUI.BeginChangeCheck();
             wantedAnchorPosition = Handles.Slider2D(distanceControlID,
@@ -182,14 +183,15 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                     break;
                 case EventType.repaint:
 
-                    if (GUIUtility.hotControl == distanceControlID) {
-                        color = Color.red;
-                        drawScale = 2;
-                    }
-                    else if (state.hovering) {
-                        color = Color.yellow;
-                        drawScale = 2;
-                    }
+		            if (GUIUtility.hotControl == distanceControlID || state.hovering) {
+						color = GUIUtility.hotControl == distanceControlID ? Color.red : Color.yellow;
+
+						var cursor = EditorHelpers.RotatedResizeCursor(normalizedDiff);
+
+
+			            EditorHelpers.SetEditorCursor(cursor, distanceControlID);
+						drawScale = 2;
+		            }
                     break;
             }
         }
@@ -209,17 +211,8 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         }
     }
 
-    private void DrawFunc(int controlID, Vector3 position, Quaternion rotation, float size) {
+
+	private void DrawFunc(int controlID, Vector3 position, Quaternion rotation, float size) {
 //        throw new NotImplementedException();
-    }
-
-    public class DistanceSliderState {
-        public bool hovering = false;
-        public Vector2 mousePos = Vector2.zero;
-    }
-
-    public Vector2 Intersect2DPlane(Ray ray) {
-        float d = Vector3.Dot(-ray.origin, Vector3.forward)/Vector3.Dot(ray.direction, Vector3.forward);
-        return ray.GetPoint(d);
     }
 }
