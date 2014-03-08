@@ -70,8 +70,6 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
         Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
         Vector2 currentWantedAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
-        Vector2 previousMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition - Event.current.delta);
-        Vector2 previousWantedAnchorPosition = previousMousePosition - anchorSliderState.mouseOffset;
 
 
         Vector2 mainAnchorPosition = currentWantedAnchorPosition;
@@ -86,42 +84,12 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*distanceJoint2D.distance;
 
-       
-
-        float currentDistance = Vector2.Distance(currentWantedAnchorPosition, wantedMainAnchorPosition);
-        if (Vector2.Distance(position, wantedMainAnchorPosition) < snapDistance
-//            && Vector2.Distance(previousWantedAnchorPosition, wantedMainAnchorPosition) > currentDistance
-            )
-        {
+        if (Vector2.Distance(position, wantedMainAnchorPosition) < snapDistance) {
             return wantedMainAnchorPosition;
         }
 
         return position;
     }
-
-//    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
-//        JointHelpers.AnchorBias bias) {
-//        if (bias == JointHelpers.AnchorBias.Connected) {
-//            return base.GetSnapPositions(joint2D, anchorInfo, bias);
-//        }
-//
-//        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint2D;
-//        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-////        if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
-////            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-////            Vector2 intersection = Intersect2DPlane(ray);
-////            mainAnchorPosition = intersection;
-////        }
-//        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-//        Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
-//        if (diff.magnitude <= Mathf.Epsilon) {
-//            diff = -Vector2.up;
-//        }
-//        Vector2 normalizedDiff = diff.normalized;
-//        Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff*distanceJoint2D.distance;
-//        return new List<Vector2> {wantedMainAnchorPosition};
-//    }
-
 
     public override Bounds OnGetFrameBounds() {
         Bounds baseBounds = base.OnGetFrameBounds();
