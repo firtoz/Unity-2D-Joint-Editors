@@ -29,13 +29,13 @@ public abstract class Joint2DEditor : Editor {
         }
     }
 
-    private static readonly String[] Empty = {};
+    private static readonly HashSet<String> Empty = new HashSet<string>();
 
-    protected virtual IEnumerable<String> GetControlNames() {
+    protected virtual HashSet<String> GetControlNames() {
         return Empty;
     }
 
-    private List<string> controlNames;
+    private HashSet<string> controlNames;
 
     protected static void ReAlignAnchors(AnchoredJoint2D joint2D,
         JointHelpers.AnchorBias bias = JointHelpers.AnchorBias.Either) {
@@ -972,7 +972,15 @@ public abstract class Joint2DEditor : Editor {
     }
     public void OnEnable()
     {
-        controlNames = new List<string> {"slider", "lock", "offset"}.Concat(GetControlNames()).ToList();
+        HashSet<string> defaultNames = new HashSet<string> {"slider", "lock", "offset"};
+        HashSet<string> childControlNames = GetControlNames();
+
+        if (defaultNames.Overlaps(childControlNames))
+        {
+            Debug.LogError("Reserved control names: " + String.Join(",", defaultNames.Intersect(childControlNames).ToArray()) + ".");
+        }
+        controlNames = new HashSet<string>(defaultNames.Union(childControlNames));
+
         if (WantsLocking())
         {
             SceneView.onSceneGUIDelegate += OnSceneGUIDelegate;

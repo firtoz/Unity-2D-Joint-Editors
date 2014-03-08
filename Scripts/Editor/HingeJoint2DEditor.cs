@@ -23,11 +23,13 @@ public class HingeJoint2DEditor : Joint2DEditor {
     }
 
 
-    protected override IEnumerable<String> GetControlNames() {
-        return new[] {
+    private readonly static HashSet<string> Names = new HashSet<String>  {
             "radius", "lowerMainAngle",
             "upperMainAngle", "lowerConnectedAngle", "upperConnectedAngle"
         };
+
+    protected override HashSet<String> GetControlNames() {
+        return Names;
     }
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {

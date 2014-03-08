@@ -7,11 +7,42 @@ using UnityEngine;
 [CustomEditor(typeof (SliderJoint2D))]
 [CanEditMultipleObjects]
 public class SliderJoint2DEditor : Joint2DEditor {
-    private static readonly string[] ControlNames = {"slider"};
+    private static readonly HashSet<string> ControlNames = new HashSet<string>{ "sliderAngle" };
 
-    protected override IEnumerable<string> GetControlNames() {
+    protected override HashSet<string> GetControlNames() {
         return ControlNames;
     }
+
+//    protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
+//        JointHelpers.AnchorBias bias, float snapDistance)
+//    {
+//        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
+//            ? JointHelpers.AnchorBias.Connected
+//            : JointHelpers.AnchorBias.Main;
+//
+//        SliderJoint2D distanceJoint2D = (SliderJoint2D)joint;
+//
+//        AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
+//        Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+//        Vector2 currentAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
+//
+//        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(distanceJoint2D, otherBias);
+//        Vector2 diff = otherAnchorPosition - currentAnchorPosition;
+//        if (diff.magnitude <= Mathf.Epsilon)
+//        {
+//            diff = -Vector2.up;
+//        }
+//        Vector2 normalizedDiff = diff.normalized;
+//
+//        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff * distanceJoint2D.angle;
+//
+//        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance)
+//        {
+//            return wantedAnchorPosition;
+//        }
+//
+//        return position;
+//    }
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         SliderJoint2D sliderJoint2D = (SliderJoint2D) joint2D;
@@ -66,12 +97,60 @@ public class SliderJoint2DEditor : Joint2DEditor {
         float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition) * 0.5f;
         Vector2 left = mainAnchorPosition - direction*handleSize;
         Vector2 right = mainAnchorPosition + direction*handleSize;
-        Handles.DrawLine(left, right);
 
-        using (new HandleGUI())
-        {
-            GUILayout.Label(sliderJoint2D.angle + "");
-            GUILayout.Label(sliderJoint2D.referenceAngle + "");
+        int controlID = anchorInfo.GetControlID("sliderAngle");
+
+        Event current = Event.current;
+        if (current.type == EventType.layout) {
+            HandleUtility.AddControl(controlID, HandleUtility.DistanceToLine(left, right)-5);
+        }
+
+        switch (current.GetTypeForControl(controlID)) {
+                case EventType.mouseMove:
+                bool hovering = (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID);
+
+                HoverState hoverState = StateObject.Get<HoverState>(controlID);
+                if (hoverState.hovering != hovering) {
+                    hoverState.hovering = hovering;  
+                    HandleUtility.Repaint();
+                }
+                break;
+                case EventType.mouseUp:
+                if (GUIUtility.hotControl == controlID) {
+                    GUIUtility.hotControl = 0;
+                    Event.current.Use();
+                }
+                break;
+        case EventType.mouseDown:
+                if (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID)
+                {
+                    GUIUtility.hotControl = controlID;
+                    Event.current.Use();
+                }
+                break;
+         case EventType.repaint:
+            using (new HandleColor(Color.black))
+            {
+                EditorHelpers.DrawThickLine(left, right, 4);
+                if (GUIUtility.hotControl == controlID) {
+                    Handles.color = Color.red;
+                }
+                else {
+                    if (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID)
+                    {
+                        Handles.color = Color.yellow;
+                    }
+                    else {
+                        Handles.color = Color.white;
+                    }
+                }
+                EditorHelpers.DrawThickLine(left, right, 2);
+            }
+            break;
         }
     }
+}
+
+internal class HoverState {
+    public bool hovering;
 }
