@@ -7,7 +7,7 @@ using UnityEngine;
 [CustomEditor(typeof (SliderJoint2D))]
 [CanEditMultipleObjects]
 public class SliderJoint2DEditor : Joint2DEditor {
-    private static readonly HashSet<string> ControlNames = new HashSet<string>{ "sliderAngle" };
+    private static readonly HashSet<string> ControlNames = new HashSet<string> {"sliderAngle"};
 
     protected override HashSet<string> GetControlNames() {
         return ControlNames;
@@ -90,63 +90,122 @@ public class SliderJoint2DEditor : Joint2DEditor {
         return false;
     }
 
-    private void DrawSlider(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
-        Vector2 direction = Helpers2D.Rotated2DVector(sliderJoint2D.angle);
-        direction = Helpers2D.Transform2DVector(sliderJoint2D.transform, direction);
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
-        float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition) * 0.5f;
-        Vector2 left = mainAnchorPosition - direction*handleSize;
-        Vector2 right = mainAnchorPosition + direction*handleSize;
+    private float LineAngleHandle(int controlID, float angle, Vector2 center, 
+        float handleScale = 1f,
+        float lineThickness = 1f) {
 
-        int controlID = anchorInfo.GetControlID("sliderAngle");
+        float handleSize = HandleUtility.GetHandleSize(center) * handleScale;
+
+        Vector2 rotated2DVector = Helpers2D.Rotated2DVector(angle) * handleSize;
+
+        Vector2 left = center - rotated2DVector;
+        Vector2 right = center + rotated2DVector;
+
+
+        AngleState angleState = StateObject.Get<AngleState>(controlID);
+        HoverState hoverState = angleState.hoverState;
 
         Event current = Event.current;
-        if (current.type == EventType.layout) {
-            HandleUtility.AddControl(controlID, HandleUtility.DistanceToLine(left, right)-5);
+        if (current.type == EventType.layout)
+        {
+            HandleUtility.AddControl(controlID, HandleUtility.DistanceToLine(left, right) - lineThickness);
         }
 
-        switch (current.GetTypeForControl(controlID)) {
-                case EventType.mouseMove:
+        switch (current.GetTypeForControl(controlID))
+        {
+            case EventType.mouseMove:
                 bool hovering = (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID);
 
-                HoverState hoverState = StateObject.Get<HoverState>(controlID);
-                if (hoverState.hovering != hovering) {
-                    hoverState.hovering = hovering;  
+                if (hoverState.hovering != hovering)
+                {
+                    hoverState.hovering = hovering;
                     HandleUtility.Repaint();
                 }
                 break;
-                case EventType.mouseUp:
-                if (GUIUtility.hotControl == controlID) {
+            case EventType.mouseUp:
+                if (GUIUtility.hotControl == controlID)
+                {
                     GUIUtility.hotControl = 0;
                     Event.current.Use();
                 }
                 break;
-        case EventType.mouseDown:
+            case EventType.mouseDrag:
+                if (GUIUtility.hotControl == controlID)
+                {
+                    Vector2 current2DPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                    float curAngle = Helpers2D.GetAngle2D(current2DPosition - angleState.center);
+                    float prevAngle = Helpers2D.GetAngle2D(angleState.mousePosition - angleState.center);
+
+                    float deltaAngle = Mathf.DeltaAngle(prevAngle, curAngle);
+                    if (Mathf.Abs(deltaAngle) > Mathf.Epsilon) {
+                        angleState.angleDelta += deltaAngle;
+
+                        angle = angleState.startAngle + angleState.angleDelta;
+
+                        GUI.changed = true;
+                    }
+
+                    angleState.mousePosition = current2DPosition;
+                }
+                break;
+            case EventType.mouseDown:
                 if (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID)
                 {
                     GUIUtility.hotControl = controlID;
+                    angleState.angleDelta = 0;
+                    angleState.startAngle = angle;
+                    angleState.mousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                    angleState.center = center;
                     Event.current.Use();
                 }
                 break;
-         case EventType.repaint:
-            using (new HandleColor(Color.black))
-            {
-                EditorHelpers.DrawThickLine(left, right, 4);
-                if (GUIUtility.hotControl == controlID) {
-                    Handles.color = Color.red;
-                }
-                else {
-                    if (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID)
+            case EventType.repaint:
+                using (new HandleColor(Color.black))
+                {
+                    EditorHelpers.DrawThickLine(left, right, lineThickness * 2f);
+                    if (GUIUtility.hotControl == controlID)
                     {
-                        Handles.color = Color.yellow;
+                        Handles.color = new Color(1f, 1f, 1f, 0.25f);
+                        Handles.DrawLine(angleState.center, angleState.mousePosition);
+                        Handles.color = Color.red;
                     }
                     else {
-                        Handles.color = Color.white;
+                        if (GUIUtility.hotControl == 0 && hoverState.hovering)
+                        {
+                            Handles.color = Color.yellow;
+                        }
+                        else
+                        {
+                            Handles.color = Color.white;
+                        }
                     }
+                    EditorHelpers.DrawThickLine(left, right, lineThickness);
                 }
-                EditorHelpers.DrawThickLine(left, right, 2);
-            }
-            break;
+                break;
         }
+        return angle;
     }
+
+    private void DrawSlider(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
+        float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+        int controlID = anchorInfo.GetControlID("sliderAngle");
+        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
+        EditorGUI.BeginChangeCheck();
+        float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 4);
+        if (EditorGUI.EndChangeCheck())
+        {
+            EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
+            sliderJoint2D.angle = newAngle - sliderJoint2D.transform.eulerAngles.z;
+        }
+
+        
+    }
+}
+
+internal class AngleState {
+    public float angleDelta;
+    public Vector2 mousePosition;
+    public Vector2 center;
+    public float startAngle;
+    public HoverState hoverState = new HoverState();
 }

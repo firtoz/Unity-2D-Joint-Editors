@@ -341,7 +341,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
     private static void DrawRadiusHandle(int controlID, IEnumerable<Transform> transforms,
         IEnumerable<Transform> rightTransforms,
         Vector2 midPoint) {
-        RadiusHandle(controlID,
+        OrbitHandle(controlID,
             transforms,
             rightTransforms,
             midPoint,

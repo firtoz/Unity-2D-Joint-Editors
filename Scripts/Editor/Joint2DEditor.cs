@@ -314,13 +314,13 @@ public abstract class Joint2DEditor : Editor {
         public Vector2 midPoint;
     }
 
-    protected static void RadiusHandle(
+    protected static void OrbitHandle(
         IEnumerable<Transform> transforms,
         IEnumerable<Transform> rightTransforms,
         Vector2 midPoint,
         float innerRadius,
         float radius) {
-        RadiusHandle(
+        OrbitHandle(
             GUIUtility.GetControlID(FocusType.Passive),
             transforms,
             rightTransforms,
@@ -329,12 +329,12 @@ public abstract class Joint2DEditor : Editor {
             radius);
     }
 
-    protected static void RadiusHandle(
+    protected static void OrbitHandle(
         IEnumerable<Transform> transforms,
         Vector2 midPoint,
         float innerRadius,
         float radius) {
-        RadiusHandle(
+        OrbitHandle(
             GUIUtility.GetControlID(FocusType.Passive),
             transforms,
             null,
@@ -343,13 +343,13 @@ public abstract class Joint2DEditor : Editor {
             radius);
     }
 
-    protected static void RadiusHandle(
+    protected static void OrbitHandle(
         int controlID,
         IEnumerable<Transform> transforms,
         Vector2 midPoint,
         float innerRadius,
         float radius) {
-        RadiusHandle(
+        OrbitHandle(
             controlID,
             transforms,
             null,
@@ -358,7 +358,7 @@ public abstract class Joint2DEditor : Editor {
             radius);
     }
 
-    protected static void RadiusHandle(
+    protected static void OrbitHandle(
         int controlID,
         IEnumerable<Transform> transforms,
         IEnumerable<Transform> rightTransforms,
