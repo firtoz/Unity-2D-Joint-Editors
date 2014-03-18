@@ -147,9 +147,10 @@ public class SliderJoint2DEditor : Joint2DEditor {
             HandleUtility.AddControl(controlID, HandleUtility.DistanceToLine(left, right) - lineThickness);
         }
 
+        bool hovering;
         switch (current.GetTypeForControl(controlID)) {
             case EventType.mouseMove:
-                bool hovering = (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID);
+                hovering = (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID);
 
                 if (hoverState.hovering != hovering) {
                     hoverState.hovering = hovering;
@@ -157,8 +158,18 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 }
                 break;
             case EventType.mouseUp:
-                if (GUIUtility.hotControl == controlID) {
+                if (GUIUtility.hotControl == controlID && Event.current.button == 0)
+                {
                     GUIUtility.hotControl = 0;
+
+                    hovering = (HandleUtility.nearestControl == controlID);
+
+                    if (hoverState.hovering != hovering)
+                    {
+                        hoverState.hovering = hovering;
+                        HandleUtility.Repaint();
+                    }
+
                     Event.current.Use();
                 }
                 break;
@@ -181,7 +192,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 }
                 break;
             case EventType.mouseDown:
-                if (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID) {
+                if (Event.current.button == 0 && GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID) {
                     GUIUtility.hotControl = controlID;
                     angleState.angleDelta = 0;
                     angleState.startAngle = angle;
@@ -221,7 +232,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
         int controlID = anchorInfo.GetControlID("sliderAngle");
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
         EditorGUI.BeginChangeCheck();
-        float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 4);
+        float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 2);
 
         if (EditorGUI.EndChangeCheck()) {
             if (SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors) {
@@ -250,6 +261,8 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 sliderJoint2D.angle = newAngle - sliderJoint2D.transform.eulerAngles.z;
             }
         }
+
+
     }
 }
 
