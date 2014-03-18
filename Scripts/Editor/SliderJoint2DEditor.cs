@@ -30,7 +30,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         Vector2 wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
 
-        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance ) {
+        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
             return wantedAnchorPosition;
         }
 
@@ -83,11 +83,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
-        if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
-            using (new HandleColor(Color.green)) {
-                Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
-            }
-        }
 
         if (bias != JointHelpers.AnchorBias.Connected && !Event.current.shift) {
             DrawSlider(sliderJoint2D, anchorInfo);
@@ -101,7 +96,9 @@ public class SliderJoint2DEditor : Joint2DEditor {
             }
         }
 
-        Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
+        using (new HandleColor(new Color(1, 1, 1, 0.125f))) {
+            Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
+        }
 
         if (bias == JointHelpers.AnchorBias.Main) {
             Vector2 mainBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Main);
@@ -158,14 +155,12 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 }
                 break;
             case EventType.mouseUp:
-                if (GUIUtility.hotControl == controlID && Event.current.button == 0)
-                {
+                if (GUIUtility.hotControl == controlID && Event.current.button == 0) {
                     GUIUtility.hotControl = 0;
 
                     hovering = (HandleUtility.nearestControl == controlID);
 
-                    if (hoverState.hovering != hovering)
-                    {
+                    if (hoverState.hovering != hovering) {
                         hoverState.hovering = hovering;
                         HandleUtility.Repaint();
                     }
@@ -229,9 +224,27 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
     private void DrawSlider(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
         float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
-        int controlID = anchorInfo.GetControlID("sliderAngle");
+
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
+
+        if (sliderJoint2D.useLimits) {
+            Vector2 direction = Helpers2D.GetDirection(sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle);
+            Vector2 minLimitPosition = mainAnchorPosition + sliderJoint2D.limits.min*direction;
+            Vector2 maxLimitPosition = mainAnchorPosition + sliderJoint2D.limits.max*direction;
+
+            Vector2 normal = new Vector2(-direction.y, direction.x)*HandleUtility.GetHandleSize(minLimitPosition)*0.25f;
+
+            using (new HandleColor(Color.green)) {
+                EditorHelpers.DrawThickLine(minLimitPosition + normal, minLimitPosition - normal, 3);
+                Handles.DrawLine(minLimitPosition, maxLimitPosition);
+                EditorHelpers.DrawThickLine(maxLimitPosition + normal*1.25f, maxLimitPosition - normal*1.25f, 3);
+            }
+        }
+
+
         EditorGUI.BeginChangeCheck();
+        int controlID = anchorInfo.GetControlID("sliderAngle");
+
         float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 2);
 
         if (EditorGUI.EndChangeCheck()) {
@@ -242,9 +255,9 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 float angleDelta = Mathf.DeltaAngle(sliderJoint2D.angle, wantedAngle);
                 EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
                 sliderJoint2D.angle = wantedAngle;
-//                GetWantedAnchorPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected);
 
-                JointHelpers.SetWorldConnectedAnchorPosition(sliderJoint2D, mainAnchorPosition+(Vector2)(Helpers2D.Rotate(angleDelta)*connectedOffset));
+                JointHelpers.SetWorldConnectedAnchorPosition(sliderJoint2D,
+                    mainAnchorPosition + (Vector2) (Helpers2D.Rotate(angleDelta)*connectedOffset));
             }
             else {
                 Ray wantedAngleRay = new Ray(mainAnchorPosition,
@@ -261,8 +274,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 sliderJoint2D.angle = newAngle - sliderJoint2D.transform.eulerAngles.z;
             }
         }
-
-
     }
 }
 

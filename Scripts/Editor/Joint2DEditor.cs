@@ -1004,7 +1004,7 @@ public abstract class Joint2DEditor : Editor {
 
         Vector2 worldOffset = offset;
         if (transform != null) {
-            worldOffset = Helpers2D.TransformDirection(transform, worldOffset);
+            worldOffset = Helpers2D.TransformVector(transform, worldOffset);
         }
 
         return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;

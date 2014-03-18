@@ -43,10 +43,10 @@ public class DistanceJoint2DSettings : Joint2DSettings
 
             Handles.DrawLine(wantedMainAnchorPosition, connectedAnchorPosition);
 
-            Vector2 tangent = new Vector2(-normalizedDiff.y, normalizedDiff.x) *
+            Vector2 normal = new Vector2(-normalizedDiff.y, normalizedDiff.x) *
                               HandleUtility.GetHandleSize(connectedAnchorPosition) * 0.125f;
-            Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition + tangent);
-            Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition - tangent);
+            Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition + normal);
+            Handles.DrawLine(wantedMainAnchorPosition, wantedMainAnchorPosition - normal);
         }
     }
 #endif

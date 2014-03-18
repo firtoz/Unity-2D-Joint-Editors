@@ -131,7 +131,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         }
         Vector2 normalizedDiff = diff.normalized;
         Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*joint2D.distance;
-        Vector2 tangent = new Vector2(-normalizedDiff.y, normalizedDiff.x)*
+        Vector2 normal = new Vector2(-normalizedDiff.y, normalizedDiff.x)*
                           HandleUtility.GetHandleSize(otherAnchorPosition)*0.125f;
         Color color = Color.white;
         float drawScale = 1;
@@ -148,7 +148,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 Vector3.forward,
                 Vector3.up,
                 Vector3.right,
-                tangent.magnitude*2,
+                normal.magnitude*2,
                 DrawFunc,
                 Vector2.zero);
             if (EditorGUI.EndChangeCheck()) {
@@ -160,7 +160,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                     joint2D.distance = 0;
                 }
                 else {
-                    float distanceToLine = Helpers2D.DistanceToLine(new Ray(otherAnchorPosition, tangent),
+                    float distanceToLine = Helpers2D.DistanceToLine(new Ray(otherAnchorPosition, normal),
                         wantedAnchorPosition);
                     float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
                     joint2D.distance = Mathf.Abs(distanceToLine - distanceBetweenAnchors) <
@@ -202,11 +202,11 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 EditorHelpers.DrawThickLine(wantedAnchorPosition, otherAnchorPosition, 2);
             }
             using (new HandleColor(Color.black)) {
-                EditorHelpers.DrawThickLine(wantedAnchorPosition - tangent*drawScale,
-                    wantedAnchorPosition + tangent*drawScale, 4);
+                EditorHelpers.DrawThickLine(wantedAnchorPosition - normal*drawScale,
+                    wantedAnchorPosition + normal*drawScale, 4);
                 Handles.color = color;
-                EditorHelpers.DrawThickLine(wantedAnchorPosition - tangent*drawScale,
-                    wantedAnchorPosition + tangent*drawScale, 2);
+                EditorHelpers.DrawThickLine(wantedAnchorPosition - normal*drawScale,
+                    wantedAnchorPosition + normal*drawScale, 2);
             }
         }
     }

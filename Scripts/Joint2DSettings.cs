@@ -118,7 +118,7 @@ public abstract class Joint2DSettings : MonoBehaviour
         Vector2 worldOffset = offset;
         if (targetTransform != null)
         {
-            worldOffset = Helpers2D.TransformDirection(targetTransform, worldOffset);
+            worldOffset = Helpers2D.TransformVector(targetTransform, worldOffset);
         }
 
         return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;
