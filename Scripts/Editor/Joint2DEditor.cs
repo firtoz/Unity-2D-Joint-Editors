@@ -37,48 +37,17 @@ public abstract class Joint2DEditor : Editor {
 
     private HashSet<string> controlNames;
 
-    protected static void ReAlignAnchors(AnchoredJoint2D joint2D,
-        JointHelpers.AnchorBias bias = JointHelpers.AnchorBias.Either) {
-        Transform transform = joint2D.transform;
-
-        Vector2 connectedAnchor = joint2D.connectedAnchor;
-        Vector2 worldAnchor = Helpers2D.Transform2DPoint(transform, joint2D.anchor);
-
-        if (joint2D.connectedBody) {
-            Rigidbody2D connectedBody = joint2D.connectedBody;
-            Transform connectedTransform = connectedBody.transform;
-
-            if (bias != JointHelpers.AnchorBias.Main
-                && (bias == JointHelpers.AnchorBias.Connected
-                    || (!transform.rigidbody2D.isKinematic && connectedBody.isKinematic))) {
-                //other body is static or there is a bias
-                Vector2 worldConnectedAnchor = Helpers2D.Transform2DPoint(connectedTransform, connectedAnchor);
-                joint2D.anchor = Helpers2D.InverseTransform2DPoint(transform, worldConnectedAnchor);
-            }
-            else if (bias == JointHelpers.AnchorBias.Main
-                     || (transform.rigidbody2D.isKinematic && !connectedBody.isKinematic)) {
-                //this body is static or there is a bias
-                joint2D.connectedAnchor = Helpers2D.InverseTransform2DPoint(connectedTransform,
-                    worldAnchor);
-            }
-            else {
-                Vector2 midPoint = (Helpers2D.Transform2DPoint(connectedTransform, connectedAnchor) +
-                                    worldAnchor)*.5f;
-                joint2D.anchor = Helpers2D.InverseTransform2DPoint(transform, midPoint);
-                joint2D.connectedAnchor = Helpers2D.InverseTransform2DPoint(connectedTransform, midPoint);
-            }
-        }
-        else {
-            if (bias == JointHelpers.AnchorBias.Main) {
-                joint2D.connectedAnchor = worldAnchor;
-            }
-            else {
-                joint2D.anchor = Helpers2D.InverseTransform2DPoint(transform, connectedAnchor);
-            }
-        }
+    protected virtual Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias) {
+        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
+        return JointHelpers.GetAnchorPosition(anchoredJoint2D, oppositeBias);
     }
 
-    protected static Vector2 AnchorSlider(float handleScale, IEnumerable<Vector2> snapPositions,
+    protected virtual void ReAlignAnchors(AnchoredJoint2D joint2D, JointHelpers.AnchorBias alignmentBias) {
+        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(alignmentBias);
+        JointHelpers.SetAnchorPosition(joint2D, GetWantedAnchorPosition(joint2D, oppositeBias), oppositeBias);
+    }
+
+    protected Vector2 AnchorSlider(float handleScale, IEnumerable<Vector2> snapPositions,
         JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
         int controlID = GUIUtility.GetControlID(FocusType.Native);
         return AnchorSlider(controlID, handleScale, snapPositions, bias, joint);
@@ -132,7 +101,7 @@ public abstract class Joint2DEditor : Editor {
         return bounds;
     }
 
-    protected static Vector2 AnchorSlider(int controlID, float handleScale,
+    protected Vector2 AnchorSlider(int controlID, float handleScale,
         IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint, bias);
         float handleSize = HandleUtility.GetHandleSize(anchorPosition)*handleScale;
@@ -157,7 +126,7 @@ public abstract class Joint2DEditor : Editor {
             using (
                 GUITextureDrawer drawer =
                     new GUITextureDrawer(editorSettings.hotAnchorTexture,
-                        Helpers2D.Rotate2D(originalAngle),
+                        Helpers2D.Rotate(originalAngle),
                         editorSettings.anchorDisplayScale)) {
                 drawer.DrawSquare(anchorPosition, Quaternion.identity, handleSize);
             }
@@ -182,16 +151,13 @@ public abstract class Joint2DEditor : Editor {
 
         switch (current.GetTypeForControl(controlID)) {
             case EventType.mouseDown:
-                if (current.button == 0 && HandleUtility.nearestControl == controlID)
-                {
+                if (current.button == 0 && HandleUtility.nearestControl == controlID) {
                     AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
                     state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
                 }
                 break;
             case EventType.mouseUp:
-                if (current.button == 0 && GUIUtility.hotControl == controlID)
-                {
-                }
+                if (current.button == 0 && GUIUtility.hotControl == controlID) {}
                 break;
         }
         if (HandleUtility.nearestControl == controlID) {
@@ -252,7 +218,7 @@ public abstract class Joint2DEditor : Editor {
         using (
             GUITextureDrawer drawer =
                 new GUITextureDrawer(sliderTexture,
-                    Helpers2D.Rotate2D(originalAngle),
+                    Helpers2D.Rotate(originalAngle),
                     editorSettings.anchorDisplayScale)) {
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
                 drawer.DrawSquare, Vector2.zero);
@@ -270,14 +236,15 @@ public abstract class Joint2DEditor : Editor {
         return result;
     }
 
-    protected virtual Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint, JointHelpers.AnchorBias bias, float snapDistance) {
+    protected virtual Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
+        JointHelpers.AnchorBias bias, float snapDistance) {
         return position;
     }
 
     private static MouseCursor? _lastCursor;
     private static int _cursorControlID;
-    private static void SetCursor(bool showCursor, MouseCursor wantedCursor, int controlID)
-    {
+
+    private static void SetCursor(bool showCursor, MouseCursor wantedCursor, int controlID) {
         if (showCursor) {
             if (_lastCursor != wantedCursor) {
                 HandleUtility.Repaint();
@@ -286,8 +253,7 @@ public abstract class Joint2DEditor : Editor {
             }
         }
         else {
-            if (_lastCursor == wantedCursor && _cursorControlID == controlID)
-            {
+            if (_lastCursor == wantedCursor && _cursorControlID == controlID) {
                 HandleUtility.Repaint();
                 _lastCursor = null;
                 _cursorControlID = 0;
@@ -377,8 +343,8 @@ public abstract class Joint2DEditor : Editor {
             Vector2 towardsMouse = worldMousePosition - center;
             Vector2 towardsPrevious = worldPreviousPosition - center;
 
-            float previousAngle = Helpers2D.GetAngle2D(towardsPrevious);
-            float newAngle = Helpers2D.GetAngle2D(towardsMouse);
+            float previousAngle = Helpers2D.GetAngle(towardsPrevious);
+            float newAngle = Helpers2D.GetAngle(towardsMouse);
 
             float mainAngleDiff = newAngle - previousAngle;
             if (mainAngleDiff > 180) {
@@ -394,7 +360,7 @@ public abstract class Joint2DEditor : Editor {
             var snappedAccum = Handles.SnapValue(radiusHandleData.accum, 45);
 
             var originalAngle =
-                Helpers2D.GetAngle2D(
+                Helpers2D.GetAngle(
                     (Vector2)
                         EditorHelpers.HandlePointToWorld(radiusHandleData.originalPosition) -
                     center);
@@ -413,7 +379,7 @@ public abstract class Joint2DEditor : Editor {
                     if (Mathf.Abs(snappedAngle - currentObjectAngle) > Mathf.Epsilon) {
                         GUI.changed = true;
                         EditorHelpers.RecordUndo("Orbit", transform, transform.gameObject);
-                        Quaternion rotationDelta = Helpers2D.Rotate2D(snappedAccum);
+                        Quaternion rotationDelta = Helpers2D.Rotate(snappedAccum);
 
                         transform.rotation = rotationDelta*info.rot;
                     }
@@ -426,7 +392,7 @@ public abstract class Joint2DEditor : Editor {
                         GUI.changed = true;
                         EditorHelpers.RecordUndo("Orbit", transform, transform.gameObject);
 
-                        Quaternion rotationDelta = Helpers2D.Rotate2D(snappedAccum);
+                        Quaternion rotationDelta = Helpers2D.Rotate(snappedAccum);
                         Vector2 originalTowardsObject = (originalPosition - center);
 
                         transform.position = (Vector3) (center + (Vector2) ((rotationDelta)*originalTowardsObject))
@@ -465,7 +431,7 @@ public abstract class Joint2DEditor : Editor {
                                 ? editorSettings.radiusColor
                                 : editorSettings.alternateRadiusColor)) {
                             Handles.DrawSolidArc(midPoint, Vector3.forward,
-                                Helpers2D.Rotated2DVector(originalAngle),
+                                Helpers2D.GetDirection(originalAngle),
                                 -completion, radius);
                         }
                     }
@@ -474,7 +440,7 @@ public abstract class Joint2DEditor : Editor {
                             ? editorSettings.radiusColor
                             : editorSettings.alternateRadiusColor)) {
                         Handles.DrawSolidArc(midPoint, Vector3.forward,
-                            Helpers2D.Rotated2DVector(originalAngle),
+                            Helpers2D.GetDirection(originalAngle),
                             arcAngle, radius);
                     }
 
@@ -504,8 +470,8 @@ public abstract class Joint2DEditor : Editor {
         bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointHelpers.AnchorEpsilon;
 
         bool showCursor = (inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
-        
-        
+
+
 //        if (showCursor != _showCursor && Event.current.type == EventType.mouseMove) {
 //            _showCursor = showCursor;
 //            Event.current.Use();
@@ -591,11 +557,15 @@ public abstract class Joint2DEditor : Editor {
                     ToggleShowGizmos(serializedSettings);
                     InspectorDisplayGUI(enabled);
                 }
-                EditorGUILayout.LabelField("Features:");
-                using (new Indent()) {
-                    ToggleAnchorLock(serializedSettings);
-                    if (WantsOffset()) {
-                        AlterOffsets(serializedSettings, enabled);
+                if (WantsLocking() || WantsOffset()) {
+                    EditorGUILayout.LabelField("Features:");
+                    using (new Indent()) {
+                        if (WantsLocking()) {
+                            ToggleAnchorLock(serializedSettings);
+                        }
+                        if (WantsOffset()) {
+                            AlterOffsets(serializedSettings, enabled);
+                        }
                     }
                 }
             }
@@ -635,50 +605,61 @@ public abstract class Joint2DEditor : Editor {
 
         SerializedProperty lockAnchors = serializedSettings.FindProperty("lockAnchors");
         EditorGUILayout.PropertyField(lockAnchors, AnchorLockContent);
-        bool value = lockAnchors.boolValue;
+        bool wantsLock = lockAnchors.boolValue;
 
         if (EditorGUI.EndChangeCheck()) {
-            bool wantsContinue = true;
-            int choice = 1;
+            AnchorLockToggled(wantsLock);
+        }
+    }
 
-            if (value) {
-                bool farAway = targets.Cast<AnchoredJoint2D>().Any(joint2D =>
-                    Vector2.Distance(
-                        JointHelpers.GetMainAnchorPosition(joint2D),
-                        JointHelpers.GetConnectedAnchorPosition(joint2D)
+    private void AnchorLockToggled(bool wantsLock) {
+        bool wantsContinue = true;
+        int choice = 1;
+
+        if (wantsLock) {
+            bool farAway = targets.Cast<AnchoredJoint2D>().Any(joint2D =>
+                Vector2.Distance(
+                    JointHelpers.GetMainAnchorPosition(joint2D),
+                    GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Main)
+                    ) > AnchorEpsilon || Vector2.Distance(
+                        JointHelpers.GetConnectedAnchorPosition(joint2D),
+                        GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected)
                         ) > AnchorEpsilon);
-                if (farAway) {
-                    choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
-                        "Which anchor would you like to lock to?",
-                        "Main",
-                        "Connected",
-                        "Cancel");
+            if (farAway) {
+                choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
+                    "Which anchor would you like to lock to?",
+                    "Main",
+                    "Connected",
+                    "Cancel");
 
-                    if (choice == 2) //cancel
-                    {
-                        wantsContinue = false;
-                    }
+                if (choice == 2) //cancel
+                {
+                    wantsContinue = false;
                 }
             }
-            if (wantsContinue) {
-                foreach (AnchoredJoint2D joint2D in targets) {
-                    Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
-
-                    EditorHelpers.RecordUndo("toggle anchor locking", jointSettings);
-                    jointSettings.lockAnchors = value;
-                    EditorUtility.SetDirty(jointSettings);
-
-                    if (value) {
-                        JointHelpers.AnchorBias bias = choice == 0
-                            ? JointHelpers.AnchorBias.Main
-                            : JointHelpers.AnchorBias.Connected;
-
-                        EditorHelpers.RecordUndo("toggle anchor locking", joint2D);
-                        ReAlignAnchors(joint2D, bias);
-                        EditorUtility.SetDirty(joint2D);
-                    }
-                }
+        }
+        if (wantsContinue) {
+            foreach (AnchoredJoint2D joint2D in targets) {
+                JointHelpers.AnchorBias bias = choice == 0
+                    ? JointHelpers.AnchorBias.Main
+                    : JointHelpers.AnchorBias.Connected;
+                ToggleIndividualAnchorLock(wantsLock, joint2D, bias);
             }
+        }
+    }
+
+    protected virtual void ToggleIndividualAnchorLock(bool wantsLock, AnchoredJoint2D joint2D,
+        JointHelpers.AnchorBias alignmentBias) {
+        Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+
+        EditorHelpers.RecordUndo("toggle anchor locking", jointSettings);
+        jointSettings.lockAnchors = wantsLock;
+        EditorUtility.SetDirty(jointSettings);
+
+        if (wantsLock) {
+            EditorHelpers.RecordUndo("toggle anchor locking", joint2D);
+            ReAlignAnchors(joint2D, alignmentBias);
+            EditorUtility.SetDirty(joint2D);
         }
     }
 
@@ -698,10 +679,10 @@ public abstract class Joint2DEditor : Editor {
                     continue;
                 }
 
-                Vector2 otherWorldAnchor = Helpers2D.Transform2DPoint(otherJoint.transform,
+                Vector2 otherWorldAnchor = Helpers2D.TransformPoint(otherJoint.transform,
                     otherJoint.anchor);
                 Vector2 otherConnectedWorldAnchor = otherJoint.connectedBody
-                    ? Helpers2D.Transform2DPoint(
+                    ? Helpers2D.TransformPoint(
                         otherJoint
                             .connectedBody
                             .transform,
@@ -741,7 +722,7 @@ public abstract class Joint2DEditor : Editor {
         }
     }
 
-    protected static bool ToggleLockButton(int controlID, AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
+    protected bool ToggleLockButton(int controlID, AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
         Vector3 center = JointHelpers.GetAnchorPosition(joint2D, bias);
 
         bool lockPressed = EditorHelpers.CustomHandleButton(controlID,
@@ -783,8 +764,8 @@ public abstract class Joint2DEditor : Editor {
 
     private static readonly List<Vector2> SnapPositions = new List<Vector2>();
 
-    protected virtual IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
-    {
+    protected virtual IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
+        JointHelpers.AnchorBias bias) {
         return SnapPositions;
     }
 
@@ -822,7 +803,8 @@ public abstract class Joint2DEditor : Editor {
             EditorHelpers.RecordUndo("Anchor Move", joint2D);
             changed = true;
 
-            position = AlterDragResult(sliderID, position, joint2D, bias, HandleUtility.GetHandleSize(position) * editorSettings.anchorScale * 0.25f);
+            position = AlterDragResult(sliderID, position, joint2D, bias,
+                HandleUtility.GetHandleSize(position)*editorSettings.anchorScale*0.25f);
 
             JointHelpers.SetAnchorPosition(joint2D, position, bias);
         }
@@ -835,7 +817,18 @@ public abstract class Joint2DEditor : Editor {
 
         bool changed = false;
         if (WantsLocking() && Event.current.shift) {
-            if (bias == JointHelpers.AnchorBias.Either) {
+            bool farAway = 
+                Vector2.Distance(
+                    JointHelpers.GetMainAnchorPosition(joint2D),
+                    GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Main)
+                    ) > AnchorEpsilon || Vector2.Distance(
+                        JointHelpers.GetConnectedAnchorPosition(joint2D),
+                        GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected)
+                        ) > AnchorEpsilon;
+
+
+            if (SettingsHelper.GetOrCreate(joint2D).lockAnchors && (bias == JointHelpers.AnchorBias.Either || !farAway) )
+            {
                 //locked! show unlock
                 if (ToggleUnlockButton(lockID, joint2D, bias)) {
                     changed = true;
@@ -869,7 +862,7 @@ public abstract class Joint2DEditor : Editor {
         if (transform == null) {
             return;
         }
-        Vector2 worldOffset = Helpers2D.Transform2DPoint(transform, localOffset);
+        Vector2 worldOffset = Helpers2D.TransformPoint(transform, localOffset);
 
         EditorGUI.BeginChangeCheck();
         float handleSize = HandleUtility.GetHandleSize(worldOffset)*0.5f;
@@ -883,7 +876,7 @@ public abstract class Joint2DEditor : Editor {
             }
 
             EditorHelpers.RecordUndo("Change Offset", jointSettings);
-            jointSettings.SetOffset(bias, Helpers2D.InverseTransform2DPoint(transform, worldOffset));
+            jointSettings.SetOffset(bias, Helpers2D.InverseTransformPoint(transform, worldOffset));
             EditorUtility.SetDirty(jointSettings);
         }
     }
@@ -916,7 +909,7 @@ public abstract class Joint2DEditor : Editor {
         }
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
 
-        if (anchorLock) {
+        if (anchorLock && DragBothAnchorsWhenLocked()) {
             if (playing || overlapping) {
                 if (SingleAnchorGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either)) {
                     changed = true;
@@ -935,6 +928,9 @@ public abstract class Joint2DEditor : Editor {
         else {
             if (SingleAnchorGUI(joint2D, connected, otherAnchors, JointHelpers.AnchorBias.Connected)) {
                 changed = true;
+                if (anchorLock) {
+                    ReAlignAnchors(joint2D, JointHelpers.AnchorBias.Connected);
+                }
             }
 
             float handleSize = HandleUtility.GetHandleSize(worldConnectedAnchor)*editorSettings.orbitRangeScale;
@@ -946,12 +942,19 @@ public abstract class Joint2DEditor : Editor {
 
             if (SingleAnchorGUI(joint2D, main, otherAnchors, JointHelpers.AnchorBias.Main)) {
                 changed = true;
+                if (anchorLock) {
+                    ReAlignAnchors(joint2D, JointHelpers.AnchorBias.Main);
+                }
             }
         }
 
         if (changed) {
             EditorUtility.SetDirty(joint2D);
         }
+    }
+
+    protected virtual bool DragBothAnchorsWhenLocked() {
+        return true;
     }
 
     public void OnSceneGUI() {
@@ -966,31 +969,28 @@ public abstract class Joint2DEditor : Editor {
 
         AnchorGUI(joint2D);
 
-        if (_lastCursor != null && Event.current.type==EventType.repaint) {
-            EditorHelpers.SetEditorCursor(_lastCursor.Value);            
+        if (_lastCursor != null && Event.current.type == EventType.repaint) {
+            EditorHelpers.SetEditorCursor(_lastCursor.Value);
         }
     }
-    public void OnEnable()
-    {
+
+    public void OnEnable() {
         HashSet<string> defaultNames = new HashSet<string> {"slider", "lock", "offset"};
         HashSet<string> childControlNames = GetControlNames();
 
-        if (defaultNames.Overlaps(childControlNames))
-        {
-            Debug.LogError("Reserved control names: " + String.Join(",", defaultNames.Intersect(childControlNames).ToArray()) + ".");
+        if (defaultNames.Overlaps(childControlNames)) {
+            Debug.LogError("Reserved control names: " +
+                           String.Join(",", defaultNames.Intersect(childControlNames).ToArray()) + ".");
         }
         controlNames = new HashSet<string>(defaultNames.Union(childControlNames));
 
-        if (WantsLocking())
-        {
+        if (WantsLocking()) {
             SceneView.onSceneGUIDelegate += OnSceneGUIDelegate;
         }
     }
 
-    public void OnDisable()
-    {
-        if (WantsLocking())
-        {
+    public void OnDisable() {
+        if (WantsLocking()) {
             // ReSharper disable DelegateSubtraction
             SceneView.onSceneGUIDelegate -= OnSceneGUIDelegate;
             // ReSharper restore DelegateSubtraction
@@ -998,44 +998,38 @@ public abstract class Joint2DEditor : Editor {
     }
 
 
-    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
-    {
+    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
         Transform transform = JointHelpers.GetTargetTransform(joint2D, bias);
         Vector2 offset = SettingsHelper.GetOrCreate(joint2D).GetOffset(bias);
 
         Vector2 worldOffset = offset;
-        if (transform != null)
-        {
-            worldOffset = Helpers2D.Transform2DVector(transform, worldOffset);
+        if (transform != null) {
+            worldOffset = Helpers2D.TransformDirection(transform, worldOffset);
         }
 
         return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;
     }
 
 
-    private readonly Dictionary<AnchoredJoint2D, PositionInfo> positions = new Dictionary<AnchoredJoint2D, PositionInfo>();
+    private readonly Dictionary<AnchoredJoint2D, PositionInfo> positions =
+        new Dictionary<AnchoredJoint2D, PositionInfo>();
 
-    public void OnPreSceneGUI()
-    {
-        if(WantsLocking()) {
+    public void OnPreSceneGUI() {
+        if (WantsLocking()) {
             //gets called before gizmos!
             AnchoredJoint2D joint2D = target as AnchoredJoint2D;
-            if (joint2D)
-            {
+            if (joint2D) {
                 positions[joint2D] = new PositionInfo(joint2D);
             }
         }
     }
 
-    public void OnSceneGUIDelegate(SceneView sceneView)
-    {
+    public void OnSceneGUIDelegate(SceneView sceneView) {
         //gets called after gizmos!
 
 
-        foreach (AnchoredJoint2D joint2D in targets.Cast<AnchoredJoint2D>())
-        {
-            if (joint2D == null || !joint2D.enabled)
-            {
+        foreach (AnchoredJoint2D joint2D in targets.Cast<AnchoredJoint2D>()) {
+            if (joint2D == null || !joint2D.enabled) {
                 continue;
             }
             PositionInfo.Change change = positions[joint2D].Changed(joint2D);
@@ -1044,8 +1038,7 @@ public abstract class Joint2DEditor : Editor {
             Vector2 main = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
             Vector2 connected = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
             if (settings.lockAnchors && Vector2.Distance(main, connected) > JointHelpers.AnchorEpsilon &&
-                change != PositionInfo.Change.NoChange)
-            {
+                change != PositionInfo.Change.NoChange) {
                 EditorHelpers.RecordUndo("Realign", joint2D);
                 ReAlignAnchors(joint2D, JointHelpers.GetBias(change));
                 EditorUtility.SetDirty(joint2D);

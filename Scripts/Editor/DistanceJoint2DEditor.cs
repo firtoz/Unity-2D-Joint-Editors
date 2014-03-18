@@ -59,7 +59,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                     }
                     else {
                         float rot = JointHelpers.GetTargetRotation(distanceJoint2D, JointHelpers.AnchorBias.Connected);
-                        Handles.DrawLine(center, center + Helpers2D.Rotated2DVector(rot)*handleSize);
+                        Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
                     }
                 }
             }
