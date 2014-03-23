@@ -268,7 +268,12 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 Vector2 closestPosition = Helpers2D.ClosestPointToLine(wantedAngleRay, slidePosition);
 
                 if (Vector2.Distance(closestPosition, slidePosition) < handleSize*0.125f) {
-                    newAngle = Helpers2D.GetAngle(wantedAngleRay.direction);
+                    Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
+                    Vector2 closestPositionToDirection =
+                        Helpers2D.ClosestPointToLine(wantedAngleRay,
+                            mainAnchorPosition + currentDirection);
+
+                    newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
                 }
                 EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
                 sliderJoint2D.angle = newAngle - sliderJoint2D.transform.eulerAngles.z;
