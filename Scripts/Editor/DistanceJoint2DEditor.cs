@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableHandles;
@@ -9,7 +8,7 @@ using UnityEngine;
 [CustomEditor(typeof (DistanceJoint2D))]
 [CanEditMultipleObjects]
 public class DistanceJoint2DEditor : Joint2DEditor {
-    private static readonly HashSet<string> ControlNames = new HashSet<string> { "distance" };
+    private static readonly HashSet<string> ControlNames = new HashSet<string> {"distance"};
 
     protected override HashSet<string> GetControlNames() {
         return ControlNames;
@@ -125,94 +124,35 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, otherBias);
-        Vector2 diff = otherAnchorPosition - anchorPosition;
+        Vector2 diff = anchorPosition - otherAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon) {
             diff = Vector2.up*(bias == JointHelpers.AnchorBias.Connected ? 1 : -1);
         }
         Vector2 normalizedDiff = diff.normalized;
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*joint2D.distance;
-        Vector2 normal = new Vector2(-normalizedDiff.y, normalizedDiff.x)*
-                          HandleUtility.GetHandleSize(otherAnchorPosition)*0.125f;
-        Color color = Color.white;
-        float drawScale = 1;
-
 
         if (bias != JointHelpers.AnchorBias.Connected) {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
-			HoverState state = StateObject.Get<HoverState>(distanceControlID);
-
             EditorGUI.BeginChangeCheck();
-            wantedAnchorPosition = Handles.Slider2D(distanceControlID,
-                wantedAnchorPosition,
-                Vector3.forward,
-                Vector3.up,
-                Vector3.right,
-                normal.magnitude*2,
-                DrawFunc,
-                Vector2.zero);
+            float newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
+                Helpers2D.GetAngle(normalizedDiff), 0.125f);
+
             if (EditorGUI.EndChangeCheck()) {
                 EditorHelpers.RecordUndo("Change Distance", joint2D);
 
-                if (
-                    Vector2.Dot(wantedAnchorPosition - otherAnchorPosition,
-                        anchorPosition - otherAnchorPosition) < 0) {
-                    joint2D.distance = 0;
+                if (newDistance < 0) {
+                    joint2D.distance = 0f;
                 }
                 else {
-                    float distanceToLine = Helpers2D.DistanceToLine(new Ray(otherAnchorPosition, normal),
-                        wantedAnchorPosition);
                     float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
-                    joint2D.distance = Mathf.Abs(distanceToLine - distanceBetweenAnchors) <
+                    joint2D.distance = Mathf.Abs(newDistance - distanceBetweenAnchors) <
                                        HandleUtility.GetHandleSize(anchorPosition)*0.125f
                         ? distanceBetweenAnchors
-                        : distanceToLine;
+                        : newDistance;
                 }
 
                 EditorUtility.SetDirty(joint2D);
             }
-
-            Event current = Event.current;
-            switch (current.GetTypeForControl(distanceControlID)) {
-                case EventType.mouseMove:
-                    bool hovering = HandleUtility.nearestControl == distanceControlID;
-                    if (state.hovering != hovering) {
-                        current.Use();
-                        state.hovering = hovering;
-                    }
-                    break;
-                case EventType.repaint:
-
-		            if (GUIUtility.hotControl == distanceControlID || state.hovering) {
-						color = GUIUtility.hotControl == distanceControlID ? Color.red : Color.yellow;
-
-						var cursor = EditorHelpers.RotatedResizeCursor(normalizedDiff);
-
-
-			            EditorHelpers.SetEditorCursor(cursor, distanceControlID);
-						drawScale = 2;
-		            }
-                    break;
-            }
         }
-        if (Event.current.type == EventType.repaint) {
-            using (new HandleColor(Color.black)) {
-                EditorHelpers.DrawThickLine(wantedAnchorPosition, otherAnchorPosition, 5);
-                Handles.color = Color.white;
-                EditorHelpers.DrawThickLine(wantedAnchorPosition, otherAnchorPosition, 2);
-            }
-            using (new HandleColor(Color.black)) {
-                EditorHelpers.DrawThickLine(wantedAnchorPosition - normal*drawScale,
-                    wantedAnchorPosition + normal*drawScale, 4);
-                Handles.color = color;
-                EditorHelpers.DrawThickLine(wantedAnchorPosition - normal*drawScale,
-                    wantedAnchorPosition + normal*drawScale, 2);
-            }
-        }
-    }
-
-
-	private void DrawFunc(int controlID, Vector3 position, Quaternion rotation, float size) {
-//        throw new NotImplementedException();
     }
 }

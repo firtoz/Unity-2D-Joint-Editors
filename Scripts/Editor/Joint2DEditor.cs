@@ -128,6 +128,7 @@ public abstract class Joint2DEditor : Editor {
                     new GUITextureDrawer(editorSettings.hotAnchorTexture,
                         Helpers2D.Rotate(originalAngle),
                         editorSettings.anchorDisplayScale)) {
+                drawer.alwaysVisible = true;
                 drawer.DrawSquare(anchorPosition, Quaternion.identity, handleSize);
             }
         }
@@ -220,6 +221,7 @@ public abstract class Joint2DEditor : Editor {
                 new GUITextureDrawer(sliderTexture,
                     Helpers2D.Rotate(originalAngle),
                     editorSettings.anchorDisplayScale)) {
+            drawer.alwaysVisible = true;
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
                 drawer.DrawSquare, Vector2.zero);
         }
