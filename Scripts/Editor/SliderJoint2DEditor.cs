@@ -24,11 +24,14 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
     protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
         JointHelpers.AnchorBias bias, float snapDistance) {
-
+        if (!EditorGUI.actionKey) {
+            return position;
+        }
 
         SliderJoint2D sliderJoint2D = (SliderJoint2D) joint;
 
-        if (bias == JointHelpers.AnchorBias.Connected && sliderJoint2D.useLimits) {
+        if (bias == JointHelpers.AnchorBias.Connected && sliderJoint2D.useLimits)
+        {
             float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
             Vector2 direction = Helpers2D.GetDirection(worldAngle);
             Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
@@ -46,19 +49,15 @@ public class SliderJoint2DEditor : Joint2DEditor {
             }
         }
 
-        if (SettingsHelper.GetOrCreate(joint).lockAnchors
-            || Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
-                JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)
-        {
-            return position;
+        if (!SettingsHelper.GetOrCreate(joint).lockAnchors &&
+            !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
+                JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)) {
+            Vector2 wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
+
+            if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
+                return wantedAnchorPosition;
+            }
         }
-
-        Vector2 wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
-
-        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
-            return wantedAnchorPosition;
-        }
-
 
         return position;
     }
@@ -69,17 +68,15 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
     protected override void ReAlignAnchors(AnchoredJoint2D joint2D, JointHelpers.AnchorBias alignmentBias) {
         SliderJoint2D sliderJoint2D = (SliderJoint2D) joint2D;
-//        if (alignmentBias == JointHelpers.AnchorBias.Connected) 
-        {
-            //align the angle to the connected anchor
-            Vector2 direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
-                                JointHelpers.GetMainAnchorPosition(joint2D);
 
-            float wantedAngle = Helpers2D.GetAngle(direction);
+        //align the angle to the connected anchor
+        Vector2 direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
+                            JointHelpers.GetMainAnchorPosition(joint2D);
 
-            EditorHelpers.RecordUndo("Realign angle", sliderJoint2D);
-            sliderJoint2D.angle = wantedAngle - sliderJoint2D.transform.eulerAngles.z;
-        }
+        float wantedAngle = Helpers2D.GetAngle(direction);
+
+        EditorHelpers.RecordUndo("Realign angle", sliderJoint2D);
+        sliderJoint2D.angle = wantedAngle - sliderJoint2D.transform.eulerAngles.z;
     }
 
     protected override Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias) {
@@ -321,7 +318,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
                 Vector2 closestPosition = Helpers2D.ClosestPointToLine(wantedAngleRay, anglePosition);
 
-                if (Vector2.Distance(closestPosition, anglePosition) < handleSize * 0.125f)
+                if (EditorGUI.actionKey && Vector2.Distance(closestPosition, anglePosition) < handleSize * 0.125f)
                 {
                     Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
                     Vector2 closestPositionToDirection =
@@ -370,29 +367,37 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 EditorGUI.BeginChangeCheck();
                 float newMinLimit = EditorHelpers.LineSlider(anchorInfo.GetControlID("minLimit"), mainAnchorPosition,
                     sliderJoint2D.limits.min,
-                    Helpers2D.GetAngle(direction), 0.125f);
+                    Helpers2D.GetAngle(direction), handleScale: 0.125f);
 
-                List<Vector2> snapList = new List<Vector2> {
-                    mainAnchorPosition,
-                    wantedConnectedAnchorPosition,
-                    wantedConnectedAnchorPosition2
-                };
+                List<Vector2> snapList = null;
+                if (EditorGUI.actionKey) {
+                    snapList = new List<Vector2> {
+                        mainAnchorPosition,
+                        wantedConnectedAnchorPosition,
+                        wantedConnectedAnchorPosition2
+                    };
+                }
 
                 if (EditorGUI.EndChangeCheck()) {
-                    List<Vector2> minSnapList = new List<Vector2>(snapList) {
-                        mainAnchorPosition + direction*sliderJoint2D.limits.max
-                    };
+                    if (EditorGUI.actionKey) {
+                        List<Vector2> minSnapList = new List<Vector2>(snapList) {
+                            mainAnchorPosition + direction*sliderJoint2D.limits.max
+                        };
+                        Vector2 minLimitScreenPosition =
+                            HandleUtility.WorldToGUIPoint(mainAnchorPosition + direction * newMinLimit);
 
-                    Vector2 minLimitScreenPosition =
-                        HandleUtility.WorldToGUIPoint(mainAnchorPosition + direction*newMinLimit);
-
-                    foreach (Vector2 snapPosition in minSnapList) {
-                        Vector2 screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition);
-                        if (Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10) {
-                            newMinLimit = Helpers2D.DistanceAlongLine(new Ray(mainAnchorPosition, direction),
-                                snapPosition);
+                        foreach (Vector2 snapPosition in minSnapList)
+                        {
+                            Vector2 screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition);
+                            if (Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10)
+                            {
+                                newMinLimit = Helpers2D.DistanceAlongLine(new Ray(mainAnchorPosition, direction),
+                                    snapPosition);
+                            }
                         }
                     }
+
+
                     EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
                     JointTranslationLimits2D limits = sliderJoint2D.limits;
                     limits.min = newMinLimit;
@@ -401,20 +406,22 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 EditorGUI.BeginChangeCheck();
                 float newMaxLimit = EditorHelpers.LineSlider(anchorInfo.GetControlID("maxLimit"), mainAnchorPosition,
                     sliderJoint2D.limits.max,
-                    Helpers2D.GetAngle(direction), 0.25f);
+                    Helpers2D.GetAngle(direction), handleScale: 0.25f);
                 if (EditorGUI.EndChangeCheck()) {
-                    List<Vector2> maxSnapList = new List<Vector2>(snapList) {
-                        mainAnchorPosition + direction*sliderJoint2D.limits.min
-                    };
+                    if (EditorGUI.actionKey) {
+                        List<Vector2> maxSnapList = new List<Vector2>(snapList) {
+                            mainAnchorPosition + direction*sliderJoint2D.limits.min
+                        };
 
-                    Vector2 minLimitScreenPosition =
-                        HandleUtility.WorldToGUIPoint(mainAnchorPosition + direction*newMaxLimit);
+                        Vector2 minLimitScreenPosition =
+                            HandleUtility.WorldToGUIPoint(mainAnchorPosition + direction*newMaxLimit);
 
-                    foreach (Vector2 snapPosition in maxSnapList) {
-                        Vector2 screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition);
-                        if (Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10) {
-                            newMaxLimit = Helpers2D.DistanceAlongLine(new Ray(mainAnchorPosition, direction),
-                                snapPosition);
+                        foreach (Vector2 snapPosition in maxSnapList) {
+                            Vector2 screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition);
+                            if (Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10) {
+                                newMaxLimit = Helpers2D.DistanceAlongLine(new Ray(mainAnchorPosition, direction),
+                                    snapPosition);
+                            }
                         }
                     }
                     EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);

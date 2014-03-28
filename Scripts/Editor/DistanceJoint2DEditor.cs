@@ -29,15 +29,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             }
         }
 
-        if (bias != JointHelpers.AnchorBias.Connected) {
-            DrawDistance(distanceJoint2D, anchorInfo, bias);
-        }
-        else {
-            int sliderID = anchorInfo.GetControlID("slider");
-            if (GUIUtility.hotControl == sliderID) {
-                DrawDistance(distanceJoint2D, anchorInfo, bias);
-            }
-        }
+        DrawDistance(distanceJoint2D, anchorInfo, bias);
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
@@ -68,11 +60,15 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
     protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
         JointHelpers.AnchorBias bias, float snapDistance) {
+        if (!EditorGUI.actionKey) {
+            return position;
+        }
+
         JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
             ? JointHelpers.AnchorBias.Connected
             : JointHelpers.AnchorBias.Main;
 
-        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint;
+        DistanceJoint2D distanceJoint2D = (DistanceJoint2D)joint;
 
         AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
         Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
@@ -80,14 +76,17 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(distanceJoint2D, otherBias);
         Vector2 diff = otherAnchorPosition - currentAnchorPosition;
-        if (diff.magnitude <= Mathf.Epsilon) {
+        if (diff.magnitude <= Mathf.Epsilon)
+        {
             diff = -Vector2.up;
         }
+
         Vector2 normalizedDiff = diff.normalized;
 
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*distanceJoint2D.distance;
+        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff * distanceJoint2D.distance;
 
-        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
+        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance)
+        {
             return wantedAnchorPosition;
         }
 
@@ -130,12 +129,16 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         }
         Vector2 normalizedDiff = diff.normalized;
 
-        if (bias != JointHelpers.AnchorBias.Connected) {
+        if (bias != JointHelpers.AnchorBias.Main || GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
             float newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
-                Helpers2D.GetAngle(normalizedDiff), 0.125f);
+                Helpers2D.GetAngle(normalizedDiff), 0.125f, true);
+
+            if (Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance) {
+                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance, 2, true);
+            }
 
             if (EditorGUI.EndChangeCheck()) {
                 EditorHelpers.RecordUndo("Change Distance", joint2D);
@@ -145,7 +148,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 }
                 else {
                     float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
-                    joint2D.distance = Mathf.Abs(newDistance - distanceBetweenAnchors) <
+                    joint2D.distance = EditorGUI.actionKey && Mathf.Abs(newDistance - distanceBetweenAnchors) <
                                        HandleUtility.GetHandleSize(anchorPosition)*0.125f
                         ? distanceBetweenAnchors
                         : newDistance;

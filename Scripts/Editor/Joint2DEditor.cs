@@ -225,7 +225,7 @@ public abstract class Joint2DEditor : Editor {
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
                 drawer.DrawSquare, Vector2.zero);
         }
-        if (EditorGUI.EndChangeCheck() && snapPositions != null) {
+        if (EditorGUI.EndChangeCheck() && EditorGUI.actionKey && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
                 float distance = Vector2.Distance(result, snapPosition);
                 if (distance < handleSize*0.25f) {
@@ -774,29 +774,35 @@ public abstract class Joint2DEditor : Editor {
     protected bool SliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors,
         JointHelpers.AnchorBias bias) {
         int sliderID = anchorInfo.GetControlID("slider");
-        List<Vector2> snapPositions = new List<Vector2> {
+        List<Vector2> snapPositions = null;
+        if (EditorGUI.actionKey) {
+
+            snapPositions = new List<Vector2> {
             GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
             JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Main).position
         };
 
-        if (joint2D.connectedBody) {
-            snapPositions.Add(GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected));
-            snapPositions.Add(JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Connected).position);
+            if (joint2D.connectedBody)
+            {
+                snapPositions.Add(GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected));
+                snapPositions.Add(JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Connected).position);
+            }
+
+            switch (bias)
+            {
+                case JointHelpers.AnchorBias.Main:
+                    snapPositions.Add(JointHelpers.GetAnchorPosition(joint2D,
+                        JointHelpers.AnchorBias.Connected));
+                    break;
+                case JointHelpers.AnchorBias.Connected:
+                    snapPositions.Add(JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main));
+                    break;
+            }
+
+            snapPositions.AddRange(otherAnchors);
+            snapPositions.AddRange(GetSnapPositions(joint2D, anchorInfo, bias));
+   
         }
-
-        switch (bias) {
-            case JointHelpers.AnchorBias.Main:
-                snapPositions.Add(JointHelpers.GetAnchorPosition(joint2D,
-                    JointHelpers.AnchorBias.Connected));
-                break;
-            case JointHelpers.AnchorBias.Connected:
-                snapPositions.Add(JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main));
-                break;
-        }
-
-        snapPositions.AddRange(otherAnchors);
-        snapPositions.AddRange(GetSnapPositions(joint2D, anchorInfo, bias));
-
         EditorGUI.BeginChangeCheck();
         Vector2 position = AnchorSlider(sliderID, editorSettings.anchorScale, snapPositions, bias, joint2D);
 
@@ -873,7 +879,7 @@ public abstract class Joint2DEditor : Editor {
             handleSize,
             Handles.SphereCap, Vector2.zero);
         if (EditorGUI.EndChangeCheck()) {
-            if (Vector2.Distance(worldOffset, transform.position) < handleSize*0.25f) {
+            if (EditorGUI.actionKey && Vector2.Distance(worldOffset, transform.position) < handleSize*0.25f) {
                 worldOffset = transform.position;
             }
 
