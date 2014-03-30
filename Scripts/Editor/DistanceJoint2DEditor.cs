@@ -139,6 +139,10 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             if (Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance) {
                 EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance, 2, true);
             }
+            else
+            {
+                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance, 1, true);
+            }
 
             if (EditorGUI.EndChangeCheck()) {
                 EditorHelpers.RecordUndo("Change Distance", joint2D);
