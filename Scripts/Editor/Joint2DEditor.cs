@@ -150,11 +150,66 @@ public abstract class Joint2DEditor : Editor {
 
         Event current = Event.current;
 
+        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(joint);
         switch (current.GetTypeForControl(controlID)) {
+            case EventType.ContextClick:
+                Debug.Log("context click!");
+                break;
             case EventType.mouseDown:
-                if (current.button == 0 && HandleUtility.nearestControl == controlID) {
-                    AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
-                    state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
+                if (HandleUtility.nearestControl == controlID) {
+                    if (current.button == 0) {
+                        AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
+                        state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
+                    }
+                    else if (current.button == 1)
+                    {
+                        GenericMenu menu = new GenericMenu();
+                        if (WantsLocking()) {
+                            menu.AddItem(new GUIContent("Lock Anchors"), joint2DSettings.lockAnchors, () => {
+                                EditorHelpers.RecordUndo("Toggle Lock Anchors", joint2DSettings, joint);
+                                if (!joint2DSettings.lockAnchors) {
+                                    ReAlignAnchors(joint, bias);
+                                }
+                                joint2DSettings.lockAnchors = !joint2DSettings.lockAnchors;
+                                EditorUtility.SetDirty(joint2DSettings);
+                                EditorUtility.SetDirty(joint);
+                            });
+                        }
+                        {
+                            JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
+                            Vector2 otherPosition = JointHelpers.GetAnchorPosition(joint, otherBias);
+                            if (joint2DSettings.lockAnchors
+                                || Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon)
+                            {
+                                menu.AddDisabledItem(new GUIContent("Bring other anchor here"));
+                            }
+                            else
+                            {
+                                menu.AddItem(new GUIContent("Bring other anchor here"), false, () =>
+                                {
+                                    EditorHelpers.RecordUndo("Move Joint Anchor", joint);
+                                    JointHelpers.SetAnchorPosition(joint, anchorPosition, otherBias);
+                                    EditorUtility.SetDirty(joint);
+                                });
+                            }
+                        }
+                        menu.AddSeparator("");
+                        menu.AddItem(new GUIContent("Delete "+joint.GetType().Name), false,
+                            () => Undo.DestroyObjectImmediate(joint));
+                        menu.ShowAsContext();
+                        current.Use();
+//                        // Now create the menu, add items and show it
+//				var menu : GenericMenu = new GenericMenu ();
+//            	
+//				menu.AddItem (new GUIContent ("MenuItem1"), false, Callback, "item 1");
+//				menu.AddItem (new GUIContent ("MenuItem2"), false, Callback, "item 2");
+//            	menu.AddSeparator ("");
+//				menu.AddItem (new GUIContent ("SubMenu/MenuItem3"), false, Callback, "item 3");
+//				
+//				menu.ShowAsContext ();
+//
+//                evt.Use();
+                    }
                 }
                 break;
             case EventType.mouseUp:
@@ -167,7 +222,7 @@ public abstract class Joint2DEditor : Editor {
                     foreach (GameObject go in DragAndDrop.objectReferences
                         .Cast<GameObject>()
                         .Where(go => !go.Equals(joint.gameObject) && go.GetComponent<Rigidbody2D>() != null)) {
-                        Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint);
+                        Joint2DSettings jointSettings = joint2DSettings;
                         bool wantsLock = jointSettings.lockAnchors;
 
                         EditorHelpers.RecordUndo("Drag Onto Anchor", joint);
@@ -776,20 +831,17 @@ public abstract class Joint2DEditor : Editor {
         int sliderID = anchorInfo.GetControlID("slider");
         List<Vector2> snapPositions = null;
         if (EditorGUI.actionKey) {
-
             snapPositions = new List<Vector2> {
-            GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
-            JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Main).position
-        };
+                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
+                JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Main).position
+            };
 
-            if (joint2D.connectedBody)
-            {
+            if (joint2D.connectedBody) {
                 snapPositions.Add(GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected));
                 snapPositions.Add(JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Connected).position);
             }
 
-            switch (bias)
-            {
+            switch (bias) {
                 case JointHelpers.AnchorBias.Main:
                     snapPositions.Add(JointHelpers.GetAnchorPosition(joint2D,
                         JointHelpers.AnchorBias.Connected));
@@ -801,7 +853,6 @@ public abstract class Joint2DEditor : Editor {
 
             snapPositions.AddRange(otherAnchors);
             snapPositions.AddRange(GetSnapPositions(joint2D, anchorInfo, bias));
-   
         }
         EditorGUI.BeginChangeCheck();
         Vector2 position = AnchorSlider(sliderID, editorSettings.anchorScale, snapPositions, bias, joint2D);
@@ -825,7 +876,7 @@ public abstract class Joint2DEditor : Editor {
 
         bool changed = false;
         if (WantsLocking() && Event.current.shift) {
-            bool farAway = 
+            bool farAway =
                 Vector2.Distance(
                     JointHelpers.GetMainAnchorPosition(joint2D),
                     GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Main)
@@ -835,8 +886,7 @@ public abstract class Joint2DEditor : Editor {
                         ) > AnchorEpsilon;
 
 
-            if (SettingsHelper.GetOrCreate(joint2D).lockAnchors && (bias == JointHelpers.AnchorBias.Either || !farAway) )
-            {
+            if (SettingsHelper.GetOrCreate(joint2D).lockAnchors && (bias == JointHelpers.AnchorBias.Either || !farAway)) {
                 //locked! show unlock
                 if (ToggleUnlockButton(lockID, joint2D, bias)) {
                     changed = true;
@@ -912,8 +962,13 @@ public abstract class Joint2DEditor : Editor {
             locked = new AnchorInfo(controlNames);
 
         if (WantsOffset()) {
-            DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
-            DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
+            if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset"))) {
+                DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
+            }
+
+            if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset"))) {
+                DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
+            }
         }
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
 

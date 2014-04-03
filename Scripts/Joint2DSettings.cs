@@ -91,23 +91,23 @@ public abstract class Joint2DSettings : MonoBehaviour
 
 #if UNITY_EDITOR
     public void OnDrawGizmos() {
-        if (Selection.Contains(gameObject))
-        {
-            return;
-        }
-
-        AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
-        if (joint2D == null)
-        {
-            return;
-        }
-
-        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-
-
-        DrawSphereOnScreen(mainAnchorPosition, (1f/8));
-        DrawSphereOnScreen(connectedAnchorPosition, (1f / 8));
+//        if (Selection.Contains(gameObject))
+//        {
+//            return;
+//        }
+//
+//        AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
+//        if (joint2D == null)
+//        {
+//            return;
+//        }
+//
+//        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+//        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+//
+//
+//        DrawSphereOnScreen(mainAnchorPosition, (1f/8));
+//        DrawSphereOnScreen(connectedAnchorPosition, (1f / 8));
     }
 
     protected Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
