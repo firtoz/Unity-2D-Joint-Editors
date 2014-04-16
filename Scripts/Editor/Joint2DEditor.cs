@@ -29,9 +29,9 @@ public abstract class Joint2DEditor : Editor {
         }
     }
 
-    private static readonly HashSet<String> Empty = new HashSet<string>();
+    private static readonly HashSet<string> Empty = new HashSet<string>();
 
-    protected virtual HashSet<String> GetControlNames() {
+    protected virtual HashSet<string> GetControlNames() {
         return Empty;
     }
 
@@ -178,8 +178,7 @@ public abstract class Joint2DEditor : Editor {
                         {
                             JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
                             Vector2 otherPosition = JointHelpers.GetAnchorPosition(joint, otherBias);
-                            if (joint2DSettings.lockAnchors
-                                || Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon)
+                            if (Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon)
                             {
                                 menu.AddDisabledItem(new GUIContent("Bring other anchor here"));
                             }
@@ -757,9 +756,9 @@ public abstract class Joint2DEditor : Editor {
     protected class AnchorInfo {
         public bool ignoreHover = false;
 
-        private readonly Dictionary<String, int> controlIDs = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> controlIDs = new Dictionary<string, int>();
 
-        public AnchorInfo(IEnumerable<String> controlNames) {
+        public AnchorInfo(IEnumerable<string> controlNames) {
             foreach (string controlName in controlNames) {
                 controlIDs[controlName] = GUIUtility.GetControlID(FocusType.Passive);
             }
@@ -1108,8 +1107,148 @@ public abstract class Joint2DEditor : Editor {
             }
         }
     }
+
+    public static float LineAngleHandle(int controlID, float angle, Vector2 center,
+        float handleScale = 1f,
+        float lineThickness = 1f)
+    {
+        float handleSize = HandleUtility.GetHandleSize(center) * handleScale;
+
+        Vector2 rotated2DVector = Helpers2D.GetDirection(angle) * handleSize;
+
+        Vector2 left = center - rotated2DVector;
+        Vector2 right = center + rotated2DVector;
+
+
+        AngleState angleState = StateObject.Get<AngleState>(controlID);
+        HoverState hoverState = angleState.hoverState;
+
+        Event current = Event.current;
+        if (current.type == EventType.layout)
+        {
+            HandleUtility.AddControl(controlID, HandleUtility.DistanceToLine(left, right) - lineThickness);
+        }
+
+        bool hovering;
+        switch (current.GetTypeForControl(controlID))
+        {
+            case EventType.mouseMove:
+                hovering = (GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID);
+
+                if (hoverState.hovering != hovering)
+                {
+                    hoverState.hovering = hovering;
+                    HandleUtility.Repaint();
+                }
+                break;
+            case EventType.mouseUp:
+                if (GUIUtility.hotControl == controlID && Event.current.button == 0)
+                {
+                    GUIUtility.hotControl = 0;
+
+                    hovering = (HandleUtility.nearestControl == controlID);
+
+                    if (hoverState.hovering != hovering)
+                    {
+                        hoverState.hovering = hovering;
+                        HandleUtility.Repaint();
+                    }
+
+                    Event.current.Use();
+                }
+                break;
+            case EventType.mouseDrag:
+                if (GUIUtility.hotControl == controlID)
+                {
+                    Vector2 current2DPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                    float curAngle = Helpers2D.GetAngle(current2DPosition - angleState.center);
+                    float prevAngle = Helpers2D.GetAngle(angleState.mousePosition - angleState.center);
+
+                    float deltaAngle = Mathf.DeltaAngle(prevAngle, curAngle);
+                    if (Mathf.Abs(deltaAngle) > Mathf.Epsilon)
+                    {
+                        angleState.angleDelta += deltaAngle;
+
+                        angle = angleState.startAngle + angleState.angleDelta;
+
+                        GUI.changed = true;
+                    }
+
+                    angleState.mousePosition = current2DPosition;
+                }
+                break;
+            case EventType.mouseDown:
+                if (Event.current.button == 0 && GUIUtility.hotControl == 0 && HandleUtility.nearestControl == controlID)
+                {
+                    GUIUtility.hotControl = controlID;
+                    angleState.angleDelta = 0;
+                    angleState.startAngle = angle;
+                    angleState.mousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                    angleState.center = center;
+                    Event.current.Use();
+                }
+                break;
+            case EventType.repaint:
+                using (new HandleColor(Color.black))
+                {
+                    if (GUIUtility.hotControl == controlID || (GUIUtility.hotControl == 0 && hoverState.hovering))
+                    {
+                        EditorHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
+                    }
+                    if (GUIUtility.hotControl == controlID)
+                    {
+                        Handles.color = new Color(1f, 1f, 1f, 0.25f);
+                        Handles.DrawLine(angleState.center,
+                            Helpers2D.ClosestPointToLine(
+                                new Ray(center, Helpers2D.GetDirection(angleState.startAngle + angleState.angleDelta)),
+                                angleState.mousePosition));
+                        Handles.color = Color.red;
+
+
+                        Vector3 cameraVectorA = EditorHelpers.HandleToCameraPoint(left);
+                        Vector3 cameraVectorB = EditorHelpers.HandleToCameraPoint(right);
+
+                        cameraVectorA.z -= 0.01f;
+                        cameraVectorB.z -= 0.01f;
+
+                        left = EditorHelpers.CameraToHandlePoint(cameraVectorA);
+                        right = EditorHelpers.CameraToHandlePoint(cameraVectorB);
+                    }
+                    else
+                    {
+                        if (GUIUtility.hotControl == 0 && hoverState.hovering)
+                        {
+                            Handles.color = Color.yellow;
+                        }
+                        else
+                        {
+                            Handles.color = Color.white;
+                            if (GUIUtility.hotControl != 0)
+                            {
+                                Color color = Handles.color;
+                                color.a = 0.25f;
+                                Handles.color = color;
+                            }
+                        }
+                    }
+
+                    EditorHelpers.DrawThickLineWithOutline(left, right, lineThickness, lineThickness);
+                }
+                break;
+        }
+        return angle;
+    }
 }
 
 public class AnchorSliderState {
     public Vector2 mouseOffset;
+}
+
+public class AngleState
+{
+    public float angleDelta;
+    public Vector2 mousePosition;
+    public Vector2 center;
+    public float startAngle;
+    public HoverState hoverState = new HoverState();
 }
