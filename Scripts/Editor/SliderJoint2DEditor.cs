@@ -367,7 +367,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 EditorGUI.BeginChangeCheck();
                 float newMinLimit = EditorHelpers.LineSlider(anchorInfo.GetControlID("minLimit"), mainAnchorPosition,
                     sliderJoint2D.limits.min,
-                    Helpers2D.GetAngle(direction), handleScale: 0.125f);
+                    Helpers2D.GetAngle(direction), 0.125f);
 
                 List<Vector2> snapList = null;
                 if (EditorGUI.actionKey) {
@@ -406,7 +406,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 EditorGUI.BeginChangeCheck();
                 float newMaxLimit = EditorHelpers.LineSlider(anchorInfo.GetControlID("maxLimit"), mainAnchorPosition,
                     sliderJoint2D.limits.max,
-                    Helpers2D.GetAngle(direction), handleScale: 0.25f);
+                    Helpers2D.GetAngle(direction), 0.125f);
                 if (EditorGUI.EndChangeCheck()) {
                     if (EditorGUI.actionKey) {
                         List<Vector2> maxSnapList = new List<Vector2>(snapList) {
