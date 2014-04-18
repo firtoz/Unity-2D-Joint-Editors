@@ -139,7 +139,21 @@ public abstract class Joint2DEditor : Editor {
 
         bool showCursor = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
 
-        SetCursor(showCursor, MouseCursor.MoveArrow, controlID);
+        if (showCursor && hoverControlID != controlID)
+        {
+            hoverControlID = controlID;
+
+            HandleUtility.Repaint();
+        }
+        else if (!showCursor && hoverControlID == controlID)
+        {
+            hoverControlID = 0;
+            HandleUtility.Repaint();
+        }
+
+        if (hoverControlID == controlID && Event.current.type == EventType.repaint) {
+            EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
+        }
 
         if (showCursor && Event.current.type == EventType.repaint) {
             using (new HandleColor(editorSettings.previewRadiusColor)) {
@@ -161,7 +175,7 @@ public abstract class Joint2DEditor : Editor {
                         AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
                         state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
                     }
-                    else if (current.button == 1)
+                    else if (current.button == 1) // right click - context menu
                     {
                         GenericMenu menu = new GenericMenu();
                         if (WantsLocking()) {
@@ -296,27 +310,6 @@ public abstract class Joint2DEditor : Editor {
         JointHelpers.AnchorBias bias, float snapDistance) {
         return position;
     }
-
-    private static MouseCursor? _lastCursor;
-    private static int _cursorControlID;
-
-    private static void SetCursor(bool showCursor, MouseCursor wantedCursor, int controlID) {
-        if (showCursor) {
-            if (_lastCursor != wantedCursor) {
-                HandleUtility.Repaint();
-                _lastCursor = wantedCursor;
-                _cursorControlID = controlID;
-            }
-        }
-        else {
-            if (_lastCursor == wantedCursor && _cursorControlID == controlID) {
-                HandleUtility.Repaint();
-                _lastCursor = null;
-                _cursorControlID = 0;
-            }
-        }
-    }
-
 
     public struct TransformInfo {
         public readonly Vector3 pos;
@@ -526,14 +519,20 @@ public abstract class Joint2DEditor : Editor {
         bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointHelpers.AnchorEpsilon;
 
         bool showCursor = (inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
+        if (showCursor && hoverControlID != controlID) {
+            hoverControlID = controlID;
+
+            HandleUtility.Repaint();
+        }
+        else if (!showCursor && hoverControlID == controlID) {
+            hoverControlID = 0;
+            HandleUtility.Repaint();
+        }
 
 
-//        if (showCursor != _showCursor && Event.current.type == EventType.mouseMove) {
-//            _showCursor = showCursor;
-//            Event.current.Use();
-//        }
-
-        SetCursor(showCursor, MouseCursor.RotateArrow, controlID);
+        if (hoverControlID == controlID && Event.current.type == EventType.repaint) {
+            EditorHelpers.SetEditorCursor(MouseCursor.RotateArrow);
+        }
 
         if (showCursor && Event.current.type == EventType.repaint) {
             using (new HandleColor(editorSettings.previewRadiusColor)) {
@@ -1030,10 +1029,6 @@ public abstract class Joint2DEditor : Editor {
         }
 
         AnchorGUI(joint2D);
-
-        if (_lastCursor != null && Event.current.type == EventType.repaint) {
-            EditorHelpers.SetEditorCursor(_lastCursor.Value);
-        }
     }
 
     public void OnEnable() {
@@ -1075,6 +1070,8 @@ public abstract class Joint2DEditor : Editor {
 
     private readonly Dictionary<AnchoredJoint2D, PositionInfo> positions =
         new Dictionary<AnchoredJoint2D, PositionInfo>();
+
+    private static int hoverControlID = 0;
 
     public void OnPreSceneGUI() {
         if (WantsLocking()) {
