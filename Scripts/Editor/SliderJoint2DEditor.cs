@@ -28,12 +28,12 @@ public class SliderJoint2DEditor : Joint2DEditor {
             return position;
         }
 
-        WheelJoint2D wheelJoint2D = (WheelJoint2D)joint;
+        SliderJoint2D sliderJoint2D = (SliderJoint2D)joint;
 
         if (!SettingsHelper.GetOrCreate(joint).lockAnchors &&
             !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
                 JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)) {
-            Vector2 wantedAnchorPosition = GetWantedAnchorPosition(wheelJoint2D, bias, position);
+            Vector2 wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
 
             if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
                 return wantedAnchorPosition;
