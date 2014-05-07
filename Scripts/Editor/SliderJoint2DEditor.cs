@@ -119,10 +119,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }
-                    else {
-                        float rot = JointHelpers.GetTargetRotation(sliderJoint2D, JointHelpers.AnchorBias.Connected);
-                        Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
-                    }
                 }
             }
         }
