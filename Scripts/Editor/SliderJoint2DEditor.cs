@@ -125,6 +125,10 @@ public class SliderJoint2DEditor : Joint2DEditor {
         return false;
     }
 
+    protected override string GetAnchorLockTooltip() {
+        return "Locking the Slider Joint 2D aligns the connected anchor to the angle of the main anchor.";
+    }
+
 
     public override Bounds OnGetFrameBounds() {
         Bounds baseBounds = base.OnGetFrameBounds();

@@ -139,19 +139,19 @@ public abstract class Joint2DEditor : Editor {
 
         bool showCursor = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
 
-        if (showCursor && hoverControlID != controlID)
+        if (showCursor && _hoverControlID != controlID)
         {
-            hoverControlID = controlID;
+            _hoverControlID = controlID;
 
             HandleUtility.Repaint();
         }
-        else if (!showCursor && hoverControlID == controlID)
+        else if (!showCursor && _hoverControlID == controlID)
         {
-            hoverControlID = 0;
+            _hoverControlID = 0;
             HandleUtility.Repaint();
         }
 
-        if (hoverControlID == controlID && Event.current.type == EventType.repaint) {
+        if (_hoverControlID == controlID && Event.current.type == EventType.repaint) {
             EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
         }
 
@@ -178,8 +178,11 @@ public abstract class Joint2DEditor : Editor {
                     else if (current.button == 1) // right click - context menu
                     {
                         GenericMenu menu = new GenericMenu();
+                        menu.AddDisabledItem(new GUIContent(joint.GetType().Name));
+                        menu.AddSeparator("");
                         if (WantsLocking()) {
-                            menu.AddItem(new GUIContent("Lock Anchors"), joint2DSettings.lockAnchors, () => {
+                            menu.AddItem(new GUIContent("Lock Anchors", GetAnchorLockTooltip()), joint2DSettings.lockAnchors, () =>
+                            {
                                 EditorHelpers.RecordUndo("Toggle Lock Anchors", joint2DSettings, joint);
                                 if (!joint2DSettings.lockAnchors) {
                                     ReAlignAnchors(joint, bias);
@@ -304,6 +307,10 @@ public abstract class Joint2DEditor : Editor {
         }
 
         return result;
+    }
+
+    protected virtual string GetAnchorLockTooltip() {
+        return "";
     }
 
     protected virtual Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
@@ -519,18 +526,18 @@ public abstract class Joint2DEditor : Editor {
         bool inZone = distanceFromInner > 0 && distanceFromOuter <= JointHelpers.AnchorEpsilon;
 
         bool showCursor = (inZone && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
-        if (showCursor && hoverControlID != controlID) {
-            hoverControlID = controlID;
+        if (showCursor && _hoverControlID != controlID) {
+            _hoverControlID = controlID;
 
             HandleUtility.Repaint();
         }
-        else if (!showCursor && hoverControlID == controlID) {
-            hoverControlID = 0;
+        else if (!showCursor && _hoverControlID == controlID) {
+            _hoverControlID = 0;
             HandleUtility.Repaint();
         }
 
 
-        if (hoverControlID == controlID && Event.current.type == EventType.repaint) {
+        if (_hoverControlID == controlID && Event.current.type == EventType.repaint) {
             EditorHelpers.SetEditorCursor(MouseCursor.RotateArrow);
         }
 
@@ -1071,7 +1078,7 @@ public abstract class Joint2DEditor : Editor {
     private readonly Dictionary<AnchoredJoint2D, PositionInfo> positions =
         new Dictionary<AnchoredJoint2D, PositionInfo>();
 
-    private static int hoverControlID = 0;
+    private static int _hoverControlID;
 
     public void OnPreSceneGUI() {
         if (WantsLocking()) {

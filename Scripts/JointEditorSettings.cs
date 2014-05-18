@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
@@ -49,14 +50,18 @@ public class JointEditorSettings : ScriptableObject {
     public void OnEnable() {
         if (!initialized) {
             initialized = true;
-            connectedAnchorTexture = Resources.Load<Texture2D>(ConnectedHingeTexturePath);
-            mainAnchorTexture = Resources.Load<Texture2D>(MainHingeTexturePath);
+            connectedAnchorTexture = LoadIcon(ConnectedHingeTexturePath);
+            mainAnchorTexture = AssetUtils.GetProjectAsset<Texture2D>(AssetUtils.CreatePath("2DJointEditors", "Icons", MainHingeTexturePath)); ;
             lockedAnchorTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);
             hotAnchorTexture = Resources.Load<Texture2D>(HotHingeTexturePath);
 
             lockButtonTexture = Resources.Load<Texture2D>(LockButtonTexturePath);
             unlockButtonTexture = Resources.Load<Texture2D>(UnlockButtonTexturePath);
         }
+    }
+
+    private static Texture2D LoadIcon(String fileName) {
+        return AssetUtils.GetProjectAsset<Texture2D>(AssetUtils.CreatePath("2DJointEditors","Icons",fileName));
     }
 
     public void Awake() {
