@@ -1,31 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEngine;
+using Object = UnityEngine.Object;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
-    public enum RingDisplayMode
-    {
+    public enum RingDisplayMode {
         Always,
         Hover,
         Never
     }
 
 
-    [SerializeField]
-    private bool initialized;
+    [SerializeField] private bool initialized;
 
-    public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected";
     public Texture2D connectedAnchorTexture;
-    public const string MainHingeTexturePath = "2d_joint_editor_hinge_main";
     public Texture2D mainAnchorTexture;
-    public const string LockedHingeTexturePath = "2d_joint_editor_hinge_locked";
     public Texture2D lockedAnchorTexture;
-    public const string HotHingeTexturePath = "2d_joint_editor_hinge_hot";
     public Texture2D hotAnchorTexture;
-
-    public const string LockButtonTexturePath = "2d_joint_editor_lock_button";
     public Texture2D lockButtonTexture;
-    public const string UnlockButtonTexturePath = "2d_joint_editor_unlock_button";
     public Texture2D unlockButtonTexture;
 
     public float anchorScale = 0.5f;
@@ -47,29 +45,109 @@ public class JointEditorSettings : ScriptableObject {
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
     public bool foldout = false;
 
-    public void OnEnable() {
-        if (!initialized) {
-            initialized = true;
-            connectedAnchorTexture = LoadIcon(ConnectedHingeTexturePath);
-            mainAnchorTexture = AssetUtils.GetProjectAsset<Texture2D>(AssetUtils.CreatePath("2DJointEditors", "Icons", MainHingeTexturePath)); ;
-            lockedAnchorTexture = Resources.Load<Texture2D>(LockedHingeTexturePath);
-            hotAnchorTexture = Resources.Load<Texture2D>(HotHingeTexturePath);
+    private static JointEditorSettings _editorSettings;
+    private static bool _loading;
 
-            lockButtonTexture = Resources.Load<Texture2D>(LockButtonTexturePath);
-            unlockButtonTexture = Resources.Load<Texture2D>(UnlockButtonTexturePath);
+    const string Label = "jointeditorssettingspath";
+    public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected.png";
+    public const string MainHingeTexturePath = "2d_joint_editor_hinge_main.png";
+    public const string LockedHingeTexturePath = "2d_joint_editor_hinge_locked.png";
+    public const string HotHingeTexturePath = "2d_joint_editor_hinge_hot.png";
+
+    public const string LockButtonTexturePath = "2d_joint_editor_lock_button.png";
+    public const string UnlockButtonTexturePath = "2d_joint_editor_unlock_button.png";
+
+    public static JointEditorSettings Singleton {
+        get {
+            {
+                if (_editorSettings != null) {
+                    return _editorSettings;
+                }
+                if (_loading) {
+                    return null;
+                }
+
+                _loading = true;
+
+                AssetUtils utils;
+
+                string[] guids = AssetDatabase.FindAssets("l:" + Label);
+                if (guids.Any()) {
+                    string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                    utils = new AssetUtils(path);
+                    _editorSettings = utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
+                    if (_editorSettings == null) {
+                        Debug.Log("deleted!");
+                    }
+                }
+                else {
+                    string path =
+                        EditorUtility.OpenFolderPanel("Please pick a path for the JointEditor2D settings to be stored.",
+                            Application.dataPath, "");
+
+                    if (path != null) {
+                        if (Directory.Exists(path) && AssetUtils.IsAssetPath(path)) {
+                            string assetPath = AssetUtils.GetRelativePath(path);
+
+                            Object asset = AssetDatabase.LoadMainAssetAtPath(assetPath);
+                            if (asset != null) {
+                                List<String> labels = new List<string>(AssetDatabase.GetLabels(asset)) {
+                                    Label
+                                };
+                                AssetDatabase.SetLabels(asset, labels.ToArray());
+                                AssetDatabase.SaveAssets();
+                                utils = new AssetUtils(assetPath);
+                                _editorSettings = utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
+                                if (_editorSettings == null) {
+                                    Debug.Log("deleted!");
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        Debug.LogError("Why don't you want to save the settings? :(");
+                    }
+                }
+                _loading = false;
+            }
+
+            return _editorSettings;
         }
     }
 
-    private static Texture2D LoadIcon(String fileName) {
-        return AssetUtils.GetProjectAsset<Texture2D>(AssetUtils.CreatePath("2DJointEditors","Icons",fileName));
+#if UNITY_EDITOR
+    public void OnEnable() {
+        if (!initialized) {
+            initialized = true;
+            string[] guids = AssetDatabase.FindAssets("l:" + Label);
+            if (guids.Any())
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+
+                path = Path.GetFullPath(path + "/../Icons");
+
+                string iconPath = AssetUtils.GetRelativePath(path);
+
+                connectedAnchorTexture = LoadIcon(iconPath, ConnectedHingeTexturePath);
+                mainAnchorTexture = LoadIcon(iconPath, MainHingeTexturePath);
+                lockedAnchorTexture = LoadIcon(iconPath, LockedHingeTexturePath);
+                hotAnchorTexture = LoadIcon(iconPath, HotHingeTexturePath);
+
+                lockButtonTexture = LoadIcon(iconPath, LockButtonTexturePath);
+                unlockButtonTexture = LoadIcon(iconPath, UnlockButtonTexturePath);
+            }
+
+        }
     }
 
-    public void Awake() {
+    private static Texture2D LoadIcon(params string[] path) {
+        return Resources.LoadAssetAtPath<Texture2D>(AssetUtils.CreatePath(path));
     }
+#endif
 
-    public void Start() {
-    }
+    public void Awake() {}
 
-    public void OnDisable() {
-    }
+    public void Start() {}
+
+    public void OnDisable() {}
 }

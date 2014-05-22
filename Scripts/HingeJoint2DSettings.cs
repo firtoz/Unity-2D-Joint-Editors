@@ -18,17 +18,16 @@ public class HingeJoint2DSettings : Joint2DSettings {
     }
 
 #if UNITY_EDITOR
-
-    public new void OnDrawGizmos() {
-        base.OnDrawGizmos();
-        HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
-        if (hingeJoint2D == null)
-        {
-            return;
-        }
-
-        DrawAnchorLines();
-    }
+//
+//    public void OnDrawGizmos() {
+//        HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
+//        if (hingeJoint2D == null)
+//        {
+//            return;
+//        }
+//
+//        DrawAnchorLines();
+//    }
 #endif
 
 }

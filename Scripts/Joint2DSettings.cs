@@ -8,31 +8,42 @@ using toxicFork.GUIHelpers.DisposableHandles;
 [ExecuteInEditMode]
 public abstract class Joint2DSettings : MonoBehaviour
 {
+
 #if UNITY_EDITOR
-    protected static readonly AssetUtils Utils = new AssetUtils("2DJointEditors/Data");
-
     private static JointEditorSettings _editorSettings;
+#endif
 
-    protected static JointEditorSettings editorSettings
+    public void OnEnable()
     {
-        get
+        if (setupComplete && attachedJoint == null)
         {
-            if (_editorSettings != null)
-            {
-                return _editorSettings;
-            }
-            _editorSettings = Utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
-            if (_editorSettings == null)
-            {
-                Debug.Log("deleted!");
-            }
-            return _editorSettings;
+            Debug.Log("!!!");
+            //       DestroyImmediate(this);
         }
+
+#if UNITY_EDITOR
+        _editorSettings = JointEditorSettings.Singleton;
+//        lastJointHash = attachedJoint != null ? attachedJoint.GetHashCode() : 0;
+//        Joint2DManager.AddJointSettings(this);
+#endif
     }
+
+    public void OnDisable()
+    {
+#if UNITY_EDITOR
+//        Joint2DManager.RemoveJointSettings(this);
+#endif
+    }
+
+#if UNITY_EDITOR
 
     protected void DrawAnchorLines()
     {
-        DistanceJoint2D joint2D = attachedJoint as DistanceJoint2D;
+        if (_editorSettings == null)
+        {
+            return;
+        }
+        AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
         if (joint2D == null)
         {
             return;
@@ -42,14 +53,14 @@ public abstract class Joint2DSettings : MonoBehaviour
         Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
-        using (new HandleColor(editorSettings.mainDiscColor))
+        using (new HandleColor(_editorSettings.mainDiscColor))
         {
             Vector2 mainPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Main);
             Handles.DrawLine(mainAnchorPosition, mainPosition);
         }
         if (joint2D.connectedBody)
         {
-            using (new HandleColor(editorSettings.connectedDiscColor))
+            using (new HandleColor(_editorSettings.connectedDiscColor))
             {
                 Vector2 connectedPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Connected);
                 Handles.DrawLine(connectedAnchorPosition, connectedPosition);
@@ -71,44 +82,27 @@ public abstract class Joint2DSettings : MonoBehaviour
         attachedJoint = joint2D;
     }
 
-    public void OnEnable()
-    {
-        if (setupComplete && attachedJoint == null)
-        {
-            Debug.Log("!!!");
-            //       DestroyImmediate(this);
-        }
-    }
 
     public abstract bool IsValidType();
 
+//    private int lastJointHash = 0;
+
     public void Update() {
-        if (attachedJoint == null || !IsValidType())
-        {
+        if (attachedJoint == null || !IsValidType()) {
             DestroyImmediate(this);
         }
+#if UNITY_EDITOR
+//        else {
+//            int jointHash = attachedJoint != null ? attachedJoint.GetHashCode() : 0;
+//            if (jointHash != lastJointHash) {
+//                lastJointHash = jointHash;
+//                Joint2DManager.UpdateJointSettings(this);
+//            }
+//        }
+#endif
     }
 
 #if UNITY_EDITOR
-    public void OnDrawGizmos() {
-//        if (Selection.Contains(gameObject))
-//        {
-//            return;
-//        }
-//
-//        AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
-//        if (joint2D == null)
-//        {
-//            return;
-//        }
-//
-//        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-//        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-//
-//
-//        DrawSphereOnScreen(mainAnchorPosition, (1f/8));
-//        DrawSphereOnScreen(connectedAnchorPosition, (1f / 8));
-    }
 
     protected Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
     {
@@ -122,19 +116,6 @@ public abstract class Joint2DSettings : MonoBehaviour
         }
 
         return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;
-    }
-
-    private static void DrawSphereOnScreen(Vector2 position, float radius) {
-        Ray ray = HandleUtility.GUIPointToWorldRay(HandleUtility.WorldToGUIPoint(position));
-
-        float drawRadius = HandleUtility.GetHandleSize(ray.origin) * radius;
-
-        Vector3 drawPosition = ray.origin + ray.direction * drawRadius * 2;
-
-        Quaternion rotation = Quaternion.LookRotation(ray.direction, Vector3.up);
-        Handles.CircleCap(0, drawPosition, rotation, drawRadius + HandleUtility.GetHandleSize(drawPosition) * (1f/64));
-
-        Gizmos.DrawSphere(drawPosition, drawRadius);
     }
 #endif
 

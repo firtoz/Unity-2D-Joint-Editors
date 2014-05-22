@@ -82,8 +82,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
         SliderJoint2D sliderJoint2D = (SliderJoint2D) joint2D;
 
         Vector2 center = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
-        float scale = editorSettings.anchorScale;
-        float handleSize = HandleUtility.GetHandleSize(center)*scale;
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
@@ -106,7 +104,8 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         if (bias == JointHelpers.AnchorBias.Main) {
             Vector2 mainBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.mainDiscColor)) {
+            using (new HandleColor(editorSettings.mainDiscColor))
+            {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(mainBodyPosition, center);
                 }
@@ -115,7 +114,8 @@ public class SliderJoint2DEditor : Joint2DEditor {
         else if (bias == JointHelpers.AnchorBias.Connected) {
             Vector2 connectedBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected);
             if (sliderJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor)) {
+                using (new HandleColor(editorSettings.connectedDiscColor))
+                {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }

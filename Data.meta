@@ -1,5 +1,7 @@
 fileFormatVersion: 2
 guid: 6b5e7fbe5b8543b46897572e03116eeb
+labels:
+- jointeditorssettingspath
 folderAsset: yes
 DefaultImporter:
   userData: 
