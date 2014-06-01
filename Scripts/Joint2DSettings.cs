@@ -88,7 +88,8 @@ public abstract class Joint2DSettings : MonoBehaviour
 //    private int lastJointHash = 0;
 
     public void Update() {
-        if (attachedJoint == null || !IsValidType()) {
+        if (setupComplete && (attachedJoint == null || !IsValidType()))
+        {
             DestroyImmediate(this);
         }
 #if UNITY_EDITOR

@@ -10,6 +10,7 @@ public class SettingsHelper
     private static T Create<T>(Joint2D joint2D) where T : Joint2DSettings
     {
         T settings = Undo.AddComponent<T>(joint2D.gameObject);
+        settings.hideFlags = HideFlags.HideInInspector;
 
         EditorHelpers.RecordUndo(null, settings);
         settings.Setup(joint2D);
