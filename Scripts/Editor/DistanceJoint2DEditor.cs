@@ -35,8 +35,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         if (bias == JointHelpers.AnchorBias.Main) {
             Vector2 mainBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.mainDiscColor))
-            {
+            using (new HandleColor(editorSettings.mainDiscColor)) {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(mainBodyPosition, center);
                 }
@@ -45,8 +44,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         else if (bias == JointHelpers.AnchorBias.Connected) {
             Vector2 connectedBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Connected);
             if (distanceJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor))
-                {
+                using (new HandleColor(editorSettings.connectedDiscColor)) {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }
@@ -60,6 +58,17 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return false;
     }
 
+    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint) {
+        DistanceJoint2D distanceJoint2D = joint as DistanceJoint2D;
+        if (distanceJoint2D != null) {
+            menu.AddItem(new GUIContent("Max Distance Only"), distanceJoint2D.maxDistanceOnly, () => {
+                EditorHelpers.RecordUndo("Max Distance Only", distanceJoint2D);
+                distanceJoint2D.maxDistanceOnly = !distanceJoint2D.maxDistanceOnly;
+                EditorUtility.SetDirty(distanceJoint2D);
+            });
+        }
+    }
+
     protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
         JointHelpers.AnchorBias bias, float snapDistance) {
         if (!EditorGUI.actionKey) {
@@ -70,7 +79,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             ? JointHelpers.AnchorBias.Connected
             : JointHelpers.AnchorBias.Main;
 
-        DistanceJoint2D distanceJoint2D = (DistanceJoint2D)joint;
+        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint;
 
         AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
         Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
@@ -78,17 +87,15 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(distanceJoint2D, otherBias);
         Vector2 diff = otherAnchorPosition - currentAnchorPosition;
-        if (diff.magnitude <= Mathf.Epsilon)
-        {
+        if (diff.magnitude <= Mathf.Epsilon) {
             diff = -Vector2.up;
         }
 
         Vector2 normalizedDiff = diff.normalized;
 
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff * distanceJoint2D.distance;
+        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*distanceJoint2D.distance;
 
-        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance)
-        {
+        if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
             return wantedAnchorPosition;
         }
 
@@ -141,9 +148,8 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             if (Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance) {
                 EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance, 2, true);
             }
-            else
-            {
-                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance, 1, true);
+            else {
+                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance, 1, true);
             }
 
             if (EditorGUI.EndChangeCheck()) {

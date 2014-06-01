@@ -23,6 +23,7 @@ public class JointEditorSettings : ScriptableObject {
     public Texture2D mainAnchorTexture;
     public Texture2D lockedAnchorTexture;
     public Texture2D hotAnchorTexture;
+    public Texture2D offsetTexture;
     public Texture2D lockButtonTexture;
     public Texture2D unlockButtonTexture;
 
@@ -50,6 +51,7 @@ public class JointEditorSettings : ScriptableObject {
 
     const string Label = "jointeditorssettingspath";
     public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected.png";
+    public const string OffsetTexturePath = "2djointeditor_anchor.png";
     public const string MainHingeTexturePath = "2d_joint_editor_hinge_main.png";
     public const string LockedHingeTexturePath = "2d_joint_editor_hinge_locked.png";
     public const string HotHingeTexturePath = "2d_joint_editor_hinge_hot.png";
@@ -129,6 +131,7 @@ public class JointEditorSettings : ScriptableObject {
                 string iconPath = AssetUtils.GetRelativePath(path);
 
                 connectedAnchorTexture = LoadIcon(iconPath, ConnectedHingeTexturePath);
+                offsetTexture = LoadIcon(iconPath, OffsetTexturePath);
                 mainAnchorTexture = LoadIcon(iconPath, MainHingeTexturePath);
                 lockedAnchorTexture = LoadIcon(iconPath, LockedHingeTexturePath);
                 hotAnchorTexture = LoadIcon(iconPath, HotHingeTexturePath);

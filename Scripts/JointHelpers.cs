@@ -103,7 +103,7 @@ public class JointHelpers {
     {
 		Transform transform;
 		if (bias == AnchorBias.Connected) {
-			transform = joint2D.connectedBody ? joint2D.connectedBody.transform : null;
+			transform = joint2D.connectedBody != null ? joint2D.connectedBody.transform : null;
 		}
 		else {
 			transform = joint2D.transform;

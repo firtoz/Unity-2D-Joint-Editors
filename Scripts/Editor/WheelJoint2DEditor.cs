@@ -84,7 +84,7 @@ public class WheelJoint2DEditor : Joint2DEditor
 
         Ray slideRay = new Ray(JointHelpers.GetAnchorPosition(wheelJoint2D, otherBias),
             Helpers2D.GetDirection(worldAngle));
-        Vector2 wantedAnchorPosition = Helpers2D.ClosestPointToLine(slideRay, position);
+        Vector2 wantedAnchorPosition = Helpers2D.ClosestPointToRay(slideRay, position);
         return wantedAnchorPosition;
     }
 
@@ -99,7 +99,7 @@ public class WheelJoint2DEditor : Joint2DEditor
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(wheelJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(wheelJoint2D);
 
-        if (bias != JointHelpers.AnchorBias.Connected && !Event.current.shift)
+        if (bias != JointHelpers.AnchorBias.Connected && (GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle") || !Event.current.shift))
         {
             DrawSlider(wheelJoint2D, anchorInfo);
         }
@@ -187,17 +187,17 @@ public class WheelJoint2DEditor : Joint2DEditor
                 float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
                 Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
                 Vector2 anglePosition =
-                    Helpers2D.ClosestPointToLine(new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle)),
+                    Helpers2D.ClosestPointToRay(new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle)),
                         mousePosition2D);
 
 
-                Vector2 closestPosition = Helpers2D.ClosestPointToLine(wantedAngleRay, anglePosition);
+                Vector2 closestPosition = Helpers2D.ClosestPointToRay(wantedAngleRay, anglePosition);
 
                 if (EditorGUI.actionKey && Vector2.Distance(closestPosition, anglePosition) < handleSize * 0.125f)
                 {
                     Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
                     Vector2 closestPositionToDirection =
-                        Helpers2D.ClosestPointToLine(wantedAngleRay,
+                        Helpers2D.ClosestPointToRay(wantedAngleRay,
                             mainAnchorPosition + currentDirection);
 
                     newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
