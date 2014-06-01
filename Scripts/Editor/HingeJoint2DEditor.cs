@@ -380,12 +380,13 @@ public class HingeJoint2DEditor : Joint2DEditor {
             SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
             EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
             value = (HingeJoint2DSettings.AnchorPriority)
-                Enum.Parse(typeof (HingeJoint2DSettings.AnchorPriority),
+                Enum.Parse(typeof(HingeJoint2DSettings.AnchorPriority),
                     anchorPriority.enumNames[anchorPriority.enumValueIndex]);
         }
 
         if (EditorGUI.EndChangeCheck()) {
-            foreach (HingeJoint2D hingeJoint2D in targets) {
+            foreach (Object t in targets) {
+                HingeJoint2D hingeJoint2D = (HingeJoint2D) t;
                 HingeJoint2DSettings hingeSettings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
                 EditorHelpers.RecordUndo("toggle angle limits display mode", hingeSettings);
@@ -455,9 +456,13 @@ public class HingeJoint2DEditor : Joint2DEditor {
             settings.anchorPriority = HingeJoint2DSettings.AnchorPriority.Main;
         }
 
+        bool useLimits = hingeJoint2D.useLimits;
+
         JointAngleLimits2D limits = hingeJoint2D.limits;
         limits.min = -hingeJoint2D.limits.max;
         limits.max = -hingeJoint2D.limits.min;
         hingeJoint2D.limits = limits;
+
+        hingeJoint2D.useLimits = useLimits;
     }
 }

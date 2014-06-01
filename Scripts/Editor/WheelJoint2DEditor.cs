@@ -114,9 +114,13 @@ public class WheelJoint2DEditor : Joint2DEditor
             }
         }
 
-        using (new HandleColor(new Color(1, 1, 1, 0.125f)))
+        using (new HandleColor(new Color(1, 1, 1, 0.5f)))
         {
             Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
+            if (wheelJoint2D.connectedBody && GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle"))
+            {
+                Handles.DrawLine(mainAnchorPosition, GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Connected));
+            }
         }
 
         if (bias == JointHelpers.AnchorBias.Main)
@@ -152,7 +156,7 @@ public class WheelJoint2DEditor : Joint2DEditor
         return false;
     }
 
-    private static void DrawSlider(WheelJoint2D wheelJoint2D, AnchorInfo anchorInfo)
+    private void DrawSlider(WheelJoint2D wheelJoint2D, AnchorInfo anchorInfo)
     {
         float worldAngle = wheelJoint2D.transform.eulerAngles.z + wheelJoint2D.suspension.angle;
 
@@ -166,10 +170,62 @@ public class WheelJoint2DEditor : Joint2DEditor
 
         if (EditorGUI.EndChangeCheck())
         {
-            if (SettingsHelper.GetOrCreate(wheelJoint2D).lockAnchors)
-            {
-                Vector2 connectedOffset = JointHelpers.GetConnectedAnchorPosition(wheelJoint2D) - mainAnchorPosition;
+            Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(wheelJoint2D);
+            Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
 
+            Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(wheelJoint2D);
+
+            if (EditorGUI.actionKey)
+            {
+                float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
+
+                Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+
+                Ray currentAngleRay = new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle));
+
+                Vector2 mousePositionProjectedToAngle = Helpers2D.ClosestPointToRay(currentAngleRay, mousePosition2D);
+
+                List<Vector2> directionsToSnapTo = new List<Vector2> {
+                        (GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Main) - mainAnchorPosition)
+                            .normalized
+                    };
+
+                if (!joint2DSettings.lockAnchors)
+                {
+                    directionsToSnapTo.Insert(0, connectedOffset.normalized);
+                }
+
+                if (wheelJoint2D.connectedBody)
+                {
+                    directionsToSnapTo.Add(
+                        (GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Connected) - mainAnchorPosition)
+                            .normalized);
+                }
+
+                foreach (Vector2 direction in directionsToSnapTo)
+                {
+                    Ray rayTowardsConnectedAnchor = new Ray(mainAnchorPosition, direction);
+
+                    Vector2 closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsConnectedAnchor,
+                        mousePositionProjectedToAngle);
+
+                    if (Vector2.Distance(closestPointTowardsDirection, mousePositionProjectedToAngle) <
+                        handleSize * 0.125f)
+                    {
+                        Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
+                        Vector2 closestPositionToDirection =
+                            Helpers2D.ClosestPointToRay(rayTowardsConnectedAnchor,
+                                mainAnchorPosition + currentDirection);
+
+                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
+
+                        break;
+                    }
+                }
+            }
+
+            if (joint2DSettings.lockAnchors)
+            {
                 float wantedAngle = newAngle - wheelJoint2D.transform.eulerAngles.z;
                 float angleDelta = Mathf.DeltaAngle(wheelJoint2D.suspension.angle, wantedAngle);
                 EditorHelpers.RecordUndo("Alter Wheel Joint 2D Angle", wheelJoint2D);
@@ -208,5 +264,22 @@ public class WheelJoint2DEditor : Joint2DEditor
                 wheelJoint2D.suspension = susp;
             }
         }
+    }
+
+
+    protected override void OwnershipMoved(AnchoredJoint2D cloneJoint) {
+        //swap limits
+        WheelJoint2D wheelJoint2D = cloneJoint as WheelJoint2D;
+        if (!wheelJoint2D) {
+            return;
+        }
+
+        float worldAngle = wheelJoint2D.connectedBody.transform.eulerAngles.z + wheelJoint2D.suspension.angle;
+
+        JointSuspension2D suspension = wheelJoint2D.suspension;
+
+        suspension.angle = (180.0f+worldAngle) - wheelJoint2D.transform.eulerAngles.z;
+
+        wheelJoint2D.suspension = suspension;
     }
 }

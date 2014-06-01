@@ -227,6 +227,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                                 Joint2DSettings cloneSettings =
                                     Undo.AddComponent(connectedObject, jointSettings.GetType()) as Joint2DSettings;
 
+                                cloneSettings.hideFlags = HideFlags.HideInInspector;
+
                                 EditorUtility.CopySerialized(jointSettings, cloneSettings);
                                 cloneSettings.Setup(cloneJoint);
 
@@ -1472,6 +1474,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     }
 
                     EditorHelpers.DrawThickLineWithOutline(left, right, lineThickness, lineThickness);
+                    Handles.DrawWireDisc(left, Vector3.forward, handleSize*0.125f);
                 }
                 break;
         }
