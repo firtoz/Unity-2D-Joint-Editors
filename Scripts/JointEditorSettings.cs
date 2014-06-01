@@ -59,6 +59,7 @@ public class JointEditorSettings : ScriptableObject {
     public const string LockButtonTexturePath = "2d_joint_editor_lock_button.png";
     public const string UnlockButtonTexturePath = "2d_joint_editor_unlock_button.png";
 
+#if UNITY_EDITOR
     public static JointEditorSettings Singleton {
         get {
             {
@@ -117,7 +118,6 @@ public class JointEditorSettings : ScriptableObject {
         }
     }
 
-#if UNITY_EDITOR
     public void OnEnable() {
         if (!initialized) {
             initialized = true;
