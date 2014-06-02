@@ -48,6 +48,10 @@ public class SettingsHelper
         {
             return GetOrCreate<WheelJoint2DSettings>(joint2D);
         }
+        if (joint2D is SpringJoint2D)
+        {
+            return GetOrCreate<SpringJoint2DSettings>(joint2D);
+        }
         throw new ArgumentException("There are no editors defined for the joint2D: " + joint2D.GetType());
     }
 }

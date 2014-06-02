@@ -2,8 +2,6 @@
 
 public class SliderJoint2DSettings : Joint2DSettings
 {
-
-
     public enum AnchorPriority
     {
         Main,

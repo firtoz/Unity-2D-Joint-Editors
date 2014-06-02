@@ -8,9 +8,9 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-[CustomEditor(typeof (DistanceJoint2D))]
+[CustomEditor(typeof (SpringJoint2D))]
 [CanEditMultipleObjects]
-public class DistanceJoint2DEditor : Joint2DEditor {
+public class SpringJoint2DEditor : Joint2DEditor {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {"distance"};
 
     protected override HashSet<string> GetControlNames() {
@@ -18,26 +18,26 @@ public class DistanceJoint2DEditor : Joint2DEditor {
     }
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint2D;
+        SpringJoint2D springJoint2D = (SpringJoint2D)joint2D;
 
-        Vector2 center = JointHelpers.GetAnchorPosition(distanceJoint2D, bias);
+        Vector2 center = JointHelpers.GetAnchorPosition(springJoint2D, bias);
         float scale = editorSettings.anchorScale;
         float handleSize = HandleUtility.GetHandleSize(center)*scale;
 
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(distanceJoint2D);
-        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(distanceJoint2D);
+        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(springJoint2D);
+        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(springJoint2D);
         if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
             using (new HandleColor(Color.green)) {
                 Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
             }
         }
 
-        DrawDistance(distanceJoint2D, anchorInfo, bias);
+        DrawDistance(springJoint2D, anchorInfo, bias);
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
         if (bias == JointHelpers.AnchorBias.Main) {
-            Vector2 mainBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Main);
+            Vector2 mainBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
             using (new HandleColor(editorSettings.mainDiscColor)) {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(mainBodyPosition, center);
@@ -45,31 +45,20 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             }
         }
         else if (bias == JointHelpers.AnchorBias.Connected) {
-            Vector2 connectedBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Connected);
-            if (distanceJoint2D.connectedBody) {
+            Vector2 connectedBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Connected);
+            if (springJoint2D.connectedBody) {
                 using (new HandleColor(editorSettings.connectedDiscColor)) {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }
                     else {
-                        float rot = JointHelpers.GetTargetRotation(distanceJoint2D, JointHelpers.AnchorBias.Connected);
+                        float rot = JointHelpers.GetTargetRotation(springJoint2D, JointHelpers.AnchorBias.Connected);
                         Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
                     }
                 }
             }
         }
         return false;
-    }
-
-    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint) {
-        DistanceJoint2D distanceJoint2D = joint as DistanceJoint2D;
-        if (distanceJoint2D != null) {
-            menu.AddItem(new GUIContent("Max Distance Only"), distanceJoint2D.maxDistanceOnly, () => {
-                EditorHelpers.RecordUndo("Max Distance Only", distanceJoint2D);
-                distanceJoint2D.maxDistanceOnly = !distanceJoint2D.maxDistanceOnly;
-                EditorUtility.SetDirty(distanceJoint2D);
-            });
-        }
     }
 
     protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
@@ -82,13 +71,13 @@ public class DistanceJoint2DEditor : Joint2DEditor {
             ? JointHelpers.AnchorBias.Connected
             : JointHelpers.AnchorBias.Main;
 
-        DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint;
+        SpringJoint2D springJoint2D = (SpringJoint2D)joint;
 
         AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
         Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
         Vector2 currentAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
 
-        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(distanceJoint2D, otherBias);
+        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(springJoint2D, otherBias);
         Vector2 diff = otherAnchorPosition - currentAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon) {
             diff = -Vector2.up;
@@ -96,7 +85,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         Vector2 normalizedDiff = diff.normalized;
 
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*distanceJoint2D.distance;
+        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*springJoint2D.distance;
 
         if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
             return wantedAnchorPosition;
@@ -108,7 +97,8 @@ public class DistanceJoint2DEditor : Joint2DEditor {
     public override Bounds OnGetFrameBounds() {
         Bounds baseBounds = base.OnGetFrameBounds();
 
-        foreach (DistanceJoint2D joint2D in targets.Cast<DistanceJoint2D>()) {
+        foreach (SpringJoint2D joint2D in targets.Cast<SpringJoint2D>())
+        {
             Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
             Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
             Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
@@ -124,7 +114,8 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return baseBounds;
     }
 
-    private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
+    private void DrawDistance(SpringJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
+    {
         if (joint2D == null) {
             return;
         }
@@ -142,12 +133,11 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         Vector2 normalizedDiff = diff.normalized;
 
         JointHelpers.AnchorBias wantedBias;
-        switch (SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(joint2D).anchorPriority)
-        {
-            case DistanceJoint2DSettings.AnchorPriority.Main:
+        switch (SettingsHelper.GetOrCreate<SpringJoint2DSettings>(joint2D).anchorPriority) {
+            case SpringJoint2DSettings.AnchorPriority.Main:
                 wantedBias = JointHelpers.AnchorBias.Main;
                 break;
-            case DistanceJoint2DSettings.AnchorPriority.Connected:
+            case SpringJoint2DSettings.AnchorPriority.Connected:
                 wantedBias = JointHelpers.AnchorBias.Connected;
                 break;
             default:
@@ -156,7 +146,6 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         if (bias != wantedBias || GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
         {
-
             int distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
@@ -185,8 +174,6 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         }
     }
 
-
-
     private static readonly GUIContent AngleLimitsModeContent =
         new GUIContent("Anchor Priority",
             "Which anchor's angle limits would you like to see? If there is no connected body this setting will be ignored.");
@@ -194,14 +181,14 @@ public class DistanceJoint2DEditor : Joint2DEditor {
     private void SelectAngleLimitsMode(SerializedObject serializedSettings, bool enabled)
     {
         EditorGUI.BeginChangeCheck();
-        DistanceJoint2DSettings.AnchorPriority value;
+        SpringJoint2DSettings.AnchorPriority value;
 
         using (new GUIEnabled(enabled))
         {
             SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
             EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
-            value = (DistanceJoint2DSettings.AnchorPriority)
-                Enum.Parse(typeof(DistanceJoint2DSettings.AnchorPriority),
+            value = (SpringJoint2DSettings.AnchorPriority)
+                Enum.Parse(typeof(SpringJoint2DSettings.AnchorPriority),
                     anchorPriority.enumNames[anchorPriority.enumValueIndex]);
         }
 
@@ -209,8 +196,8 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         {
             foreach (Object t in targets)
             {
-                DistanceJoint2D distanceJoint2D = (DistanceJoint2D)t;
-                DistanceJoint2DSettings settings = SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(distanceJoint2D);
+                SpringJoint2D springJoint2D = (SpringJoint2D)t;
+                SpringJoint2DSettings settings = SettingsHelper.GetOrCreate<SpringJoint2DSettings>(springJoint2D);
 
                 EditorHelpers.RecordUndo("toggle angle limits display mode", settings);
                 settings.anchorPriority = value;
@@ -223,9 +210,9 @@ public class DistanceJoint2DEditor : Joint2DEditor {
     protected override void InspectorDisplayGUI(bool enabled)
     {
         List<Object> allSettings =
-            targets.Cast<DistanceJoint2D>()
-                .Select(distanceJoint2D => SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(distanceJoint2D))
-                .Where(distanceSettings => distanceSettings != null).Cast<Object>().ToList();
+            targets.Cast<SpringJoint2D>()
+                .Select(springJoint2D => SettingsHelper.GetOrCreate<SpringJoint2DSettings>(springJoint2D))
+                .Where(springSettings => springSettings != null).Cast<Object>().ToList();
 
         SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
         SelectAngleLimitsMode(serializedSettings, enabled);
@@ -233,21 +220,21 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint)
     {
-        DistanceJoint2D distanceJoint2D = cloneJoint as DistanceJoint2D;
-        if (!distanceJoint2D)
+        SpringJoint2D springJoint2D = cloneJoint as SpringJoint2D;
+        if (!springJoint2D)
         {
             return;
         }
 
-        DistanceJoint2DSettings settings = SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(distanceJoint2D);
+        SpringJoint2DSettings settings = SettingsHelper.GetOrCreate<SpringJoint2DSettings>(springJoint2D);
 
-        if (settings.anchorPriority == DistanceJoint2DSettings.AnchorPriority.Main)
+        if (settings.anchorPriority == SpringJoint2DSettings.AnchorPriority.Main)
         {
-            settings.anchorPriority = DistanceJoint2DSettings.AnchorPriority.Connected;
+            settings.anchorPriority = SpringJoint2DSettings.AnchorPriority.Connected;
         }
-        else if (settings.anchorPriority == DistanceJoint2DSettings.AnchorPriority.Connected)
+        else if (settings.anchorPriority == SpringJoint2DSettings.AnchorPriority.Connected)
         {
-            settings.anchorPriority = DistanceJoint2DSettings.AnchorPriority.Main;
+            settings.anchorPriority = SpringJoint2DSettings.AnchorPriority.Main;
         }
     }
 }
