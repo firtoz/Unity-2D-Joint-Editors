@@ -282,4 +282,19 @@ public class WheelJoint2DEditor : Joint2DEditor
 
         wheelJoint2D.suspension = suspension;
     }
+
+
+    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint)
+    {
+        WheelJoint2D wheelJoint2D = joint as WheelJoint2D;
+        if (wheelJoint2D != null)
+        {
+            menu.AddItem(new GUIContent("Use Motor"), wheelJoint2D.useMotor, () =>
+            {
+                EditorHelpers.RecordUndo("Use Motor", wheelJoint2D);
+                wheelJoint2D.useMotor = !wheelJoint2D.useMotor;
+                EditorUtility.SetDirty(wheelJoint2D);
+            });
+        }
+    }
 }

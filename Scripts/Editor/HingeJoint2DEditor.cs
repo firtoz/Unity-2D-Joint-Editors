@@ -481,17 +481,17 @@ public class HingeJoint2DEditor : Joint2DEditor {
         HingeJoint2D hingeJoint2D = joint as HingeJoint2D;
         if (hingeJoint2D != null)
         {
-            menu.AddItem(new GUIContent("Use Limits"), hingeJoint2D.useLimits, () =>
-            {
-                EditorHelpers.RecordUndo("Use Limits", hingeJoint2D);
-                hingeJoint2D.useLimits = !hingeJoint2D.useLimits;
-                EditorUtility.SetDirty(hingeJoint2D);
-            });
-
             menu.AddItem(new GUIContent("Use Motor"), hingeJoint2D.useMotor, () =>
             {
                 EditorHelpers.RecordUndo("Use Motor", hingeJoint2D);
                 hingeJoint2D.useMotor = !hingeJoint2D.useMotor;
+                EditorUtility.SetDirty(hingeJoint2D);
+            });
+
+            menu.AddItem(new GUIContent("Use Limits"), hingeJoint2D.useLimits, () =>
+            {
+                EditorHelpers.RecordUndo("Use Limits", hingeJoint2D);
+                hingeJoint2D.useLimits = !hingeJoint2D.useLimits;
                 EditorUtility.SetDirty(hingeJoint2D);
             });
         }

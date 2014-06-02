@@ -88,6 +88,13 @@ public class SliderJoint2DEditor : Joint2DEditor {
         SliderJoint2D sliderJoint2D = joint as SliderJoint2D;
         if (sliderJoint2D != null)
         {
+            menu.AddItem(new GUIContent("Use Motor"), sliderJoint2D.useMotor, () =>
+            {
+                EditorHelpers.RecordUndo("Use Motor", sliderJoint2D);
+                sliderJoint2D.useMotor = !sliderJoint2D.useMotor;
+                EditorUtility.SetDirty(sliderJoint2D);
+            });
+
             menu.AddItem(new GUIContent("Use Limits"), sliderJoint2D.useLimits, () =>
             {
                 EditorHelpers.RecordUndo("Use Limits", sliderJoint2D);
