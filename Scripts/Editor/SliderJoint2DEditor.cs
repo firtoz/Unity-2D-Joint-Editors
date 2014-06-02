@@ -405,7 +405,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 .Where(sliderSettings => sliderSettings != null).Cast<Object>().ToList();
 
         SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
-        using (new Indent())
+//        using (new Indent())
         {
             SelectAngleLimitsMode(serializedSettings, enabled);
         }

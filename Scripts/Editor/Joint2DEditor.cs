@@ -1124,6 +1124,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 foreach (Vector2 position in snapPositions) {
                     if (Vector2.Distance(worldOffset, position) < handleSize*0.25f) {
                         worldOffset = position;
+                        break;
                     }
                 }
             }
