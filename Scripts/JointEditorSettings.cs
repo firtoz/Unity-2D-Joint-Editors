@@ -39,7 +39,8 @@ public class JointEditorSettings : ScriptableObject {
     public Color alternateRadiusColor = new Color(0f, 1f, 1f, 0.5f);
     public Color mainDiscColor = Color.red;
     public Color connectedDiscColor = Color.green;
-    public Color angleLimitColor = Color.red;
+    public Color angleLimitColor = new Color(0,255f/255f,23f/255f);
+    public Color badAngleLimitColor = Color.red;
     public Color angleAreaColor = Color.gray;
     public bool drawRadiusRings = true;
 

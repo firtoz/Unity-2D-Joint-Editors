@@ -33,12 +33,25 @@ public class HingeJoint2DEditor : Joint2DEditor {
         return Names;
     }
 
+
+    protected override bool PreSliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
+        HingeJoint2D hingeJoint2D = joint2D as HingeJoint2D;
+        if (hingeJoint2D == null) {
+            return false;
+        }
+
+        return DrawAngleLimits(hingeJoint2D, anchorInfo, bias);
+    }
+
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         HingeJoint2D hingeJoint2D = joint2D as HingeJoint2D;
 
-        bool changed = !anchorInfo.ignoreHover && RadiusGUI(hingeJoint2D, anchorInfo, bias);
+        if (hingeJoint2D == null)
+        {
+            return false;
+        }
 
-        changed = DrawAngleLimits(hingeJoint2D, anchorInfo, bias) || changed;
+        bool changed = !anchorInfo.ignoreHover && RadiusGUI(hingeJoint2D, anchorInfo, bias);
 
         DrawDiscs(hingeJoint2D, anchorInfo, bias);
 
@@ -109,7 +122,11 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         Helpers2D.GetDirection(maxMainAngle),
                         maxLimit - minLimit, distanceFromCenter);
                 }
-                using (new HandleColor(editorSettings.angleLimitColor)) {
+                Color limitColor = ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0))
+                    ? editorSettings.badAngleLimitColor
+                    : editorSettings.angleLimitColor;
+                using (new HandleColor(limitColor))
+                {
                     Vector3 minMainEnd = anchorPosition +
                                          Helpers2D.GetDirection(minMainAngle) * distanceFromCenter;
                     Handles.DrawLine(anchorPosition, minMainEnd);
@@ -118,17 +135,9 @@ public class HingeJoint2DEditor : Joint2DEditor {
                                          Helpers2D.GetDirection(maxMainAngle) * distanceFromCenter;
                     Handles.DrawLine(anchorPosition, maxMainEnd);
 
-                    if ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0)) {
-                        using (new HandleColor(Color.red)) {
-                            Handles.DrawWireArc(anchorPosition, Vector3.forward,
-                                Helpers2D.GetDirection(maxMainAngle),
-                                maxLimit - minLimit, distanceFromCenter);
-                        }
-                    }
-                    else {
-                        Handles.DrawWireArc(anchorPosition, Vector3.forward, Helpers2D.GetDirection(maxMainAngle),
-                            maxLimit - minLimit, distanceFromCenter);
-                    }
+                    Handles.DrawWireArc(anchorPosition, Vector3.forward,
+                        Helpers2D.GetDirection(maxMainAngle),
+                        maxLimit - minLimit, distanceFromCenter);
 
                     EditorGUI.BeginChangeCheck();
                     using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black)) {
@@ -464,5 +473,27 @@ public class HingeJoint2DEditor : Joint2DEditor {
         hingeJoint2D.limits = limits;
 
         hingeJoint2D.useLimits = useLimits;
+    }
+
+
+    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint)
+    {
+        HingeJoint2D hingeJoint2D = joint as HingeJoint2D;
+        if (hingeJoint2D != null)
+        {
+            menu.AddItem(new GUIContent("Use Limits"), hingeJoint2D.useLimits, () =>
+            {
+                EditorHelpers.RecordUndo("Use Limits", hingeJoint2D);
+                hingeJoint2D.useLimits = !hingeJoint2D.useLimits;
+                EditorUtility.SetDirty(hingeJoint2D);
+            });
+
+            menu.AddItem(new GUIContent("Use Motor"), hingeJoint2D.useMotor, () =>
+            {
+                EditorHelpers.RecordUndo("Use Motor", hingeJoint2D);
+                hingeJoint2D.useMotor = !hingeJoint2D.useMotor;
+                EditorUtility.SetDirty(hingeJoint2D);
+            });
+        }
     }
 }

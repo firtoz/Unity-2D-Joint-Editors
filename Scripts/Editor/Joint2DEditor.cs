@@ -1015,12 +1015,13 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         return changed;
     }
 
-    protected bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
+    protected bool AnchorDraggingWidgetGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
         IEnumerable<Vector2> otherAnchors, JointHelpers.AnchorBias bias) {
         int lockID = anchorInfo.GetControlID("lock");
 
-        bool changed = false;
-        if (WantsLocking() && Event.current.shift &&
+        bool changed = PreSliderGUI(joint2D, anchorInfo, bias);
+        
+        if (!changed && WantsLocking() && Event.current.shift &&
             (!anchorInfo.IsActive() || GUIUtility.hotControl == anchorInfo.GetControlID("lock"))) {
             bool farAway =
                 Vector2.Distance(
@@ -1057,6 +1058,13 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     protected virtual bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         return false;
     }
+
+    protected virtual bool PreSliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
+    {
+        return false;
+    }
+
+    
 
 
     protected void DrawOffset(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
@@ -1171,7 +1179,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
         if (anchorLock && DragBothAnchorsWhenLocked()) {
             if (playing || overlapping) {
-                if (SingleAnchorGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either)) {
+                if (AnchorDraggingWidgetGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either)) {
                     changed = true;
                 }
             }
@@ -1186,7 +1194,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             }
         }
         else {
-            if (SingleAnchorGUI(joint2D, connected, otherAnchors, JointHelpers.AnchorBias.Connected)) {
+            if (AnchorDraggingWidgetGUI(joint2D, connected, otherAnchors, JointHelpers.AnchorBias.Connected)) {
                 changed = true;
                 if (anchorLock) {
                     ReAlignAnchors(joint2D, JointHelpers.AnchorBias.Connected);
@@ -1200,7 +1208,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 connected.ignoreHover = true;
             }
 
-            if (SingleAnchorGUI(joint2D, main, otherAnchors, JointHelpers.AnchorBias.Main)) {
+            if (AnchorDraggingWidgetGUI(joint2D, main, otherAnchors, JointHelpers.AnchorBias.Main)) {
                 changed = true;
                 if (anchorLock) {
                     ReAlignAnchors(joint2D, JointHelpers.AnchorBias.Main);
