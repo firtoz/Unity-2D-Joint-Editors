@@ -16,10 +16,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
         return true;
     }
 
-    protected override bool WantsOffset() {
-        return true;
-    }
-
 
     private static readonly HashSet<string> Names = new HashSet<String> {
         "radius",

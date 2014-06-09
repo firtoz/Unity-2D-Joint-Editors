@@ -54,15 +54,9 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         return false;
     }
 
-    protected virtual bool WantsOffset() {
-        return false;
-    }
-
-    protected virtual Vector2 GetTargetPosition(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        if (WantsOffset()) {
-            return GetTargetPositionWithOffset(joint2D, bias);
-        }
-        return JointHelpers.GetTargetPosition(joint2D, bias);
+    protected virtual Vector2 GetTargetPosition(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
+    {
+        return GetTargetPositionWithOffset(joint2D, bias);
     }
 
     public virtual Bounds OnGetFrameBounds() {
@@ -152,130 +146,140 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         Event current = Event.current;
 
         Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(joint);
-        switch (current.GetTypeForControl(controlID)) {
-            case EventType.ContextClick:
-                if (HandleUtility.nearestControl == controlID && _contextClickID == controlID) {
-                    GenericMenu menu = new GenericMenu();
-                    menu.AddSeparator(joint.GetType().Name);
-                    menu.AddSeparator("");
-                    if (WantsLocking()) {
-                        menu.AddItem(new GUIContent("Lock Anchors", GetAnchorLockTooltip()),
-                            joint2DSettings.lockAnchors, () => {
-                                EditorHelpers.RecordUndo(
-                                    joint2DSettings.lockAnchors ? "Unlock Anchors" : "Lock Anchors", joint2DSettings,
-                                    joint);
-                                if (!joint2DSettings.lockAnchors) {
-                                    ReAlignAnchors(joint, bias);
-                                }
-                                joint2DSettings.lockAnchors = !joint2DSettings.lockAnchors;
-                                EditorUtility.SetDirty(joint2DSettings);
-                                EditorUtility.SetDirty(joint);
-                            });
-                    }
+
+        EditorHelpers.ContextClick(controlID, () => {
+            GenericMenu menu = new GenericMenu();
+            menu.AddSeparator(joint.GetType().Name);
+            menu.AddSeparator("");
+            if (WantsLocking())
+            {
+                menu.AddItem(new GUIContent("Lock Anchors", GetAnchorLockTooltip()),
+                    joint2DSettings.lockAnchors, () =>
                     {
-                        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
-                        Vector2 otherPosition = JointHelpers.GetAnchorPosition(joint, otherBias);
-                        if (Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon) {
-                            menu.AddDisabledItem(new GUIContent("Bring other anchor here"));
+                        EditorHelpers.RecordUndo(
+                            joint2DSettings.lockAnchors ? "Unlock Anchors" : "Lock Anchors", joint2DSettings,
+                            joint);
+                        if (!joint2DSettings.lockAnchors)
+                        {
+                            ReAlignAnchors(joint, bias);
                         }
-                        else {
-                            menu.AddItem(new GUIContent("Bring other anchor here"), false, () => {
-                                EditorHelpers.RecordUndo("Move Joint Anchor", joint);
-                                JointHelpers.SetAnchorPosition(joint, anchorPosition, otherBias);
-                                EditorUtility.SetDirty(joint);
-                            });
-                        }
-                    }
-
-
-                    menu.AddItem(new GUIContent("Collide Connected",
-                        "Whether rigid bodies connected with this joint can collide or not."), joint.collideConnected,
-                        () => {
-                            EditorHelpers.RecordUndo("Move Joint Anchor", joint);
-                            joint.collideConnected = !joint.collideConnected;
-                            EditorUtility.SetDirty(joint);
-                        });
-
-//                    EditorGUI.ObjectField()
-                    menu.AddSeparator("");
-                    int itemCount = menu.GetItemCount();
-
-                    ExtraMenuItems(menu, joint);
-
-                    if (itemCount != menu.GetItemCount()) {
-                        menu.AddSeparator("");
-                    }
-
-                    if (joint.connectedBody) {
-                        menu.AddItem(new GUIContent("Move ownership to connected body"), false, () => {
-                            GameObject connectedObject = joint.connectedBody.gameObject;
-
-                            AnchoredJoint2D cloneJoint =
-                                Undo.AddComponent(connectedObject, joint.GetType()) as AnchoredJoint2D;
-                            if (!cloneJoint) {
-                                return;
-                            }
-                            EditorUtility.CopySerialized(joint, cloneJoint);
-                            cloneJoint.connectedBody = joint.rigidbody2D;
-
-                            JointHelpers.SetAnchorPosition(cloneJoint,
-                                JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Main),
-                                JointHelpers.AnchorBias.Connected);
-                            JointHelpers.SetAnchorPosition(cloneJoint,
-                                JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Connected),
-                                JointHelpers.AnchorBias.Main);
-
-                            Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint);
-                            Joint2DSettings cloneSettings =
-                                Undo.AddComponent(connectedObject, jointSettings.GetType()) as Joint2DSettings;
-
-                            if (cloneSettings == null) {
-                                return;
-                            }
-                            cloneSettings.hideFlags = HideFlags.HideInInspector;
-
-                            EditorUtility.CopySerialized(jointSettings, cloneSettings);
-                            cloneSettings.Setup(cloneJoint);
-
-                            cloneSettings.SetOffset(JointHelpers.AnchorBias.Main,
-                                jointSettings.GetOffset(JointHelpers.AnchorBias.Connected));
-                            cloneSettings.SetOffset(JointHelpers.AnchorBias.Connected,
-                                jointSettings.GetOffset(JointHelpers.AnchorBias.Main));
-
-                            if (!Selection.Contains(connectedObject)) {
-                                List<Object> selectedObjects = new List<Object>(Selection.objects) {connectedObject};
-
-                                if (selectedObjects.Contains(joint.gameObject)) {
-                                    selectedObjects.Remove(joint.gameObject);
-                                }
-
-                                Selection.objects = selectedObjects.ToArray();
-                            }
-
-                            Undo.DestroyObjectImmediate(joint);
-
-                            OwnershipMoved(cloneJoint);
-                        });
-                    }
-                    else {
-                        menu.AddDisabledItem(new GUIContent("Move ownership to connected body"));
-                    }
-
-                    menu.AddItem(new GUIContent("Delete " + joint.GetType().Name), false,
-                        () => Undo.DestroyObjectImmediate(joint));
-                    menu.ShowAsContext();
-                    current.Use();
+                        joint2DSettings.lockAnchors = !joint2DSettings.lockAnchors;
+                        EditorUtility.SetDirty(joint2DSettings);
+                        EditorUtility.SetDirty(joint);
+                    });
+            }
+            {
+                JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
+                Vector2 otherPosition = JointHelpers.GetAnchorPosition(joint, otherBias);
+                if (Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon)
+                {
+                    menu.AddDisabledItem(new GUIContent("Bring other anchor here"));
                 }
-                break;
+                else
+                {
+                    menu.AddItem(new GUIContent("Bring other anchor here"), false, () =>
+                    {
+                        EditorHelpers.RecordUndo("Move Joint Anchor", joint);
+                        JointHelpers.SetAnchorPosition(joint, anchorPosition, otherBias);
+                        EditorUtility.SetDirty(joint);
+                    });
+                }
+            }
+
+
+            menu.AddItem(new GUIContent("Collide Connected",
+                "Whether rigid bodies connected with this joint can collide or not."), joint.collideConnected,
+                () =>
+                {
+                    EditorHelpers.RecordUndo("Move Joint Anchor", joint);
+                    joint.collideConnected = !joint.collideConnected;
+                    EditorUtility.SetDirty(joint);
+                });
+
+            //                    EditorGUI.ObjectField()
+            menu.AddSeparator("");
+            int itemCount = menu.GetItemCount();
+
+            ExtraMenuItems(menu, joint);
+
+            if (itemCount != menu.GetItemCount())
+            {
+                menu.AddSeparator("");
+            }
+
+            if (joint.connectedBody)
+            {
+                menu.AddItem(new GUIContent("Move ownership to connected body"), false, () =>
+                {
+                    GameObject connectedObject = joint.connectedBody.gameObject;
+
+                    AnchoredJoint2D cloneJoint =
+                        Undo.AddComponent(connectedObject, joint.GetType()) as AnchoredJoint2D;
+                    if (!cloneJoint)
+                    {
+                        return;
+                    }
+                    EditorUtility.CopySerialized(joint, cloneJoint);
+                    cloneJoint.connectedBody = joint.rigidbody2D;
+
+                    JointHelpers.SetAnchorPosition(cloneJoint,
+                        JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Main),
+                        JointHelpers.AnchorBias.Connected);
+                    JointHelpers.SetAnchorPosition(cloneJoint,
+                        JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Connected),
+                        JointHelpers.AnchorBias.Main);
+
+                    Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint);
+                    Joint2DSettings cloneSettings =
+                        Undo.AddComponent(connectedObject, jointSettings.GetType()) as Joint2DSettings;
+
+                    if (cloneSettings == null)
+                    {
+                        return;
+                    }
+                    cloneSettings.hideFlags = HideFlags.HideInInspector;
+
+                    EditorUtility.CopySerialized(jointSettings, cloneSettings);
+                    cloneSettings.Setup(cloneJoint);
+
+                    cloneSettings.SetOffset(JointHelpers.AnchorBias.Main,
+                        jointSettings.GetOffset(JointHelpers.AnchorBias.Connected));
+                    cloneSettings.SetOffset(JointHelpers.AnchorBias.Connected,
+                        jointSettings.GetOffset(JointHelpers.AnchorBias.Main));
+
+                    if (!Selection.Contains(connectedObject))
+                    {
+                        List<Object> selectedObjects = new List<Object>(Selection.objects) { connectedObject };
+
+                        if (selectedObjects.Contains(joint.gameObject))
+                        {
+                            selectedObjects.Remove(joint.gameObject);
+                        }
+
+                        Selection.objects = selectedObjects.ToArray();
+                    }
+
+                    Undo.DestroyObjectImmediate(joint);
+
+                    OwnershipMoved(cloneJoint);
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("Move ownership to connected body"));
+            }
+
+            menu.AddItem(new GUIContent("Delete " + joint.GetType().Name), false,
+                () => Undo.DestroyObjectImmediate(joint));
+            menu.ShowAsContext();
+        });
+
+        switch (current.GetTypeForControl(controlID)) {
             case EventType.mouseDown:
                 if (HandleUtility.nearestControl == controlID) {
                     if (current.button == 0) {
                         AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
                         state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
-                    }
-                    else if (current.button == 1) {
-                        _contextClickID = controlID;
-                        Event.current.Use();
                     }
                 }
                 break;
@@ -289,8 +293,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     foreach (GameObject go in DragAndDrop.objectReferences
                         .Cast<GameObject>()
                         .Where(go => !go.Equals(joint.gameObject) && go.GetComponent<Rigidbody2D>() != null)) {
-                        Joint2DSettings jointSettings = joint2DSettings;
-                        bool wantsLock = jointSettings.lockAnchors;
+                            bool wantsLock = joint2DSettings.lockAnchors;
 
                         EditorHelpers.RecordUndo("Drag Onto Anchor", joint);
                         Vector2 connectedBodyPosition = JointHelpers.GetConnectedAnchorPosition(joint);
@@ -679,15 +682,13 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     ToggleShowGizmos(serializedSettings);
                     InspectorDisplayGUI(enabled);
                 }
-                if (WantsLocking() || WantsOffset()) {
+                if (WantsLocking()) {
                     EditorGUILayout.LabelField("Features:");
                     using (new Indent()) {
                         if (WantsLocking()) {
                             ToggleAnchorLock(serializedSettings);
                         }
-                        if (WantsOffset()) {
-                            AlterOffsets(serializedSettings, enabled);
-                        }
+                        AlterOffsets(serializedSettings, enabled);
                     }
                 }
             }
@@ -1166,15 +1167,16 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             connected = new AnchorInfo(controlNames),
             locked = new AnchorInfo(controlNames);
 
-        if (WantsOffset()) {
-            if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset"))) {
-                DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
-            }
-
-            if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset"))) {
-                DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
-            }
+        if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset")))
+        {
+            DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
         }
+
+        if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset")))
+        {
+            DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
+        }
+
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
 
         if (anchorLock && DragBothAnchorsWhenLocked()) {
@@ -1243,7 +1245,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         AnchorGUI(joint2D);
     }
 
-    private Dictionary<AnchoredJoint2D, Editor> defaultEditors = new Dictionary<AnchoredJoint2D, Editor>();
+    private readonly Dictionary<AnchoredJoint2D, Editor> defaultEditors = new Dictionary<AnchoredJoint2D, Editor>();
 
     private void DrawDefaultSceneGUI(AnchoredJoint2D joint2D) {
         Editor defaultEditor = null;
@@ -1284,7 +1286,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     | BindingFlags.FlattenHierarchy);
 
             if (method != null) {
-                method.Invoke((object) defaultEditor, (object[]) null);
+                method.Invoke(defaultEditor, null);
             }
         }
     }
