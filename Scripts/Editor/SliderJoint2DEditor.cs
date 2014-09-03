@@ -275,7 +275,12 @@ public class SliderJoint2DEditor : Joint2DEditor {
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
 
         if (bias != JointHelpers.AnchorBias.Connected &&
-            (GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle") || !Event.current.shift)) {
+            (
+            GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle") || 
+            GUIUtility.hotControl == anchorInfo.GetControlID("minLimit") ||
+            GUIUtility.hotControl == anchorInfo.GetControlID("maxLimit") ||
+            !Event.current.shift))
+        {
             DrawSlider(sliderJoint2D, anchorInfo);
         }
 
@@ -396,7 +401,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
                         }));
             menu.ShowAsContext();
         });
-//        LimitContext
 
         if (EditorGUI.EndChangeCheck()) {
             Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
@@ -489,22 +493,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
         LimitWidget(sliderJoint2D, anchorInfo, bias, worldAngle);
     }
 
-    private static GUIStyle _fontStyle;
-
-    private static GUIStyle fontStyle {
-        get {
-            return _fontStyle ?? (_fontStyle = new GUIStyle(GUI.skin.box) {
-                alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(0, 0, 0, 0)
-            });
-        }
-    }
-
-    internal enum Limit {
-        Min,
-        Max
-    }
-
     private static void LimitWidget(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias,
         float worldAngle) {
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
@@ -531,25 +519,30 @@ public class SliderJoint2DEditor : Joint2DEditor {
         LimitContext(sliderJoint2D, minLimitControlID, Limit.Min);
         LimitContext(sliderJoint2D, maxLimitControlID, Limit.Max);
 
-        Color limitColor = sliderJoint2D.limits.min > sliderJoint2D.limits.max ? Color.red : Color.green;
+        Color limitColor = sliderJoint2D.limits.min > sliderJoint2D.limits.max ? editorSettings.incorrectLimitsColor : editorSettings.correctLimitsColor;
         using (new HandleColor(limitColor)) {
             Handles.DrawLine(anchorPosition + direction*sliderJoint2D.limits.min,
                 anchorPosition + direction*sliderJoint2D.limits.max);
+
+            float fontSize = HandleUtility.GetHandleSize(anchorPosition) * (1f / 64f);
+
             if (GUIUtility.hotControl == minLimitControlID) {
                 String text = String.Format("{0:0.00}", sliderJoint2D.limits.min);
-                Handles.Label(anchorPosition + (direction)*(sliderJoint2D.limits.min +
-                                                            ((Mathf.Sign(sliderJoint2D.limits.min))*
-                                                             (HandleUtility.GetHandleSize(anchorPosition)*(1f/64f)*
-                                                              fontStyle.CalcSize(new GUIContent(text)).magnitude*0.75f))),
-                    text, fontStyle);
+                float minSign = Mathf.Sign(sliderJoint2D.limits.min);
+                float minLabelDistance = minSign*
+                                         fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(new GUIContent(text)).magnitude * (minSign < 0 ? (1f) : 0.75f);
+
+
+                Handles.Label(anchorPosition + (direction)*(sliderJoint2D.limits.min + minLabelDistance),
+                    text, EditorHelpers.FontWithBackgroundStyle);
             }
             if (GUIUtility.hotControl == maxLimitControlID) {
                 String text = String.Format("{0:0.00}", sliderJoint2D.limits.max);
-                Handles.Label(anchorPosition + (direction)*(sliderJoint2D.limits.max +
-                                                            ((Mathf.Sign(sliderJoint2D.limits.max))*
-                                                             (HandleUtility.GetHandleSize(anchorPosition)*(1f/64f)*
-                                                              fontStyle.CalcSize(new GUIContent(text)).magnitude*0.75f))),
-                    text, fontStyle);
+                float maxSign = Mathf.Sign(sliderJoint2D.limits.max);
+                float maxLabelDistance = maxSign*
+                    fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(new GUIContent(text)).magnitude * (maxSign < 0 ? (1f) : 0.75f);
+                Handles.Label(anchorPosition + (direction) * (sliderJoint2D.limits.max + maxLabelDistance),
+                    text, EditorHelpers.FontWithBackgroundStyle);
             }
             if (GUIUtility.hotControl == minLimitControlID ||
                 GUIUtility.hotControl == maxLimitControlID) {
@@ -566,11 +559,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 }
             }
 
-            EditorGUI.BeginChangeCheck();
-            float newMinLimit = EditorHelpers.LineSlider(minLimitControlID, anchorPosition,
-                sliderJoint2D.limits.min,
-                Helpers2D.GetAngle(direction), 0.125f);
-
 
             bool actionKey = EditorGUI.actionKey;
 
@@ -583,56 +571,79 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 };
             }
 
-            JointTranslationLimits2D limits;
-            if (EditorGUI.EndChangeCheck()) {
-                if (actionKey) {
-                    List<Vector2> minSnapList = new List<Vector2>(snapList) {
-                        anchorPosition + direction*sliderJoint2D.limits.max
-                    };
-                    Vector2 minLimitScreenPosition =
-                        HandleUtility.WorldToGUIPoint(anchorPosition + direction*newMinLimit);
+            using (new HandleColor(editorSettings.minLimitColor)) {
+                DrawLimitSlider(sliderJoint2D, minLimitControlID, anchorPosition, direction, snapList, Limit.Min);
+            }
+            using (new HandleColor(editorSettings.maxLimitColor))
+            {
+                DrawLimitSlider(sliderJoint2D, maxLimitControlID, anchorPosition, direction, snapList, Limit.Max);
+            }
+        }
+    }
 
-                    foreach (Vector2 snapPosition in minSnapList) {
-                        Vector2 screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition);
-                        if (Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10) {
-                            newMinLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
-                                snapPosition);
-                        }
-                    }
+    private static void DrawLimitSlider(SliderJoint2D sliderJoint2D, int limitControlID, Vector2 anchorPosition, Vector2 direction, List<Vector2> snapList, Limit limit) {
+        EditorGUI.BeginChangeCheck();
+
+        float val;
+        JointTranslationLimits2D limits2D = sliderJoint2D.limits;
+        switch (limit) {
+            case Limit.Min:
+                val = limits2D.min;
+                break;
+            case Limit.Max:
+                val = limits2D.max;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException("limit");
+        }
+
+        float newLimit = EditorHelpers.LineSlider(limitControlID, anchorPosition,
+            val,
+            Helpers2D.GetAngle(direction), 0.125f, false, true);
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            if (snapList != null) {
+                List<Vector2> limitSnapList = new List<Vector2>(snapList);
+                switch (limit) {
+                    case Limit.Min:
+                        limitSnapList.Add(anchorPosition + direction*limits2D.max);
+                        break;
+                    case Limit.Max:
+                        limitSnapList.Add(anchorPosition + direction*limits2D.min);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException("limit");
                 }
 
+                Vector2 limitGUIPosition =
+                    HandleUtility.WorldToGUIPoint(anchorPosition + direction * newLimit);
 
-                EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
-                limits = sliderJoint2D.limits;
-                limits.min = newMinLimit;
-                sliderJoint2D.limits = limits;
-            }
-            EditorGUI.BeginChangeCheck();
-            float newMaxLimit = EditorHelpers.LineSlider(maxLimitControlID, anchorPosition,
-                sliderJoint2D.limits.max,
-                Helpers2D.GetAngle(direction), 0.125f);
-            if (EditorGUI.EndChangeCheck()) {
-                if (actionKey) {
-                    List<Vector2> maxSnapList = new List<Vector2>(snapList) {
-                        anchorPosition + direction*sliderJoint2D.limits.min
-                    };
-
-                    Vector2 minLimitScreenPosition =
-                        HandleUtility.WorldToGUIPoint(anchorPosition + direction*newMaxLimit);
-
-                    foreach (Vector2 snapPosition in from snapPosition in maxSnapList
-                        let screenSnapPosition = HandleUtility.WorldToGUIPoint(snapPosition)
-                        where Vector2.Distance(minLimitScreenPosition, screenSnapPosition) < 10
-                        select snapPosition) {
-                        newMaxLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
+                foreach (Vector2 snapPosition in limitSnapList)
+                {
+                    Vector2 snapGUIPosition = HandleUtility.WorldToGUIPoint(snapPosition);
+                    if (Vector2.Distance(limitGUIPosition, snapGUIPosition) < 10)
+                    {
+                        newLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
                             snapPosition);
                     }
                 }
-                EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
-                limits = sliderJoint2D.limits;
-                limits.max = newMaxLimit;
-                sliderJoint2D.limits = limits;
             }
+
+
+            EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
+            switch (limit)
+            {
+                case Limit.Min:
+                    limits2D.min = newLimit;
+                    break;
+                case Limit.Max:
+                    limits2D.max = newLimit;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("limit");
+            }
+            sliderJoint2D.limits = limits2D;
         }
     }
 

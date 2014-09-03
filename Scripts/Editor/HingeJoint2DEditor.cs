@@ -16,7 +16,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
         return true;
     }
 
-
     private static readonly HashSet<string> Names = new HashSet<String> {
         "radius",
         "lowerMainAngle",
@@ -29,6 +28,142 @@ public class HingeJoint2DEditor : Joint2DEditor {
         return Names;
     }
 
+    protected override bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
+        JointHelpers.AnchorBias bias) {
+
+        HingeJoint2D hingeJoint2D = joint2D as HingeJoint2D;
+        if (hingeJoint2D == null) {
+            return false;
+        }
+
+        if (!hingeJoint2D.useLimits) {
+            return false;
+        }
+
+        bool showAngle = false;
+        float angle = 0;
+        float displayAngle = 0;
+
+        float jointAngle;
+        if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying) {
+            jointAngle = hingeJoint2D.jointAngle;
+        }
+        else {
+            jointAngle = 0;
+        }
+
+
+        Vector2 startPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
+
+        Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
+
+        float mainBodyAngle = JointHelpers.AngleFromAnchor(startPosition, mainBodyPosition,
+            JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main));
+
+        Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+
+        float connectedBodyAngle;
+        if (hingeJoint2D.connectedBody) {
+            connectedBodyAngle = JointHelpers.AngleFromAnchor(startPosition, connectedBodyPosition,
+                JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected));
+        }
+        else {
+            connectedBodyAngle = 0;
+        }
+
+        float angleDiff = jointAngle - (connectedBodyAngle - mainBodyAngle);
+
+        float liveMainAngle = connectedBodyAngle + angleDiff;
+
+        float minMainAngle = liveMainAngle - hingeJoint2D.limits.min;
+        float maxMainAngle = liveMainAngle - hingeJoint2D.limits.max;
+
+        if (GUIUtility.hotControl == info.GetControlID("lowerMainAngle")) {
+            showAngle = true;
+            angle = minMainAngle;
+            displayAngle = hingeJoint2D.limits.min;
+        }
+        else if (GUIUtility.hotControl == info.GetControlID("upperMainAngle")) {
+            showAngle = true;
+            angle = maxMainAngle;
+            displayAngle = hingeJoint2D.limits.max;
+        }
+        if (GUIUtility.hotControl == info.GetControlID("lowerConnectedAngle")) {
+            showAngle = true;
+            angle = hingeJoint2D.limits.min;
+            displayAngle = angle;
+            startPosition = JointHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+        }
+        else if (GUIUtility.hotControl == info.GetControlID("upperConnectedAngle")) {
+            showAngle = true;
+            angle = hingeJoint2D.limits.max;
+            displayAngle = angle;
+            startPosition = JointHelpers.GetConnectedAnchorPosition(hingeJoint2D);
+        }
+
+        LimitContext(hingeJoint2D, info.GetControlID("lowerMainAngle"), Limit.Min);
+        LimitContext(hingeJoint2D, info.GetControlID("upperMainAngle"), Limit.Max);
+        LimitContext(hingeJoint2D, info.GetControlID("lowerConnectedAngle"), Limit.Min);
+        LimitContext(hingeJoint2D, info.GetControlID("upperConnectedAngle"), Limit.Max);
+
+        if (showAngle) {
+            float handleSize = HandleUtility.GetHandleSize(startPosition)*editorSettings.orbitRangeScale*.5f;
+            float angleHandleSize = editorSettings.angleHandleSize;
+            float distanceFromCenter = (handleSize +
+                                        (angleHandleSize*HandleUtility.GetHandleSize(startPosition)/64));
+
+            Vector2 anglePosition = startPosition + Helpers2D.GetDirection(angle)*distanceFromCenter;
+
+            GUIContent labelContent = new GUIContent(String.Format("{0:0.00}", displayAngle));
+
+            float fontSize = HandleUtility.GetHandleSize(anglePosition) * (1f / 64f);
+
+            float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
+
+            Handles.Label((Vector3)anglePosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+        }
+        return false;
+    }
+
+    private static void LimitContext(HingeJoint2D hingeJoint2D, int controlID, Limit limit) {
+        Vector2 mousePosition = Event.current.mousePosition;
+
+        string limitName = (limit == Limit.Min ? "Lower" : "Upper") + " Angle Limit";
+
+        EditorHelpers.ContextClick(controlID, () => {
+            GenericMenu menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Edit " + limitName), false, () =>
+                EditorHelpers.ShowDropDown(
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
+                    delegate(Action close, bool focused) {
+                        EditorGUI.BeginChangeCheck();
+                        GUI.SetNextControlName(limitName);
+                        float newLimit = EditorGUILayout.FloatField(limitName,
+                            limit == Limit.Min
+                                ? hingeJoint2D.limits.min
+                                : hingeJoint2D.limits.max);
+                        if (EditorGUI.EndChangeCheck()) {
+                            JointAngleLimits2D limits = hingeJoint2D.limits;
+                            if (limit == Limit.Min) {
+                                limits.min = newLimit;
+                            }
+                            else {
+                                limits.max = newLimit;
+                            }
+                            EditorHelpers.RecordUndo(limitName, hingeJoint2D);
+                            hingeJoint2D.limits = limits;
+                            EditorUtility.SetDirty(hingeJoint2D);
+                        }
+                        if (GUILayout.Button("Done") ||
+                            (Event.current.isKey &&
+                             (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Escape) &&
+                             focused)) {
+                            close();
+                        }
+                    }));
+            menu.ShowAsContext();
+        });
+    }
 
     protected override bool PreSliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         HingeJoint2D hingeJoint2D = joint2D as HingeJoint2D;
@@ -42,8 +177,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         HingeJoint2D hingeJoint2D = joint2D as HingeJoint2D;
 
-        if (hingeJoint2D == null)
-        {
+        if (hingeJoint2D == null) {
             return false;
         }
 
@@ -74,7 +208,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             float minLimit = limits.min;
             float maxLimit = limits.max;
 
-            float angleHandleSize = editorSettings.angleHandleSize;
+
             HingeJoint2DSettings.AnchorPriority anchorPriority = settings.anchorPriority;
 
             bool showMain = anchorPriority == HingeJoint2DSettings.AnchorPriority.Main ||
@@ -85,13 +219,18 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
             Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-            float handleSize = HandleUtility.GetHandleSize(anchorPosition) * editorSettings.orbitRangeScale * .5f;
+            float handleSize = HandleUtility.GetHandleSize(anchorPosition)*editorSettings.orbitRangeScale*.5f;
+            float angleHandleSize = editorSettings.angleHandleSize;
             float distanceFromCenter = (handleSize +
-                                        (angleHandleSize * HandleUtility.GetHandleSize(anchorPosition) / 64));
+                                        (angleHandleSize*HandleUtility.GetHandleSize(anchorPosition)/64));
 
-            float jointAngle = EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying
-                ? hingeJoint2D.jointAngle
-                : 0;
+            float jointAngle;
+            if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying) {
+                jointAngle = hingeJoint2D.jointAngle;
+            }
+            else {
+                jointAngle = 0;
+            }
 
             Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
 
@@ -100,10 +239,14 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
             Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
 
-            float connectedBodyAngle = hingeJoint2D.connectedBody
-                ? JointHelpers.AngleFromAnchor(anchorPosition, connectedBodyPosition,
-                    JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected))
-                : 0;
+            float connectedBodyAngle;
+            if (hingeJoint2D.connectedBody) {
+                connectedBodyAngle = JointHelpers.AngleFromAnchor(anchorPosition, connectedBodyPosition,
+                    JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected));
+            }
+            else {
+                connectedBodyAngle = 0;
+            }
 
             float angleDiff = jointAngle - (connectedBodyAngle - mainBodyAngle);
 
@@ -118,17 +261,21 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         Helpers2D.GetDirection(maxMainAngle),
                         maxLimit - minLimit, distanceFromCenter);
                 }
-                Color limitColor = ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0))
-                    ? editorSettings.badAngleLimitColor
-                    : editorSettings.angleLimitColor;
-                using (new HandleColor(limitColor))
-                {
+                Color limitColor;
+                if (!(EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying) 
+                    && (minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0)) {
+                    limitColor = editorSettings.badAngleLimitColor;
+                }
+                else {
+                    limitColor = editorSettings.angleLimitColor;
+                }
+                using (new HandleColor(limitColor)) {
                     Vector3 minMainEnd = anchorPosition +
-                                         Helpers2D.GetDirection(minMainAngle) * distanceFromCenter;
+                                         Helpers2D.GetDirection(minMainAngle)*distanceFromCenter;
                     Handles.DrawLine(anchorPosition, minMainEnd);
 
                     Vector3 maxMainEnd = anchorPosition +
-                                         Helpers2D.GetDirection(maxMainAngle) * distanceFromCenter;
+                                         Helpers2D.GetDirection(maxMainAngle)*distanceFromCenter;
                     Handles.DrawLine(anchorPosition, maxMainEnd);
 
                     Handles.DrawWireArc(anchorPosition, Vector3.forward,
@@ -136,11 +283,11 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         maxLimit - minLimit, distanceFromCenter);
 
                     EditorGUI.BeginChangeCheck();
-                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black)) {
+                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
                         minMainAngle = EditorHelpers.AngleSlider(anchorInfo.GetControlID("lowerMainAngle"), drawer,
                             anchorPosition,
                             minMainAngle,
-                            distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(minMainEnd) / 64);
+                            distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(minMainEnd)/64);
                     }
 
                     if (EditorGUI.EndChangeCheck()) {
@@ -151,11 +298,11 @@ public class HingeJoint2DEditor : Joint2DEditor {
                     }
 
                     EditorGUI.BeginChangeCheck();
-                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black)) {
+                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
                         maxMainAngle = EditorHelpers.AngleSlider(anchorInfo.GetControlID("upperMainAngle"), drawer,
                             anchorPosition,
                             maxMainAngle,
-                            distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(maxMainEnd) / 64);
+                            distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(maxMainEnd)/64);
                     }
 
                     if (EditorGUI.EndChangeCheck()) {
@@ -185,15 +332,17 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 using (new HandleColor(editorSettings.angleLimitColor)) {
                     {
                         Vector3 minConnectedEnd = anchorPosition +
-                                                  Helpers2D.GetDirection(minConnectedAngle) * distanceFromCenter;
+                                                  Helpers2D.GetDirection(minConnectedAngle)*distanceFromCenter;
                         Handles.DrawLine(anchorPosition, minConnectedEnd);
 
                         Vector3 maxConnectedEnd = anchorPosition +
-                                                  Helpers2D.GetDirection(maxConnectedAngle) * distanceFromCenter;
+                                                  Helpers2D.GetDirection(maxConnectedAngle)*distanceFromCenter;
                         Handles.DrawLine(anchorPosition, maxConnectedEnd);
 
-                        if ((minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0)) {
-                            using (new HandleColor(Color.red)) {
+                        if (!(EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying) && (minLimit < 0 && maxLimit < 0) || (minLimit > 0 && maxLimit > 0))
+                        {
+                            using (new HandleColor(editorSettings.badAngleLimitColor))
+                            {
                                 Handles.DrawWireArc(anchorPosition, Vector3.forward,
                                     Helpers2D.GetDirection(minConnectedAngle),
                                     maxLimit - minLimit, distanceFromCenter);
@@ -206,12 +355,12 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         }
 
                         EditorGUI.BeginChangeCheck();
-                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black)) {
+                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
                             minConnectedAngle = EditorHelpers.AngleSlider(
                                 anchorInfo.GetControlID("lowerConnectedAngle"), drawer,
                                 anchorPosition,
                                 minConnectedAngle,
-                                distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(minConnectedEnd) / 64);
+                                distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(minConnectedEnd)/64);
                         }
 
                         if (EditorGUI.EndChangeCheck()) {
@@ -222,12 +371,12 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         }
 
                         EditorGUI.BeginChangeCheck();
-                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black)) {
+                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
                             maxConnectedAngle = EditorHelpers.AngleSlider(
                                 anchorInfo.GetControlID("upperConnectedAngle"), drawer,
                                 anchorPosition,
                                 maxConnectedAngle,
-                                distanceFromCenter, angleHandleSize * HandleUtility.GetHandleSize(maxConnectedEnd) / 64);
+                                distanceFromCenter, angleHandleSize*HandleUtility.GetHandleSize(maxConnectedEnd)/64);
                         }
 
                         if (EditorGUI.EndChangeCheck()) {
@@ -251,8 +400,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
         HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
         float scale = settings.showRadiusHandles ? editorSettings.orbitRangeScale : editorSettings.anchorScale;
-        float handleSize = HandleUtility.GetHandleSize(center) * scale;
-        float distance = HandleUtility.DistanceToCircle(center, handleSize * .5f);
+        float handleSize = HandleUtility.GetHandleSize(center)*scale;
+        float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
 
         Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
@@ -262,7 +411,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             }
             else {
                 float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main);
-                Handles.DrawLine(center, center + Helpers2D.GetDirection(rot) * handleSize);
+                Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
             }
         }
         Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
@@ -273,13 +422,13 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 }
                 else {
                     float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-                    Handles.DrawLine(center, center + Helpers2D.GetDirection(rot) * handleSize);
+                    Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
                 }
             }
         }
         else {
             using (new HandleColor(editorSettings.connectedDiscColor)) {
-                Handles.DrawLine(center, center + Helpers2D.GetDirection(0) * handleSize);
+                Handles.DrawLine(center, center + Helpers2D.GetDirection(0)*handleSize);
             }
         }
 
@@ -352,8 +501,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
             transforms,
             rightTransforms,
             midPoint,
-            HandleUtility.GetHandleSize(midPoint) * editorSettings.anchorScale * 0.5f,
-            HandleUtility.GetHandleSize(midPoint) * editorSettings.orbitRangeScale * 0.5f);
+            HandleUtility.GetHandleSize(midPoint)*editorSettings.anchorScale*0.5f,
+            HandleUtility.GetHandleSize(midPoint)*editorSettings.orbitRangeScale*0.5f);
     }
 
 
@@ -385,7 +534,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
             EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
             value = (HingeJoint2DSettings.AnchorPriority)
-                Enum.Parse(typeof(HingeJoint2DSettings.AnchorPriority),
+                Enum.Parse(typeof (HingeJoint2DSettings.AnchorPriority),
                     anchorPriority.enumNames[anchorPriority.enumValueIndex]);
         }
 
@@ -447,8 +596,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint) {
         //swap limits
         HingeJoint2D hingeJoint2D = cloneJoint as HingeJoint2D;
-        if (!hingeJoint2D)
-        {
+        if (!hingeJoint2D) {
             return;
         }
 
@@ -472,20 +620,16 @@ public class HingeJoint2DEditor : Joint2DEditor {
     }
 
 
-    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint)
-    {
+    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint) {
         HingeJoint2D hingeJoint2D = joint as HingeJoint2D;
-        if (hingeJoint2D != null)
-        {
-            menu.AddItem(new GUIContent("Use Motor"), hingeJoint2D.useMotor, () =>
-            {
+        if (hingeJoint2D != null) {
+            menu.AddItem(new GUIContent("Use Motor"), hingeJoint2D.useMotor, () => {
                 EditorHelpers.RecordUndo("Use Motor", hingeJoint2D);
                 hingeJoint2D.useMotor = !hingeJoint2D.useMotor;
                 EditorUtility.SetDirty(hingeJoint2D);
             });
 
-            menu.AddItem(new GUIContent("Use Limits"), hingeJoint2D.useLimits, () =>
-            {
+            menu.AddItem(new GUIContent("Use Limits"), hingeJoint2D.useLimits, () => {
                 EditorHelpers.RecordUndo("Use Limits", hingeJoint2D);
                 hingeJoint2D.useLimits = !hingeJoint2D.useLimits;
                 EditorUtility.SetDirty(hingeJoint2D);

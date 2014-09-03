@@ -42,6 +42,13 @@ public class JointEditorSettings : ScriptableObject {
     public Color angleLimitColor = new Color(0,255f/255f,23f/255f);
     public Color badAngleLimitColor = Color.red;
     public Color angleAreaColor = Color.gray;
+    public Color minLimitColor = Color.magenta;
+    public Color maxLimitColor = Color.cyan;
+    public Color incorrectLimitsColor = Color.red;
+    public Color correctLimitsColor = Color.green;
+    public Color hoverAngleColor = Color.yellow;
+    public Color activeAngleColor = Color.green;
+    public Color inactiveAngleColor = Color.white;
     public bool drawRadiusRings = true;
 
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
