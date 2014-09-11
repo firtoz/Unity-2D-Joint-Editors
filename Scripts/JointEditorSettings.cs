@@ -40,7 +40,6 @@ public class JointEditorSettings : ScriptableObject {
     public Color mainDiscColor = Color.red;
     public Color connectedDiscColor = Color.green;
     public Color angleLimitColor = new Color(0,255f/255f,23f/255f);
-    public Color badAngleLimitColor = Color.red;
     public Color angleAreaColor = Color.gray;
     public Color minLimitColor = Color.magenta;
     public Color maxLimitColor = Color.cyan;
