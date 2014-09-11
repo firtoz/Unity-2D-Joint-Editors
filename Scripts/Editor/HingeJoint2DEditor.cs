@@ -300,7 +300,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
                     }
 
                     EditorGUI.BeginChangeCheck();
-                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
+                    using (HandleDrawerBase drawer = new HandleCircleDrawer(editorSettings.inactiveAngleColor, editorSettings.activeAngleColor, editorSettings.hoverAngleColor))
+                    {
                         minMainAngle = EditorHelpers.AngleSlider(anchorInfo.GetControlID("lowerMainAngle"), drawer,
                             anchorPosition,
                             minMainAngle,
@@ -315,7 +316,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
                     }
 
                     EditorGUI.BeginChangeCheck();
-                    using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
+                    using (HandleDrawerBase drawer = new HandleCircleDrawer(editorSettings.inactiveAngleColor, editorSettings.activeAngleColor, editorSettings.hoverAngleColor))
+                    {
                         maxMainAngle = EditorHelpers.AngleSlider(anchorInfo.GetControlID("upperMainAngle"), drawer,
                             anchorPosition,
                             maxMainAngle,
@@ -373,7 +375,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         }
 
                         EditorGUI.BeginChangeCheck();
-                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
+                        using (HandleDrawerBase drawer = new HandleCircleDrawer(editorSettings.inactiveAngleColor, editorSettings.activeAngleColor, editorSettings.hoverAngleColor))
+                        {
                             minConnectedAngle = EditorHelpers.AngleSlider(
                                 anchorInfo.GetControlID("lowerConnectedAngle"), drawer,
                                 anchorPosition,
@@ -389,7 +392,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
                         }
 
                         EditorGUI.BeginChangeCheck();
-                        using (HandleDrawerBase drawer = new HandleCircleDrawer(Color.white, Color.black, Color.yellow)) {
+                        using (HandleDrawerBase drawer = new HandleCircleDrawer(editorSettings.inactiveAngleColor, editorSettings.activeAngleColor, editorSettings.hoverAngleColor))
+                        {
                             maxConnectedAngle = EditorHelpers.AngleSlider(
                                 anchorInfo.GetControlID("upperConnectedAngle"), drawer,
                                 anchorPosition,
@@ -721,8 +725,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
                                     "The minimum value that the joint angle will be limited to. [ -100000, 1000000 ]."),
                                 hingeJoint2D.limits.min);
                             GUI.SetNextControlName("Limits Config");
-//                            GUI.contentColor = Color.red;
-//                            GUI.backgroundColor = Color.red;
                             float upperAngle = EditorGUILayout.FloatField(
                                 new GUIContent("Upper Angle",
                                     "The maximum value that the joint angle will be limited to. [ -100000, 1000000 ]."),
