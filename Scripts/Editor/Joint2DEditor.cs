@@ -1001,8 +1001,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         bool changed = PreSliderGUI(joint2D, anchorInfo, bias);
 
         if (!changed && WantsLocking() && Event.current.shift &&
-            (GUIUtility.hotControl == lockID || !anchorInfo.IsActive()))
-        {
+            (GUIUtility.hotControl == lockID || !anchorInfo.IsActive())) {
             bool farAway =
                 Vector2.Distance(
                     JointHelpers.GetMainAnchorPosition(joint2D),
@@ -1169,8 +1168,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 }
             }
 
-            if (!changed)
-            {
+            if (!changed) {
                 changed = PostAnchorGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either);
             }
         }
@@ -1207,7 +1205,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
     }
 
-    protected virtual bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors, JointHelpers.AnchorBias bias) {
+    protected virtual bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
+        JointHelpers.AnchorBias bias) {
         return false;
     }
 
@@ -1378,8 +1377,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
 
-    internal enum Limit
-    {
+    internal enum Limit {
         Min,
         Max
     }
@@ -1459,13 +1457,16 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     if (GUIUtility.hotControl == controlID || (GUIUtility.hotControl == 0 && hoverState.hovering)) {
                         EditorHelpers.SetEditorCursor(MouseCursor.RotateArrow, controlID);
                     }
+                    Color wantedColor;
                     if (GUIUtility.hotControl == controlID) {
-                        Handles.color = editorSettings.activeAngleColor;
-                        Handles.DrawLine(angleState.center,
-                            Helpers2D.ClosestPointToRay(
-                                new Ray(center, Helpers2D.GetDirection(angleState.startAngle + angleState.angleDelta)),
-                                angleState.mousePosition));
-//                    Handles.color = Color.red;
+                        wantedColor = editorSettings.activeAngleColor;
+                        using (new HandleColor(wantedColor)) {
+                            Handles.DrawLine(angleState.center,
+                                Helpers2D.ClosestPointToRay(
+                                    new Ray(center,
+                                        Helpers2D.GetDirection(angleState.startAngle + angleState.angleDelta)),
+                                    angleState.mousePosition));
+                        }
 
                         Vector3 cameraVectorA = EditorHelpers.HandleToScreenPoint(left);
                         Vector3 cameraVectorB = EditorHelpers.HandleToScreenPoint(right);
@@ -1478,20 +1479,20 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     }
                     else {
                         if (GUIUtility.hotControl == 0 && hoverState.hovering) {
-                            Handles.color = editorSettings.hoverAngleColor;
+                            wantedColor = editorSettings.hoverAngleColor;
                         }
                         else {
-                            Handles.color = editorSettings.inactiveAngleColor;
+                            wantedColor = editorSettings.inactiveAngleColor;
                             if (GUIUtility.hotControl != 0) {
-                                Color color = Handles.color;
-                                color.a = 0.25f;
-                                Handles.color = color;
+                                wantedColor.a = 0.25f; //semitransparent if not active control
                             }
                         }
                     }
 
-                    EditorHelpers.DrawThickLineWithOutline(left, right, lineThickness, lineThickness);
-                    Handles.DrawWireDisc(left, Vector3.forward, handleSize*0.125f);
+                    using (new HandleColor(wantedColor)) {
+                        EditorHelpers.DrawThickLineWithOutline(left, right, lineThickness, lineThickness);
+                        Handles.DrawWireDisc(left, Vector3.forward, handleSize*0.125f);
+                    }
                 }
                 break;
         }
