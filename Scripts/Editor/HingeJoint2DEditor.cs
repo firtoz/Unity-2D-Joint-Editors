@@ -18,7 +18,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
     }
 
     private static readonly HashSet<string> Names = new HashSet<String> {
-        "radius",
         "lowerMainAngle",
         "upperMainAngle",
         "lowerConnectedAngle",
@@ -107,7 +106,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
         LimitContext(hingeJoint2D, info.GetControlID("upperConnectedAngle"), Limit.Max);
 
         if (showAngle) {
-            float handleSize = HandleUtility.GetHandleSize(startPosition)*editorSettings.orbitRangeScale*.5f;
+            float handleSize = HandleUtility.GetHandleSize(startPosition)*editorSettings.angleLimitRadius*.5f;
             float angleHandleSize = editorSettings.angleHandleSize;
             float distanceFromCenter = (handleSize +
                                         (angleHandleSize*HandleUtility.GetHandleSize(startPosition)/64));
@@ -182,7 +181,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             return false;
         }
 
-        bool changed = !anchorInfo.ignoreHover && RadiusGUI(hingeJoint2D, anchorInfo, bias);
+        bool changed = false;
 
         DrawDiscs(hingeJoint2D, anchorInfo, bias);
 
@@ -220,7 +219,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
             Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-            float handleSize = HandleUtility.GetHandleSize(anchorPosition)*editorSettings.orbitRangeScale*.5f;
+            float handleSize = HandleUtility.GetHandleSize(anchorPosition)*editorSettings.angleLimitRadius*.5f;
             float angleHandleSize = editorSettings.angleHandleSize;
             float distanceFromCenter = (handleSize +
                                         (angleHandleSize*HandleUtility.GetHandleSize(anchorPosition)/64));
@@ -421,7 +420,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
-        float scale = settings.showRadiusHandles ? editorSettings.orbitRangeScale : editorSettings.anchorScale;
+        float scale = editorSettings.anchorScale;
         float handleSize = HandleUtility.GetHandleSize(center)*scale;
         float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
         bool inZone = distance <= AnchorEpsilon;
@@ -472,62 +471,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
         HandleUtility.Repaint();
     }
 
-    private static bool RadiusGUI(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
-        if (!settings.showRadiusHandles) {
-            return false;
-        }
-
-        Vector3 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
-
-        List<Transform> transforms = new List<Transform>();
-        List<Transform> rightTransforms = new List<Transform>();
-        switch (bias) {
-            case JointHelpers.AnchorBias.Connected:
-                if (hingeJoint2D.connectedBody) {
-                    transforms.Add(hingeJoint2D.connectedBody.transform);
-                    rightTransforms.Add(hingeJoint2D.transform);
-                    if (Event.current.shift) {
-                        transforms.Add(hingeJoint2D.transform);
-                    }
-                }
-                else {
-                    transforms.Add(hingeJoint2D.transform);
-                }
-                break;
-            default:
-                transforms.Add(hingeJoint2D.transform);
-                if (hingeJoint2D.connectedBody) {
-                    rightTransforms.Add(hingeJoint2D.connectedBody.transform);
-                    if (Event.current.shift) {
-                        transforms.Add(hingeJoint2D.connectedBody.transform);
-                    }
-                }
-                break;
-        }
-        if (Event.current.shift) {
-            rightTransforms = transforms;
-        }
-
-        EditorGUI.BeginChangeCheck();
-        DrawRadiusHandle(anchorInfo.GetControlID("radius"), transforms, rightTransforms, center);
-
-        return EditorGUI.EndChangeCheck();
-    }
-
-
-    private static void DrawRadiusHandle(int controlID, IEnumerable<Transform> transforms,
-        IEnumerable<Transform> rightTransforms,
-        Vector2 midPoint) {
-        OrbitHandle(controlID,
-            transforms,
-            rightTransforms,
-            midPoint,
-            HandleUtility.GetHandleSize(midPoint)*editorSettings.anchorScale*0.5f,
-            HandleUtility.GetHandleSize(midPoint)*editorSettings.orbitRangeScale*0.5f);
-    }
-
-
     protected override void InspectorDisplayGUI(bool enabled) {
         List<Object> allSettings =
             targets.Cast<HingeJoint2D>()
@@ -535,7 +478,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 .Where(hingeSettings => hingeSettings != null).Cast<Object>().ToList();
 
         SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
-        ToggleShowRadiusHandles(serializedSettings, enabled);
         ToggleShowAngleLimits(serializedSettings, enabled);
         using (new Indent()) {
             SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
@@ -567,33 +509,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
                 EditorHelpers.RecordUndo("toggle angle limits display mode", hingeSettings);
                 hingeSettings.anchorPriority = value;
-                EditorUtility.SetDirty(hingeSettings);
-            }
-        }
-    }
-
-
-    private static readonly GUIContent RadiusHandlesContent =
-        new GUIContent("Radius Handles", "Toggles the display of radius handles on the scene GUI.");
-
-    private void ToggleShowRadiusHandles(SerializedObject serializedSettings, bool enabled) {
-        EditorGUI.BeginChangeCheck();
-        bool value;
-
-
-        using (new GUIEnabled(enabled)) {
-            SerializedProperty showRadiusHandles = serializedSettings.FindProperty("showRadiusHandles");
-            EditorGUILayout.PropertyField(showRadiusHandles, RadiusHandlesContent);
-            value = showRadiusHandles.boolValue;
-        }
-
-        if (EditorGUI.EndChangeCheck()) {
-            foreach (HingeJoint2D hingeJoint2D in targets) {
-                HingeJoint2DSettings hingeSettings =
-                    SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
-
-                EditorHelpers.RecordUndo("toggle radius handle display", hingeSettings);
-                hingeSettings.showRadiusHandles = value;
                 EditorUtility.SetDirty(hingeSettings);
             }
         }

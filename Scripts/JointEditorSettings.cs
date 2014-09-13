@@ -29,7 +29,7 @@ public class JointEditorSettings : ScriptableObject {
 
     public float anchorScale = 0.5f;
     public float anchorDisplayScale = 1.75f;
-    public float orbitRangeScale = 1.5f;
+    public float angleLimitRadius = 1.5f;
     public float lockButtonScale = 0.5f;
 
     public float angleHandleSize = 5.0f;
