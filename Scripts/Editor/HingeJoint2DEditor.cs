@@ -181,8 +181,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
             return false;
         }
 
-        bool changed = false;
-
         DrawDiscs(hingeJoint2D, anchorInfo, bias);
 
 //        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(hingeJoint2D);
@@ -192,7 +190,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 //                Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 //            }
 //        }
-        return changed;
+        return false;
     }
 
 
@@ -417,8 +415,6 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
     private void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         Vector2 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
-
-        HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
 
         float scale = editorSettings.anchorScale;
         float handleSize = HandleUtility.GetHandleSize(center)*scale;
