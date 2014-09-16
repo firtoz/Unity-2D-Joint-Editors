@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.DisposableEditor;
 using toxicFork.GUIHelpers.DisposableGUI;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
@@ -124,8 +125,10 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         return baseBounds;
     }
 
-    private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        if (joint2D == null) {
+    private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
+    {
+        if (joint2D == null)
+        {
             return;
         }
 
@@ -136,8 +139,9 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, otherBias);
         Vector2 diff = anchorPosition - otherAnchorPosition;
-        if (diff.magnitude <= Mathf.Epsilon) {
-            diff = Vector2.up*(bias == JointHelpers.AnchorBias.Connected ? 1 : -1);
+        if (diff.magnitude <= Mathf.Epsilon)
+        {
+            diff = Vector2.up * (bias == JointHelpers.AnchorBias.Connected ? 1 : -1);
         }
         Vector2 normalizedDiff = diff.normalized;
 
@@ -154,38 +158,77 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 throw new ArgumentOutOfRangeException();
         }
 
-        if (bias != wantedBias || GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
+        if (bias == wantedBias && EditorGUI.actionKey && GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
         {
+            Handles.DrawWireDisc(otherAnchorPosition, Vector3.forward, joint2D.distance);
+        }
 
+        if (bias != wantedBias)
+        {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
             float newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
                 Helpers2D.GetAngle(normalizedDiff), 0.125f, true);
 
-            EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance,
+            EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance,
                 Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
 
-            if (EditorGUI.EndChangeCheck()) {
-                EditorHelpers.RecordUndo("Change Distance", joint2D);
-
-                if (newDistance < 0) {
-                    joint2D.distance = 0f;
+            if (EditorGUI.EndChangeCheck())
+            {
+                using (new Modification("Change Distance", joint2D))
+                {
+                    if (newDistance < 0)
+                    {
+                        joint2D.distance = 0f;
+                    }
+                    else
+                    {
+                        float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
+                        joint2D.distance = EditorGUI.actionKey && Mathf.Abs(newDistance - distanceBetweenAnchors) <
+                                           HandleUtility.GetHandleSize(anchorPosition) * 0.125f
+                            ? distanceBetweenAnchors
+                            : newDistance;
+                    }
                 }
-                else {
-                    float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
-                    joint2D.distance = EditorGUI.actionKey && Mathf.Abs(newDistance - distanceBetweenAnchors) <
-                                       HandleUtility.GetHandleSize(anchorPosition)*0.125f
-                        ? distanceBetweenAnchors
-                        : newDistance;
-                }
-
-                EditorUtility.SetDirty(joint2D);
             }
+
+            DistanceContext(joint2D, distanceControlID);
         }
     }
 
+    private static void DistanceContext(DistanceJoint2D distanceJoint2D, int controlID)
+    {
+        Vector2 mousePosition = Event.current.mousePosition;
 
+        EditorHelpers.ContextClick(controlID, () =>
+        {
+            GenericMenu menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Edit Distance"), false, () =>
+                EditorHelpers.ShowDropDown(
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
+                    delegate(Action close, bool focused)
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        float newDistance = EditorGUILayout.FloatField("Distance", distanceJoint2D.distance);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            using (new Modification("Change Distance", distanceJoint2D))
+                            {
+                                distanceJoint2D.distance = newDistance;
+                            }
+                        }
+                        if (GUILayout.Button("Done") ||
+                            (Event.current.isKey &&
+                             (Event.current.keyCode == KeyCode.Escape) &&
+                             focused))
+                        {
+                            close();
+                        }
+                    }));
+            menu.ShowAsContext();
+        });
+    }
 
     private static readonly GUIContent AngleLimitsModeContent =
         new GUIContent("Anchor Priority",
@@ -212,9 +255,9 @@ public class DistanceJoint2DEditor : Joint2DEditor {
                 DistanceJoint2D distanceJoint2D = (DistanceJoint2D)t;
                 DistanceJoint2DSettings settings = SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(distanceJoint2D);
 
-                EditorHelpers.RecordUndo("toggle angle limits display mode", settings);
-                settings.anchorPriority = value;
-                EditorUtility.SetDirty(settings);
+                using (new Modification("toggle angle limits display mode", settings)) {
+                    settings.anchorPriority = value;
+                }
             }
         }
     }

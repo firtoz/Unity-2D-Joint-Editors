@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using toxicFork.GUIHelpers;
+using toxicFork.GUIHelpers.DisposableEditor;
 using toxicFork.GUIHelpers.DisposableEditorGUI;
 using toxicFork.GUIHelpers.DisposableGUI;
 using toxicFork.GUIHelpers.DisposableHandles;
@@ -197,7 +198,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             }
 
             if (joint.connectedBody) {
-                menu.AddItem(new GUIContent("Move ownership to connected body"), false, () => {
+                menu.AddItem(new GUIContent("Move ownership to '" + joint.connectedBody.name + "'"), false, () =>
+                {
                     GameObject connectedObject = joint.connectedBody.gameObject;
 
                     AnchoredJoint2D cloneJoint =
@@ -246,9 +248,18 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
                     OwnershipMoved(cloneJoint);
                 });
+                menu.AddItem(new GUIContent("Disconnect from '" + joint.connectedBody.name+"'"), false, () => {
+                    Vector2 worldConnectedPosition = JointHelpers.GetConnectedAnchorPosition(joint);
+
+                    using (new Modification("Disconnect from connected body", joint)) {
+                        joint.connectedBody = null;
+                        JointHelpers.SetWorldConnectedAnchorPosition(joint, worldConnectedPosition);
+                    }
+                });
             }
             else {
                 menu.AddDisabledItem(new GUIContent("Move ownership to connected body"));
+                menu.AddDisabledItem(new GUIContent("Disconnect from connected body"));
             }
 
             menu.AddItem(new GUIContent("Delete " + joint.GetType().Name), false,
