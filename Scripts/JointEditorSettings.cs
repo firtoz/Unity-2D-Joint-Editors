@@ -31,7 +31,6 @@ public class JointEditorSettings : ScriptableObject {
     public float anchorDisplayScale = 1.75f;
     public float angleLimitRadius = 1.5f;
     public float lockButtonScale = 0.5f;
-
     public float angleHandleSize = 5.0f;
 
     public Color previewRadiusColor = new Color(1f, 1f, 0.5f, 0.125f);
@@ -51,7 +50,7 @@ public class JointEditorSettings : ScriptableObject {
     public bool drawRadiusRings = true;
 
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
-    public bool foldout = false;
+    public bool showAdvancedOptions = false;
 
     private static JointEditorSettings _editorSettings;
     private static bool _loading;

@@ -451,7 +451,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
-             (anchorInfo.ignoreHover && (inZone || anchorInfo.IsActive())))) {
+             (!anchorInfo.ignoreHover && (inZone || anchorInfo.IsActive())))) {
             using (new HandleColor(editorSettings.mainDiscColor)) {
                 Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
             }

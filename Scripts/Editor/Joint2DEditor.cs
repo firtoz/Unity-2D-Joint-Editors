@@ -400,10 +400,10 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             return;
         }
         EditorGUI.BeginChangeCheck();
-        bool foldout = EditorGUILayout.Foldout(editorSettings.foldout, "Advanced Options");
+        bool foldout = EditorGUILayout.Foldout(editorSettings.showAdvancedOptions, "Advanced Options");
         if (EditorGUI.EndChangeCheck()) {
             //no need to record undo here.
-            editorSettings.foldout = foldout;
+            editorSettings.showAdvancedOptions = foldout;
             EditorUtility.SetDirty(editorSettings);
         }
         if (foldout) {
