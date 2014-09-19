@@ -126,7 +126,7 @@ public class WheelJoint2DEditor : Joint2DEditor
         if (bias == JointHelpers.AnchorBias.Main)
         {
             Vector2 mainBodyPosition = GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.mainDiscColor))
+            using (new HandleColor(editorSettings.anchorsToMainBodyColor))
             {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon)
                 {
@@ -139,7 +139,7 @@ public class WheelJoint2DEditor : Joint2DEditor
             Vector2 connectedBodyPosition = GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Connected);
             if (wheelJoint2D.connectedBody)
             {
-                using (new HandleColor(editorSettings.connectedDiscColor))
+                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor))
                 {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon)
                     {

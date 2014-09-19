@@ -16,7 +16,6 @@ public class JointEditorSettings : ScriptableObject {
         Never
     }
 
-
     [SerializeField] private bool initialized;
 
     public Texture2D connectedAnchorTexture;
@@ -29,27 +28,31 @@ public class JointEditorSettings : ScriptableObject {
 
     public float anchorScale = 0.5f;
     public float anchorDisplayScale = 1.75f;
-    public float angleLimitRadius = 1.5f;
     public float lockButtonScale = 0.5f;
-    public float angleHandleSize = 5.0f;
 
-    public Color previewRadiusColor = new Color(1f, 1f, 0.5f, 0.125f);
-    public Color radiusColor = new Color(1f, 1f, 0f, 0.5f);
-    public Color alternateRadiusColor = new Color(0f, 1f, 1f, 0.5f);
-    public Color mainDiscColor = Color.red;
+    //hingejoint2d settings
+    public float angleLimitRadius = 1.5f;
+    public float angleHandleSize = 5.0f;
+    public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
+    public Color mainDiscColor = Color.green;
     public Color connectedDiscColor = Color.green;
-    public Color angleLimitColor = new Color(0,255f/255f,23f/255f);
+    public Color angleLimitColor = new Color(0, 255f / 255f, 23f / 255f);
     public Color angleAreaColor = Color.gray;
+
+    //sliderjoint2d settings
     public Color minLimitColor = Color.magenta;
     public Color maxLimitColor = Color.cyan;
+
+    public Color anchorHoverColor = new Color(1f, 1f, 0.5f, 0.125f);
+    public Color anchorsToMainBodyColor = Color.red;
+    public Color anchorsToConnectedBodyColor = Color.green;
     public Color incorrectLimitsColor = Color.red;
     public Color correctLimitsColor = Color.green;
+
     public Color hoverAngleColor = Color.yellow;
     public Color activeAngleColor = Color.green;
     public Color inactiveAngleColor = Color.white;
-    public bool drawRadiusRings = true;
-
-    public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
+    
     public bool showAdvancedOptions = false;
 
     private static JointEditorSettings _editorSettings;

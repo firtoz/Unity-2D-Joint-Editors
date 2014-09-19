@@ -135,7 +135,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
 
         if (showCursor && Event.current.type == EventType.repaint) {
-            using (new HandleColor(editorSettings.previewRadiusColor)) {
+            using (new HandleColor(editorSettings.anchorHoverColor)) {
                 Handles.DrawSolidDisc(anchorPosition, Vector3.forward, handleSize*.5f);
                 Handles.DrawWireDisc(anchorPosition, Vector3.forward, handleSize*.5f);
             }
@@ -400,13 +400,13 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             return;
         }
         EditorGUI.BeginChangeCheck();
-        bool foldout = EditorGUILayout.Foldout(editorSettings.showAdvancedOptions, "Advanced Options");
+        bool showAdvancedOptions = EditorGUILayout.Foldout(editorSettings.showAdvancedOptions, "Advanced Options");
         if (EditorGUI.EndChangeCheck()) {
             //no need to record undo here.
-            editorSettings.showAdvancedOptions = foldout;
+            editorSettings.showAdvancedOptions = showAdvancedOptions;
             EditorUtility.SetDirty(editorSettings);
         }
-        if (foldout) {
+        if (showAdvancedOptions) {
             using (new Indent()) {
                 List<Object> allSettings =
                     targets.Cast<Joint2D>().Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
@@ -852,7 +852,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             }
 
             if (showCursor && Event.current.type == EventType.repaint) {
-                using (new HandleColor(editorSettings.previewRadiusColor)) {
+                using (new HandleColor(editorSettings.anchorHoverColor)) {
                     Handles.DrawSolidDisc(worldOffset, Vector3.forward, handleSize*.5f);
                     Handles.DrawWireDisc(worldOffset, Vector3.forward, handleSize*.5f);
                 }
@@ -940,13 +940,6 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 if (anchorLock) {
                     ReAlignAnchors(joint2D, JointHelpers.AnchorBias.Connected);
                 }
-            }
-
-            float handleSize = HandleUtility.GetHandleSize(worldConnectedAnchor)*editorSettings.angleLimitRadius;
-            float distance = HandleUtility.DistanceToCircle(worldConnectedAnchor, handleSize*.5f);
-            bool hovering = distance <= AnchorEpsilon;
-            if (hovering) {
-                connected.ignoreHover = true;
             }
 
             if (AnchorDraggingWidgetGUI(joint2D, main, otherAnchors, JointHelpers.AnchorBias.Main)) {

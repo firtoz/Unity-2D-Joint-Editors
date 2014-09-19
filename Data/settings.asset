@@ -22,24 +22,22 @@ MonoBehaviour:
   unlockButtonTexture: {fileID: 2800000, guid: 0800896fa119a3941a91800fd2db9b6c, type: 3}
   anchorScale: .5
   anchorDisplayScale: 1
-  orbitRangeScale: 1.5
   lockButtonScale: .5
+  angleLimitRadius: 1.5
   angleHandleSize: 5
-  previewRadiusColor: {r: 1, g: .501960814, b: .117647059, a: .450980395}
-  radiusColor: {r: 1, g: 1, b: 0, a: .5}
-  alternateRadiusColor: {r: 0, g: 1, b: 1, a: .5}
-  mainDiscColor: {r: 1, g: 0, b: 0, a: 1}
-  connectedDiscColor: {r: 0, g: 1, b: 0, a: 1}
+  ringDisplayMode: 1
+  mainDiscColor: {r: 0, g: 1, b: 0, a: 1}
+  connectedDiscColor: {r: .963788033, g: 0, b: 1, a: 1}
   angleLimitColor: {r: 0, g: 1, b: .0896549225, a: 1}
-  badAngleLimitColor: {r: 1, g: 0, b: 0, a: 1}
   angleAreaColor: {r: .5, g: .5, b: .5, a: .325490206}
   minLimitColor: {r: 0, g: .470588237, b: 1, a: 1}
   maxLimitColor: {r: 0, g: 1, b: 1, a: 1}
+  anchorHoverColor: {r: 1, g: 1, b: .5, a: .125}
+  anchorsToMainBodyColor: {r: 1, g: 0, b: 0, a: 1}
+  anchorsToConnectedBodyColor: {r: 0, g: 1, b: 0, a: 1}
   incorrectLimitsColor: {r: 1, g: .496551722, b: 0, a: 1}
   correctLimitsColor: {r: 0, g: 1, b: 0, a: 1}
   hoverAngleColor: {r: 1, g: .921568632, b: .0156862754, a: 1}
   activeAngleColor: {r: .996078432, g: .685057461, b: .0156862661, a: 1}
   inactiveAngleColor: {r: 1, g: 1, b: 1, a: 1}
-  drawRadiusRings: 1
-  ringDisplayMode: 1
-  foldout: 1
+  showAdvancedOptions: 1

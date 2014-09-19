@@ -40,10 +40,19 @@ public class SliderJoint2DEditor : Joint2DEditor {
         JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
         Vector2 oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
 
-        Vector2[] targetPositions = {
-            GetTargetPosition(joint, JointHelpers.AnchorBias.Main),
-            GetTargetPosition(joint, JointHelpers.AnchorBias.Connected)
-        };
+        Vector2[] targetPositions;
+
+        if (joint.connectedBody) {
+            targetPositions = new[] {
+                GetTargetPosition(joint, JointHelpers.AnchorBias.Main),
+                GetTargetPosition(joint, JointHelpers.AnchorBias.Connected)
+            };
+        }
+        else {
+            targetPositions = new[] {
+                GetTargetPosition(joint, JointHelpers.AnchorBias.Main)
+            };
+        }
 
         if (sliderJoint2D.useLimits) {
             Ray slideRay;
@@ -262,12 +271,10 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
             menu.AddItem(new GUIContent("Configure Limits"), false, () =>
                 EditorHelpers.ShowDropDown(
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
-                    delegate(Action close, bool focused)
-                    {
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
+                    delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Translation Limits", "The joint translation limits"));
-                        using (new Indent())
-                        {
+                        using (new Indent()) {
                             EditorGUI.BeginChangeCheck();
 
                             bool useLimits =
@@ -286,10 +293,8 @@ public class SliderJoint2DEditor : Joint2DEditor {
                                     "The upper translation limit to constraint the joint to. [ -100000, 1000000 ]."),
                                 sliderJoint2D.limits.max);
 
-                            if (EditorGUI.EndChangeCheck())
-                            {
-                                using (new Modification("Configure Limits", sliderJoint2D))
-                                {
+                            if (EditorGUI.EndChangeCheck()) {
+                                using (new Modification("Configure Limits", sliderJoint2D)) {
                                     JointTranslationLimits2D limits2D = sliderJoint2D.limits;
                                     limits2D.min = lowerTranslationLimit;
                                     limits2D.max = upperTranslationLimit;
@@ -304,8 +309,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
                         if (GUILayout.Button("Done") ||
                             (Event.current.isKey &&
                              (Event.current.keyCode == KeyCode.Escape) &&
-                             focused))
-                        {
+                             focused)) {
                             close();
                         }
                     }));
@@ -346,7 +350,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         if (bias == JointHelpers.AnchorBias.Main) {
             Vector2 mainBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.mainDiscColor)) {
+            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(mainBodyPosition, center);
                 }
@@ -355,7 +359,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
         else if (bias == JointHelpers.AnchorBias.Connected) {
             Vector2 connectedBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected);
             if (sliderJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor)) {
+                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }
@@ -633,7 +637,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
     }
 
     private static void DrawLimitSlider(SliderJoint2D sliderJoint2D, int limitControlID, Vector2 anchorPosition,
-        Vector2 direction, List<Vector2> snapList, Limit limit) {
+        Vector2 direction, IEnumerable<Vector2> snapList, Limit limit) {
         EditorGUI.BeginChangeCheck();
 
         float val;

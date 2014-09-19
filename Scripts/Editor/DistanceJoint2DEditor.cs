@@ -39,7 +39,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
 
         if (bias == JointHelpers.AnchorBias.Main) {
             Vector2 mainBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.mainDiscColor)) {
+            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
                 if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(mainBodyPosition, center);
                 }
@@ -48,7 +48,7 @@ public class DistanceJoint2DEditor : Joint2DEditor {
         else if (bias == JointHelpers.AnchorBias.Connected) {
             Vector2 connectedBodyPosition = GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Connected);
             if (distanceJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor)) {
+                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
                     if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                         Handles.DrawLine(connectedBodyPosition, center);
                     }

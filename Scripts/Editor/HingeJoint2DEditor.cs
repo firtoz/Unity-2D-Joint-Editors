@@ -418,11 +418,9 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         float scale = editorSettings.anchorScale;
         float handleSize = HandleUtility.GetHandleSize(center)*scale;
-        float distance = HandleUtility.DistanceToCircle(center, handleSize*.5f);
-        bool inZone = distance <= AnchorEpsilon;
 
         Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-        using (new HandleColor(editorSettings.mainDiscColor)) {
+        using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
             if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
                 Handles.DrawLine(mainBodyPosition, center);
             }
@@ -433,7 +431,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
         }
         Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
         if (hingeJoint2D.connectedBody) {
-            using (new HandleColor(editorSettings.connectedDiscColor)) {
+            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
                 if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
                     Handles.DrawLine(connectedBodyPosition, center);
                 }
@@ -444,20 +442,25 @@ public class HingeJoint2DEditor : Joint2DEditor {
             }
         }
         else {
-            using (new HandleColor(editorSettings.connectedDiscColor)) {
+            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
                 Handles.DrawLine(center, center + Helpers2D.GetDirection(0)*handleSize);
             }
         }
 
         if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
             (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
-             (!anchorInfo.ignoreHover && (inZone || anchorInfo.IsActive())))) {
-            using (new HandleColor(editorSettings.mainDiscColor)) {
+            //if nothing else is hot and we are being hovered, or the anchor's widgets are hot
+             (((GUIUtility.hotControl == 0 && HandleUtility.nearestControl == anchorInfo.GetControlID("slider")) 
+             || anchorInfo.IsActive()))))
+        {
+            using (new HandleColor(editorSettings.mainDiscColor))
+            {
                 Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
             }
 
             if (hingeJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor)) {
+                using (new HandleColor(editorSettings.connectedDiscColor))
+                {
                     Handles.DrawWireDisc(center, Vector3.forward,
                         Vector2.Distance(center,
                             connectedBodyPosition));

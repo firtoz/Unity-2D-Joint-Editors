@@ -53,14 +53,14 @@ public abstract class Joint2DSettings : MonoBehaviour
         Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
-        using (new HandleColor(_editorSettings.mainDiscColor))
+        using (new HandleColor(_editorSettings.anchorsToMainBodyColor))
         {
             Vector2 mainPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Main);
             Handles.DrawLine(mainAnchorPosition, mainPosition);
         }
         if (joint2D.connectedBody)
         {
-            using (new HandleColor(_editorSettings.connectedDiscColor))
+            using (new HandleColor(_editorSettings.anchorsToConnectedBodyColor))
             {
                 Vector2 connectedPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Connected);
                 Handles.DrawLine(connectedAnchorPosition, connectedPosition);
