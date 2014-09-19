@@ -34,12 +34,6 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         JointHelpers.SetAnchorPosition(joint2D, GetWantedAnchorPosition(joint2D, oppositeBias), oppositeBias);
     }
 
-    protected Vector2 AnchorSlider(float handleScale, IEnumerable<Vector2> snapPositions,
-        JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
-        int controlID = GUIUtility.GetControlID(FocusType.Native);
-        return AnchorSlider(controlID, handleScale, snapPositions, bias, joint);
-    }
-
     public bool HasFrameBounds() {
         if (editorSettings == null) {
             return false;
@@ -889,10 +883,6 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         bool anchorLock = WantsLocking() && jointSettings.lockAnchors;
 
         bool playing = EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPaused;
-        if (playing) {
-            //            anchorLock = false;
-        }
-
         Vector2 worldAnchor = JointHelpers.GetMainAnchorPosition(joint2D);
         Vector2 worldConnectedAnchor = JointHelpers.GetConnectedAnchorPosition(joint2D);
 
@@ -970,14 +960,18 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
     public void OnSceneGUI() {
+        AnchoredJoint2D joint2D = target as AnchoredJoint2D;
+        if (joint2D == null || !joint2D.enabled)
+        {
+            return;
+        }
+        
         if (editorSettings == null) {
+            DrawDefaultSceneGUI(joint2D);
+
             return;
         }
 
-        AnchoredJoint2D joint2D = target as AnchoredJoint2D;
-        if (joint2D == null || !joint2D.enabled) {
-            return;
-        }
         Joint2DSettings settings = SettingsHelper.GetOrCreate(joint2D);
         if (settings && !settings.showJointGizmos) {
             DrawDefaultSceneGUI(joint2D);
@@ -1108,9 +1102,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             SceneView.onSceneGUIDelegate -= OnSceneGUIDelegate;
             return;
         }
+
         //gets called after gizmos!
-
-
         foreach (AnchoredJoint2D joint2D in targets.Cast<AnchoredJoint2D>()) {
             if (joint2D == null || !joint2D.enabled) {
                 continue;
