@@ -375,14 +375,17 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
 
-    private static readonly GUIContent JointGizmosContent =
-        new GUIContent("Joint Gizmos", "Toggles the display of advanced joint gizmos on the scene GUI.");
-
+    private static readonly GUIContent CustomGizmosContent =
+        new GUIContent("Custom Gizmos", "Toggles the display of custom joint gizmos on the scene GUI.");
+    private static readonly GUIContent DefaultGizmosContent =
+        new GUIContent("Default Gizmos", "Toggles the display of default joint gizmos on the scene GUI (only effective if custom gizmos are disabled).");
 
     protected void ToggleShowGizmos(SerializedObject serializedSettings) {
         EditorGUI.BeginChangeCheck();
-        SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
-        EditorGUILayout.PropertyField(showJointGizmos, JointGizmosContent);
+        EditorGUILayout.PropertyField(serializedSettings.FindProperty("showCustomGizmos"), CustomGizmosContent);
+        using (new GUIEnabled(!serializedSettings.FindProperty("showCustomGizmos").boolValue)) {
+            EditorGUILayout.PropertyField(serializedSettings.FindProperty("showDefaultgizmos"), DefaultGizmosContent);
+        }
         if (EditorGUI.EndChangeCheck()) {
             serializedSettings.ApplyModifiedProperties();
         }
@@ -408,7 +411,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
                 SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
 
-                SerializedProperty showJointGizmos = serializedSettings.FindProperty("showJointGizmos");
+                SerializedProperty showJointGizmos = serializedSettings.FindProperty("showCustomGizmos");
                 bool enabled = GUI.enabled &&
                                (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
                 EditorGUILayout.LabelField("Display:");
@@ -973,8 +976,10 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
 
         Joint2DSettings settings = SettingsHelper.GetOrCreate(joint2D);
-        if (settings && !settings.showJointGizmos) {
-            DrawDefaultSceneGUI(joint2D);
+        if (settings && !settings.showCustomGizmos) {
+            if (settings.showDefaultgizmos) {
+                DrawDefaultSceneGUI(joint2D);
+            }
             return;
         }
 

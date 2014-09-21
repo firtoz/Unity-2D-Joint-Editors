@@ -263,7 +263,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 limitColor = editorSettings.incorrectLimitsColor;
             }
             else {
-                limitColor = editorSettings.angleLimitColor;
+                limitColor = editorSettings.correctLimitsColor;
             }
 
             if (showMain && bias != JointHelpers.AnchorBias.Connected) {

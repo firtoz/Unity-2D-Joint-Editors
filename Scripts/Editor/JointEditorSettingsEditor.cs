@@ -3,8 +3,7 @@ using UnityEngine;
 
 [CustomEditor(typeof (JointEditorSettings))]
 internal class JointEditorSettingsEditor : Editor {
-    private static readonly FoldoutHelper FoldoutHelper = new FoldoutHelper();
-
+    private static readonly PersistentFoldoutHelper FoldoutHelper = new PersistentFoldoutHelper("2DJointEditors.JointEditorSettings");
 
     public float anchorScale = 0.5f;
     public float anchorDisplayScale = 1.75f;
@@ -12,6 +11,8 @@ internal class JointEditorSettingsEditor : Editor {
     public float lockButtonScale = 0.5f;
 
     public override void OnInspectorGUI() {
+        EditorGUI.BeginChangeCheck();
+
         FoldoutHelper.Foldout("textures", new GUIContent("Textures", "Custom Textures"), () => {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("connectedAnchorTexture"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("mainAnchorTexture"));
@@ -26,11 +27,12 @@ internal class JointEditorSettingsEditor : Editor {
         {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorScale"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorDisplayScale"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("lockButtonScale"));
         });
 
-
+        if (EditorGUI.EndChangeCheck()) {
+            serializedObject.ApplyModifiedProperties();
+        }
 
         DrawDefaultInspector();
     }

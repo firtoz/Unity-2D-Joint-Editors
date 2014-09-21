@@ -20,28 +20,17 @@ public abstract class Joint2DSettings : MonoBehaviour
             Debug.Log("!!!");
             //       DestroyImmediate(this);
         }
-
-#if UNITY_EDITOR
-        _editorSettings = JointEditorSettings.Singleton;
-//        lastJointHash = attachedJoint != null ? attachedJoint.GetHashCode() : 0;
-//        Joint2DManager.AddJointSettings(this);
-#endif
-    }
-
-    public void OnDisable()
-    {
-#if UNITY_EDITOR
-//        Joint2DManager.RemoveJointSettings(this);
-#endif
     }
 
 #if UNITY_EDITOR
-
     protected void DrawAnchorLines()
     {
         if (_editorSettings == null)
         {
-            return;
+            _editorSettings = JointEditorSettings.Singleton;
+            if (_editorSettings == null) {
+                return;
+            }
         }
         AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
         if (joint2D == null)
@@ -69,7 +58,8 @@ public abstract class Joint2DSettings : MonoBehaviour
     }
 #endif
 
-    public bool showJointGizmos = true;
+    public bool showCustomGizmos = true;
+    public bool showDefaultgizmos = true;
     public bool lockAnchors = false;
 
     public Joint2D attachedJoint;
@@ -85,22 +75,11 @@ public abstract class Joint2DSettings : MonoBehaviour
 
     public abstract bool IsValidType();
 
-//    private int lastJointHash = 0;
-
     public void Update() {
         if (setupComplete && (attachedJoint == null || !IsValidType()))
         {
             DestroyImmediate(this);
         }
-#if UNITY_EDITOR
-//        else {
-//            int jointHash = attachedJoint != null ? attachedJoint.GetHashCode() : 0;
-//            if (jointHash != lastJointHash) {
-//                lastJointHash = jointHash;
-//                Joint2DManager.UpdateJointSettings(this);
-//            }
-//        }
-#endif
     }
 
 #if UNITY_EDITOR

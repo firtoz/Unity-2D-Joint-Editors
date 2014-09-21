@@ -18,6 +18,7 @@ public class JointEditorSettings : ScriptableObject {
 
     [SerializeField] private bool initialized;
 
+    //general textures
     public Texture2D connectedAnchorTexture;
     public Texture2D mainAnchorTexture;
     public Texture2D lockedAnchorTexture;
@@ -26,6 +27,7 @@ public class JointEditorSettings : ScriptableObject {
     public Texture2D lockButtonTexture;
     public Texture2D unlockButtonTexture;
 
+    //general scales
     public float anchorScale = 0.5f;
     public float anchorDisplayScale = 1.75f;
     public float lockButtonScale = 0.5f;
@@ -36,13 +38,13 @@ public class JointEditorSettings : ScriptableObject {
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
     public Color mainDiscColor = Color.green;
     public Color connectedDiscColor = Color.green;
-    public Color angleLimitColor = new Color(0, 255f / 255f, 23f / 255f);
     public Color angleAreaColor = Color.gray;
 
     //sliderjoint2d settings
     public Color minLimitColor = Color.magenta;
     public Color maxLimitColor = Color.cyan;
 
+    //general colors
     public Color anchorHoverColor = new Color(1f, 1f, 0.5f, 0.125f);
     public Color anchorsToMainBodyColor = Color.red;
     public Color anchorsToConnectedBodyColor = Color.green;
@@ -58,16 +60,6 @@ public class JointEditorSettings : ScriptableObject {
     private static JointEditorSettings _editorSettings;
     private static bool _loading;
 
-    const string Label = "jointeditorssettingspath";
-    public const string ConnectedHingeTexturePath = "2d_joint_editor_hinge_connected.png";
-    public const string OffsetTexturePath = "2djointeditor_anchor.png";
-    public const string MainHingeTexturePath = "2d_joint_editor_hinge_main.png";
-    public const string LockedHingeTexturePath = "2d_joint_editor_hinge_locked.png";
-    public const string HotHingeTexturePath = "2d_joint_editor_hinge_hot.png";
-
-    public const string LockButtonTexturePath = "2d_joint_editor_lock_button.png";
-    public const string UnlockButtonTexturePath = "2d_joint_editor_unlock_button.png";
-
 #if UNITY_EDITOR
     public static JointEditorSettings Singleton {
         get {
@@ -81,18 +73,16 @@ public class JointEditorSettings : ScriptableObject {
 
                 _loading = true;
 
-                AssetUtils utils;
+                JointEditorSettings[] allSettings = Resources.FindObjectsOfTypeAll<JointEditorSettings>();
+                Debug.Log("herp derp allSettings "+ allSettings.Length);
 
-                string[] guids = AssetDatabase.FindAssets("l:" + Label);
-                if (guids.Any()) {
-                    string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                    utils = new AssetUtils(path);
-                    _editorSettings = utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
+                if (allSettings.Length > 0)
+                {
+                    _editorSettings = allSettings[0];
                     if (_editorSettings == null) {
-                        Debug.Log("deleted!");
+                        Debug.Log("deleted!!?");
                     }
-                }
-                else {
+                } else {
                     string path =
                         EditorUtility.OpenFolderPanel("Please pick a path for the JointEditor2D settings to be stored.",
                             Application.dataPath, "");
@@ -103,12 +93,8 @@ public class JointEditorSettings : ScriptableObject {
 
                             Object asset = AssetDatabase.LoadMainAssetAtPath(assetPath);
                             if (asset != null) {
-                                List<String> labels = new List<string>(AssetDatabase.GetLabels(asset)) {
-                                    Label
-                                };
-                                AssetDatabase.SetLabels(asset, labels.ToArray());
                                 AssetDatabase.SaveAssets();
-                                utils = new AssetUtils(assetPath);
+                                AssetUtils utils = new AssetUtils(assetPath);
                                 _editorSettings = utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
                                 if (_editorSettings == null) {
                                     Debug.Log("deleted!");
@@ -129,26 +115,20 @@ public class JointEditorSettings : ScriptableObject {
 
     public void OnEnable() {
         if (!initialized) {
-            initialized = true;
-            string[] guids = AssetDatabase.FindAssets("l:" + Label);
-            if (guids.Any())
             {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-
-                path = Path.GetFullPath(path + "/../Icons");
-
-                string iconPath = AssetUtils.GetRelativePath(path);
-
-                connectedAnchorTexture = LoadIcon(iconPath, ConnectedHingeTexturePath);
-                offsetTexture = LoadIcon(iconPath, OffsetTexturePath);
-                mainAnchorTexture = LoadIcon(iconPath, MainHingeTexturePath);
-                lockedAnchorTexture = LoadIcon(iconPath, LockedHingeTexturePath);
-                hotAnchorTexture = LoadIcon(iconPath, HotHingeTexturePath);
-
-                lockButtonTexture = LoadIcon(iconPath, LockButtonTexturePath);
-                unlockButtonTexture = LoadIcon(iconPath, UnlockButtonTexturePath);
+//                connectedAnchorTexture = LoadIcon(iconPath, CONNECTED_HINGE_TEXTURE_PATH);
+//                offsetTexture = LoadIcon(iconPath, OFFSET_TEXTURE_PATH);
+//                mainAnchorTexture = LoadIcon(iconPath, MAIN_HINGE_TEXTURE_PATH);
+//                lockedAnchorTexture = LoadIcon(iconPath, LOCKED_HINGE_TEXTURE_PATH);
+//                hotAnchorTexture = LoadIcon(iconPath, HOT_HINGE_TEXTURE_PATH);
+//
+//                lockButtonTexture = LoadIcon(iconPath, LOCK_BUTTON_TEXTURE_PATH);
+//                unlockButtonTexture = LoadIcon(iconPath, UNLOCK_BUTTON_TEXTURE_PATH);
             }
-
+            initialized = true;
+        }
+        else {
+            _editorSettings = this;
         }
     }
 
