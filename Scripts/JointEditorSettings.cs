@@ -19,20 +19,50 @@ public class JointEditorSettings : ScriptableObject {
     [SerializeField] private bool initialized;
 
     //general textures
+    
+    [Tooltip("The texture to display for the connected anchor widget")]
     public Texture2D connectedAnchorTexture;
+    [Tooltip("The texture to display for the main anchor widget")]
     public Texture2D mainAnchorTexture;
+    [Tooltip("The texture to display when the connected and main anchors are locked.")]
     public Texture2D lockedAnchorTexture;
+    [Tooltip("The texture to display when an anchor is being hovered.")]
     public Texture2D hotAnchorTexture;
+    [Tooltip("The texture for the offset gizmo. Is visible when the control key is held.")]
     public Texture2D offsetTexture;
+    [Tooltip("The texture for the lock button. Is visible when the shift key is held.")]
     public Texture2D lockButtonTexture;
+    [Tooltip("The texture for the unlock button. Is visible when the shift key is held.")]
     public Texture2D unlockButtonTexture;
 
     //general scales
+    [Tooltip("The anchor textures are resized by this scaling factor.")]
     public float anchorScale = 0.5f;
+    [Tooltip("This scale only affects the graphical part of the anchors, and does not affect hover or click area.")]
     public float anchorDisplayScale = 1.75f;
+    [Tooltip("The lock button textures are resized by this scaling factor.")]
     public float lockButtonScale = 0.5f;
 
+    //general colors
+    [Tooltip("The highlight color to highlight an anchor when the mouse is over it.")]
+    public Color anchorHoverColor = new Color(1f, 1f, 0.5f, 0.125f);
+    [Tooltip("The color of the line between anchors and the main body.")]
+    public Color anchorsToMainBodyColor = Color.red;
+    [Tooltip("The color of the line between anchors and the connected body.")]
+    public Color anchorsToConnectedBodyColor = Color.green;
+    [Tooltip("The color displayed when limits are incorrect (used by slider and hinge joints).")]
+    public Color incorrectLimitsColor = Color.red;
+    [Tooltip("The color displayed when limits are correct (used by slider and hinge joints).")]
+    public Color correctLimitsColor = Color.green;
+    [Tooltip("The color used by angle widgets.")]
+    public Color angleWidgetColor = Color.white;
+    [Tooltip("The color displayed to highlight when the mouse is over angle widgets.")]
+    public Color hoverAngleColor = Color.yellow;
+    [Tooltip("The color displayed to highlight when angle widgets are active.")]
+    public Color activeAngleColor = Color.green;
+
     //hingejoint2d settings
+    [Tooltip("The color displayed to highlight when angle widgets are active.")]
     public float angleLimitRadius = 1.5f;
     public float angleHandleSize = 5.0f;
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
@@ -43,17 +73,6 @@ public class JointEditorSettings : ScriptableObject {
     //sliderjoint2d settings
     public Color minLimitColor = Color.magenta;
     public Color maxLimitColor = Color.cyan;
-
-    //general colors
-    public Color anchorHoverColor = new Color(1f, 1f, 0.5f, 0.125f);
-    public Color anchorsToMainBodyColor = Color.red;
-    public Color anchorsToConnectedBodyColor = Color.green;
-    public Color incorrectLimitsColor = Color.red;
-    public Color correctLimitsColor = Color.green;
-
-    public Color hoverAngleColor = Color.yellow;
-    public Color activeAngleColor = Color.green;
-    public Color inactiveAngleColor = Color.white;
     
     public bool showAdvancedOptions = false;
 

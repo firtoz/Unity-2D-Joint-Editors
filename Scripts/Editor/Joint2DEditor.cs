@@ -1235,7 +1235,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                             wantedColor = editorSettings.hoverAngleColor;
                         }
                         else {
-                            wantedColor = editorSettings.inactiveAngleColor;
+                            wantedColor = editorSettings.angleWidgetColor;
                             if (GUIUtility.hotControl != 0) {
                                 wantedColor.a = 0.25f; //semitransparent if not active control
                             }
