@@ -3,7 +3,7 @@ using UnityEngine;
 
 [CustomEditor(typeof (JointEditorSettings))]
 internal class JointEditorSettingsEditor : Editor {
-    private static readonly FoldoutHelper FoldoutHelper = new FoldoutHelper();
+    private static readonly PersistentFoldoutHelper FoldoutHelper = new PersistentFoldoutHelper("2DJointEditors.JointEditorSettings");
 
     private static readonly GUIContent CustomTexturesLabel = new GUIContent("Textures",
         "Textures for visual editor components.");
