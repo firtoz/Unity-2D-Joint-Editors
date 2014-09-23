@@ -62,16 +62,23 @@ public class JointEditorSettings : ScriptableObject {
     public Color activeAngleColor = Color.green;
 
     //hingejoint2d settings
-    [Tooltip("The color displayed to highlight when angle widgets are active.")]
+    [Tooltip("The distance (in pixels) between the anchors and the angle limits widgets.")]
     public float angleLimitRadius = 1.5f;
+    [Tooltip("The size (in pixels) of the angle limits widgets.")]
     public float angleHandleSize = 5.0f;
+    [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]
+    public Color limitsAreaColor = Color.gray;
+    [Tooltip("How should the rings be displayed?.")]
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
-    public Color mainDiscColor = Color.green;
-    public Color connectedDiscColor = Color.green;
-    public Color angleAreaColor = Color.gray;
+    [Tooltip("The ring that highlights the path of the main body.")]
+    public Color mainRingColor = Color.green;
+    [Tooltip("The ring that highlights the path of the connected body.")]
+    public Color connectedRingColor = Color.green;
 
     //sliderjoint2d settings
+    [Tooltip("The color for the minimum distance limit.")]
     public Color minLimitColor = Color.magenta;
+    [Tooltip("The color for the maximum distance limit.")]
     public Color maxLimitColor = Color.cyan;
     
     public bool showAdvancedOptions = false;
@@ -93,7 +100,6 @@ public class JointEditorSettings : ScriptableObject {
                 _loading = true;
 
                 JointEditorSettings[] allSettings = Resources.FindObjectsOfTypeAll<JointEditorSettings>();
-                Debug.Log("herp derp allSettings "+ allSettings.Length);
 
                 if (allSettings.Length > 0)
                 {

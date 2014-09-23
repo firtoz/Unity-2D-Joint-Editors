@@ -52,10 +52,10 @@ internal class JointEditorSettingsEditor : Editor {
         FoldoutHelper.Foldout("hingejoint2d", HingeJoint2DLabel, () => {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleHandleSize"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("limitsAreaColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ringDisplayMode"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("mainDiscColor"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("connectedDiscColor"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("angleAreaColor"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("mainRingColor"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("connectedRingColor"));
             });
 
         FoldoutHelper.Foldout("sliderjoint2d", SliderJoint2DLabel, () => {

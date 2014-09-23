@@ -106,10 +106,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
         LimitContext(hingeJoint2D, info.GetControlID("upperConnectedAngle"), Limit.Max);
 
         if (showAngle) {
-            float handleSize = HandleUtility.GetHandleSize(startPosition)*editorSettings.angleLimitRadius*.5f;
-            float angleHandleSize = editorSettings.angleHandleSize;
-            float distanceFromCenter = (handleSize +
-                                        (angleHandleSize*HandleUtility.GetHandleSize(startPosition)/64));
+            float distanceFromCenter = GetAngleSliderRadius(startPosition);
 
             Vector2 anglePosition = startPosition + Helpers2D.GetDirection(angle)*distanceFromCenter;
 
@@ -123,6 +120,10 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 EditorHelpers.FontWithBackgroundStyle);
         }
         return false;
+    }
+
+    private static float GetAngleSliderRadius(Vector2 startPosition) {
+        return HandleUtility.GetHandleSize(startPosition) * EditorHelpers.HandleSizeToPixels * editorSettings.angleLimitRadius;
     }
 
     private static void LimitContext(HingeJoint2D hingeJoint2D, int controlID, Limit limit) {
@@ -217,10 +218,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
             Vector2 anchorPosition = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-            float handleSize = HandleUtility.GetHandleSize(anchorPosition)*editorSettings.angleLimitRadius*.5f;
+            float distanceFromCenter = GetAngleSliderRadius(anchorPosition);
             float angleHandleSize = editorSettings.angleHandleSize;
-            float distanceFromCenter = (handleSize +
-                                        (angleHandleSize*HandleUtility.GetHandleSize(anchorPosition)/64));
 
             float jointAngle;
             bool isPlaying = EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying;
@@ -267,7 +266,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             }
 
             if (showMain && bias != JointHelpers.AnchorBias.Connected) {
-                using (new HandleColor(editorSettings.angleAreaColor)) {
+                using (new HandleColor(editorSettings.limitsAreaColor)) {
                     if (limitDifference > 360) {
                         Handles.DrawSolidDisc(anchorPosition, Vector3.forward, distanceFromCenter);
                     }
@@ -338,7 +337,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 float maxConnectedAngle = liveConnectedAngle + maxLimit;
 
 
-                using (new HandleColor(editorSettings.angleAreaColor)) {
+                using (new HandleColor(editorSettings.limitsAreaColor)) {
                     {
                         if (limitDifference > 360)
                         {
@@ -453,13 +452,13 @@ public class HingeJoint2DEditor : Joint2DEditor {
              (((GUIUtility.hotControl == 0 && HandleUtility.nearestControl == anchorInfo.GetControlID("slider")) 
              || anchorInfo.IsActive()))))
         {
-            using (new HandleColor(editorSettings.mainDiscColor))
+            using (new HandleColor(editorSettings.mainRingColor))
             {
                 Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
             }
 
             if (hingeJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedDiscColor))
+                using (new HandleColor(editorSettings.connectedRingColor))
                 {
                     Handles.DrawWireDisc(center, Vector3.forward,
                         Vector2.Distance(center,
