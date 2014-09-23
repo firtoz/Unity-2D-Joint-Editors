@@ -53,6 +53,7 @@ internal class JointEditorSettingsEditor : Editor {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleHandleSize"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("limitsAreaColor"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("incorrectLimitsArea"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ringDisplayMode"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("mainRingColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("connectedRingColor"));

@@ -255,18 +255,21 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
             float limitDifference = maxLimit - minLimit;
 
-            Color limitColor;
+            Color limitColor, limitAreaColor;
             if (!isPlaying
                 && ((minLimit < jointAngle && maxLimit < jointAngle) || (minLimit > jointAngle && maxLimit > jointAngle)))
             {
                 limitColor = editorSettings.incorrectLimitsColor;
+                limitAreaColor = editorSettings.incorrectLimitsArea;
             }
             else {
                 limitColor = editorSettings.correctLimitsColor;
+                limitAreaColor = editorSettings.limitsAreaColor;
             }
 
             if (showMain && bias != JointHelpers.AnchorBias.Connected) {
-                using (new HandleColor(editorSettings.limitsAreaColor)) {
+                using (new HandleColor(limitAreaColor))
+                {
                     if (limitDifference > 360) {
                         Handles.DrawSolidDisc(anchorPosition, Vector3.forward, distanceFromCenter);
                     }
@@ -336,8 +339,8 @@ public class HingeJoint2DEditor : Joint2DEditor {
                 float minConnectedAngle = liveConnectedAngle + minLimit;
                 float maxConnectedAngle = liveConnectedAngle + maxLimit;
 
-
-                using (new HandleColor(editorSettings.limitsAreaColor)) {
+                using (new HandleColor(limitAreaColor))
+                {
                     {
                         if (limitDifference > 360)
                         {

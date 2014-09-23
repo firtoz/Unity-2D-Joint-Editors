@@ -68,6 +68,10 @@ public class JointEditorSettings : ScriptableObject {
     public float angleHandleSize = 5.0f;
     [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]
     public Color limitsAreaColor = new Color(0.265f, 0.772f, 0.776f, 0.118f);
+    [Tooltip("The fill color displayed when limits are incorrect.")]
+    [Header("test")]
+    public Color incorrectLimitsArea = new Color(1, 0.5f, 0, 0.118f);
+    [Header("test")]
     [Tooltip("How should the rings be displayed?.")]
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
     [Tooltip("The ring that highlights the path of the main body.")]
