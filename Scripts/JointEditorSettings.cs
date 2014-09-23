@@ -39,7 +39,7 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The anchor textures are resized by this scaling factor.")]
     public float anchorScale = 0.5f;
     [Tooltip("This scale only affects the graphical part of the anchors, and does not affect hover or click area.")]
-    public float anchorDisplayScale = 1.75f;
+    public float anchorDisplayScale = 1.0f;
     [Tooltip("The lock button textures are resized by this scaling factor.")]
     public float lockButtonScale = 0.5f;
 
@@ -51,9 +51,9 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The color of the line between anchors and the connected body.")]
     public Color anchorsToConnectedBodyColor = Color.green;
     [Tooltip("The color displayed when limits are incorrect (used by slider and hinge joints).")]
-    public Color incorrectLimitsColor = Color.red;
+    public Color incorrectLimitsColor = new Color(1, 0.5f, 0, 1);
     [Tooltip("The color displayed when limits are correct (used by slider and hinge joints).")]
-    public Color correctLimitsColor = Color.green;
+    public Color correctLimitsColor = new Color(0.098f, 0.956f, 0, 0.737f);
     [Tooltip("The color used by angle widgets.")]
     public Color angleWidgetColor = Color.white;
     [Tooltip("The color displayed to highlight when the mouse is over angle widgets.")]
@@ -63,21 +63,21 @@ public class JointEditorSettings : ScriptableObject {
 
     //hingejoint2d settings
     [Tooltip("The distance (in pixels) between the anchors and the angle limits widgets.")]
-    public float angleLimitRadius = 1.5f;
+    public float angleLimitRadius = 30.0f;
     [Tooltip("The size (in pixels) of the angle limits widgets.")]
     public float angleHandleSize = 5.0f;
     [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]
-    public Color limitsAreaColor = Color.gray;
+    public Color limitsAreaColor = new Color(0.265f, 0.772f, 0.776f, 0.118f);
     [Tooltip("How should the rings be displayed?.")]
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
     [Tooltip("The ring that highlights the path of the main body.")]
     public Color mainRingColor = Color.green;
     [Tooltip("The ring that highlights the path of the connected body.")]
-    public Color connectedRingColor = Color.green;
+    public Color connectedRingColor = new Color(0.568f, 0.514f, 1, 1);
 
     //sliderjoint2d settings
     [Tooltip("The color for the minimum distance limit.")]
-    public Color minLimitColor = Color.magenta;
+    public Color minLimitColor = new Color(0, .470588237f, 1, 1);
     [Tooltip("The color for the maximum distance limit.")]
     public Color maxLimitColor = Color.cyan;
     

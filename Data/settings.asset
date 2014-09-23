@@ -23,20 +23,20 @@ MonoBehaviour:
   anchorScale: .5
   anchorDisplayScale: 1
   lockButtonScale: .5
-  angleLimitRadius: 1.5
-  angleHandleSize: 5
-  ringDisplayMode: 1
-  mainDiscColor: {r: 0, g: 1, b: 0, a: 1}
-  connectedDiscColor: {r: .963788033, g: 0, b: 1, a: 1}
-  angleAreaColor: {r: .5, g: .5, b: .5, a: .325490206}
-  minLimitColor: {r: 0, g: .470588237, b: 1, a: 1}
-  maxLimitColor: {r: 0, g: 1, b: 1, a: 1}
   anchorHoverColor: {r: 1, g: 1, b: .5, a: .125}
   anchorsToMainBodyColor: {r: 1, g: 0, b: 0, a: 1}
   anchorsToConnectedBodyColor: {r: 0, g: 1, b: 0, a: 1}
   incorrectLimitsColor: {r: 1, g: .496551722, b: 0, a: 1}
   correctLimitsColor: {r: .0983996391, g: .95588237, b: 0, a: .737254918}
+  angleWidgetColor: {r: 1, g: 1, b: 1, a: 1}
   hoverAngleColor: {r: 1, g: .921568632, b: .0156862754, a: 1}
   activeAngleColor: {r: .996078432, g: .685057461, b: .0156862661, a: 1}
-  inactiveAngleColor: {r: 1, g: 1, b: 1, a: 1}
+  angleLimitRadius: 30
+  angleHandleSize: 5
+  limitsAreaColor: {r: .26491347, g: .772195756, b: .776470602, a: .117647059}
+  ringDisplayMode: 1
+  mainRingColor: {r: 0, g: 1, b: 0, a: 1}
+  connectedRingColor: {r: .567906499, g: .513725519, b: 1, a: 1}
+  minLimitColor: {r: 0, g: .470588237, b: 1, a: 1}
+  maxLimitColor: {r: 0, g: 1, b: 1, a: 1}
   showAdvancedOptions: 1
