@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using UnityEngine;
-using Object = UnityEngine.Object;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+﻿using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
@@ -16,10 +8,7 @@ public class JointEditorSettings : ScriptableObject {
         Never
     }
 
-    [SerializeField] private bool initialized;
-
     //general textures
-    
     [Tooltip("The texture to display for the connected anchor widget")]
     public Texture2D connectedAnchorTexture;
     [Tooltip("The texture to display for the main anchor widget")]
@@ -90,7 +79,6 @@ public class JointEditorSettings : ScriptableObject {
     private static JointEditorSettings _editorSettings;
     private static bool _loading;
 
-#if UNITY_EDITOR
     public static JointEditorSettings Singleton {
         get {
             {
@@ -105,35 +93,14 @@ public class JointEditorSettings : ScriptableObject {
 
                 JointEditorSettings[] allSettings = Resources.FindObjectsOfTypeAll<JointEditorSettings>();
 
-                if (allSettings.Length > 0)
-                {
+                if (allSettings.Length > 0) {
                     _editorSettings = allSettings[0];
                     if (_editorSettings == null) {
                         Debug.Log("deleted!!?");
                     }
-                } else {
-                    string path =
-                        EditorUtility.OpenFolderPanel("Please pick a path for the JointEditor2D settings to be stored.",
-                            Application.dataPath, "");
-
-                    if (path != null) {
-                        if (Directory.Exists(path) && AssetUtils.IsAssetPath(path)) {
-                            string assetPath = AssetUtils.GetRelativePath(path);
-
-                            Object asset = AssetDatabase.LoadMainAssetAtPath(assetPath);
-                            if (asset != null) {
-                                AssetDatabase.SaveAssets();
-                                AssetUtils utils = new AssetUtils(assetPath);
-                                _editorSettings = utils.GetOrCreateAsset<JointEditorSettings>("settings.asset");
-                                if (_editorSettings == null) {
-                                    Debug.Log("deleted!");
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        Debug.LogError("Why don't you want to save the settings? :(");
-                    }
+                }
+                else {
+                    Debug.LogWarning("Could not find JointEditorSettings!");
                 }
                 _loading = false;
             }
@@ -143,28 +110,8 @@ public class JointEditorSettings : ScriptableObject {
     }
 
     public void OnEnable() {
-        if (!initialized) {
-            {
-//                connectedAnchorTexture = LoadIcon(iconPath, CONNECTED_HINGE_TEXTURE_PATH);
-//                offsetTexture = LoadIcon(iconPath, OFFSET_TEXTURE_PATH);
-//                mainAnchorTexture = LoadIcon(iconPath, MAIN_HINGE_TEXTURE_PATH);
-//                lockedAnchorTexture = LoadIcon(iconPath, LOCKED_HINGE_TEXTURE_PATH);
-//                hotAnchorTexture = LoadIcon(iconPath, HOT_HINGE_TEXTURE_PATH);
-//
-//                lockButtonTexture = LoadIcon(iconPath, LOCK_BUTTON_TEXTURE_PATH);
-//                unlockButtonTexture = LoadIcon(iconPath, UNLOCK_BUTTON_TEXTURE_PATH);
-            }
-            initialized = true;
-        }
-        else {
-            _editorSettings = this;
-        }
+        _editorSettings = this;
     }
-
-    private static Texture2D LoadIcon(params string[] path) {
-        return Resources.LoadAssetAtPath<Texture2D>(AssetUtils.CreatePath(path));
-    }
-#endif
 
     public void Awake() {}
 
