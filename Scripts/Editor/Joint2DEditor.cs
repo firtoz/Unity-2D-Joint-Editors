@@ -1093,7 +1093,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         if (editorSettings == null) {
             return;
         }
-        if (WantsLocking()) {
+        if (WantsLocking() && editorSettings.automaticRealign) {
             //gets called before gizmos!
             AnchoredJoint2D joint2D = target as AnchoredJoint2D;
             if (joint2D) {
@@ -1104,7 +1104,11 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
     public void OnSceneGUIDelegate(SceneView sceneView) {
         if (editorSettings == null) {
-            SceneView.onSceneGUIDelegate -= OnSceneGUIDelegate;
+//            SceneView.onSceneGUIDelegate -= OnSceneGUIDelegate;
+            return;
+        }
+
+        if (!editorSettings.automaticRealign) {
             return;
         }
 

@@ -50,6 +50,10 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The color displayed to highlight when angle widgets are active.")]
     public Color activeAngleColor = Color.green;
 
+    //general toggles
+    [Tooltip("Whether locked anchors should actively try to realign themselves.")]
+    public bool automaticRealign = true;
+
     //hingejoint2d settings
     [Tooltip("The distance (in pixels) between the anchors and the angle limits widgets.")]
     public float angleLimitRadius = 30.0f;

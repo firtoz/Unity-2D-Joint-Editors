@@ -64,6 +64,8 @@ internal class JointEditorSettingsEditor : Editor {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("maxLimitColor"));
             });
 
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("automaticRealign"));
+
         if (EditorGUI.EndChangeCheck()) {
             serializedObject.ApplyModifiedProperties();
         }
