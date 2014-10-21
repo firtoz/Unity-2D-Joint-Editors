@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEditor;
+using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
@@ -104,7 +106,20 @@ public class JointEditorSettings : ScriptableObject {
                     }
                 }
                 else {
-                    Debug.LogWarning("Could not find JointEditorSettings!");
+                    AssetDatabase.Refresh();
+                    string[] allAssetPaths = AssetDatabase.GetAllAssetPaths();
+                    foreach (JointEditorSettings settings in 
+                        allAssetPaths.Select(
+                            assetPath => AssetDatabase.LoadAssetAtPath(assetPath, typeof (JointEditorSettings)))
+                            .OfType<JointEditorSettings>()) {
+                        Debug.LogWarning("Just Loaded JointEditorSettings!");
+                        _editorSettings = settings;
+                        break;
+                    }
+
+                    if (_editorSettings == null) {
+                        Debug.LogWarning("Could not find JointEditorSettings!");
+                    }
                 }
                 _loading = false;
             }
