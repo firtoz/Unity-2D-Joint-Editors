@@ -97,30 +97,22 @@ public class JointEditorSettings : ScriptableObject {
 
                 _loading = true;
 
-                JointEditorSettings[] allSettings = Resources.FindObjectsOfTypeAll<JointEditorSettings>();
+                string[] settingsGUIDs = AssetDatabase.FindAssets("t:JointEditorSettings");
 
-                if (allSettings.Length > 0) {
-                    _editorSettings = allSettings[0];
-                    if (_editorSettings == null) {
-                        Debug.Log("deleted!!?");
+                foreach (string guid in settingsGUIDs) {
+                    string settingsPath = AssetDatabase.GUIDToAssetPath(guid);
+//                    Debug.Log("settings path: "+ settingsPath);
+                    Object loadedAsset = AssetDatabase.LoadAssetAtPath(settingsPath, typeof (JointEditorSettings));
+                    if (loadedAsset is JointEditorSettings) {
+                        _editorSettings = (JointEditorSettings) loadedAsset;
                     }
                 }
-                else {
-                    AssetDatabase.Refresh();
-                    string[] allAssetPaths = AssetDatabase.GetAllAssetPaths();
-                    foreach (JointEditorSettings settings in 
-                        allAssetPaths.Select(
-                            assetPath => AssetDatabase.LoadAssetAtPath(assetPath, typeof (JointEditorSettings)))
-                            .OfType<JointEditorSettings>()) {
-                        Debug.LogWarning("Just Loaded JointEditorSettings!");
-                        _editorSettings = settings;
-                        break;
-                    }
 
-                    if (_editorSettings == null) {
-                        Debug.LogWarning("Could not find JointEditorSettings!");
-                    }
+                if (_editorSettings == null)
+                {
+                    Debug.LogError("Could not find JointEditorSettings!");
                 }
+                
                 _loading = false;
             }
 
