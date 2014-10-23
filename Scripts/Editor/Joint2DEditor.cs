@@ -274,43 +274,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 if (current.button == 0 && GUIUtility.hotControl == controlID) {}
                 break;
         }
-        if (HandleUtility.nearestControl == controlID) {
-            switch (current.GetTypeForControl(controlID)) {
-                case EventType.DragPerform:
-                    foreach (GameObject go in DragAndDrop.objectReferences
-                        .Cast<GameObject>()
-                        .Where(go => !go.Equals(joint.gameObject) && go.GetComponent<Rigidbody2D>() != null)) {
-                        bool wantsLock = joint2DSettings.lockAnchors;
-
-                        EditorHelpers.RecordUndo("Drag Onto Anchor", joint);
-                        Vector2 connectedBodyPosition = JointHelpers.GetConnectedAnchorPosition(joint);
-                        joint.connectedBody = go.GetComponent<Rigidbody2D>();
-
-                        JointHelpers.SetWorldConnectedAnchorPosition(joint, connectedBodyPosition);
-
-                        if (wantsLock) {
-                            ReAlignAnchors(joint, JointHelpers.AnchorBias.Main);
-                        }
-
-                        EditorUtility.SetDirty(joint);
-                        DragAndDrop.AcceptDrag();
-                        break;
-                    }
-                    break;
-                case EventType.DragUpdated:
-                    if (DragAndDrop.objectReferences
-                        .Cast<GameObject>()
-                        .Any(go => !go.Equals(joint.gameObject) && go.GetComponent<Rigidbody2D>() != null)) {
-                        DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-                        Event.current.Use();
-                    }
-//                Debug.Log(DragAndDrop.objectReferences.Cast<Rigidbody2D>().Count());
-                    break;
-                case EventType.DragExited:
-//                Debug.Log(DragAndDrop.objectReferences.Cast<Rigidbody2D>().Count());
-                    break;
-            }
-        }
+        
+        HandleDragDrop(controlID, joint, joint2DSettings);
 
         Vector2 result;
 
@@ -349,6 +314,55 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
 
         return result;
+    }
+
+    protected void HandleDragDrop(int controlID, AnchoredJoint2D joint, Joint2DSettings joint2DSettings) {
+        Event current = Event.current;
+
+        if (HandleUtility.nearestControl == controlID) {
+            switch (current.GetTypeForControl(controlID)) {
+                case EventType.DragPerform:
+                    foreach (Object o in DragAndDrop.objectReferences) {
+                        GameObject gameObject = o as GameObject;
+                        if (gameObject == null) {
+                            continue;
+                        }
+                        GameObject go = gameObject;
+                        Rigidbody2D rigidbody2D = go.GetComponent<Rigidbody2D>();
+                        if (go.Equals(joint.gameObject) || rigidbody2D == null || rigidbody2D == joint.connectedBody) {
+                            continue;
+                        }
+                        bool wantsLock = joint2DSettings.lockAnchors;
+
+                        EditorHelpers.RecordUndo("Drag Onto Anchor", joint);
+                        Vector2 connectedBodyPosition = JointHelpers.GetConnectedAnchorPosition(joint);
+                        joint.connectedBody = rigidbody2D;
+
+                        JointHelpers.SetWorldConnectedAnchorPosition(joint, connectedBodyPosition);
+
+                        if (wantsLock) {
+                            ReAlignAnchors(joint, JointHelpers.AnchorBias.Main);
+                        }
+
+                        EditorUtility.SetDirty(joint);
+                        DragAndDrop.AcceptDrag();
+                        break;
+                    }
+                    break;
+                case EventType.DragUpdated:
+                    if (DragAndDrop.objectReferences.OfType<GameObject>()
+                        .Any(go => {
+                            Rigidbody2D rigidbody2D = go.GetComponent<Rigidbody2D>();
+                            return !go.Equals(joint.gameObject) && rigidbody2D != null && rigidbody2D != joint.connectedBody;
+                        })) {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Link;
+                        Event.current.Use();
+                    }
+                    break;
+                case EventType.DragExited:
+                    break;
+            }
+        }
     }
 
     protected virtual void OwnershipMoved(AnchoredJoint2D cloneJoint) {}

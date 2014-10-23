@@ -324,9 +324,11 @@ public class SliderJoint2DEditor : Joint2DEditor {
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
 
+        int sliderAngleControlID = anchorInfo.GetControlID("sliderAngle");
+
         if (bias != JointHelpers.AnchorBias.Connected &&
             (
-                GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle") ||
+                GUIUtility.hotControl == sliderAngleControlID ||
                 GUIUtility.hotControl == anchorInfo.GetControlID("minLimit") ||
                 GUIUtility.hotControl == anchorInfo.GetControlID("maxLimit") ||
                 !Event.current.shift)) {
@@ -343,7 +345,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         using (new HandleColor(new Color(1, 1, 1, 0.125f))) {
             Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
-            if (sliderJoint2D.connectedBody && GUIUtility.hotControl == anchorInfo.GetControlID("sliderAngle")) {
+            if (sliderJoint2D.connectedBody && GUIUtility.hotControl == sliderAngleControlID) {
                 Handles.DrawLine(mainAnchorPosition, GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected));
             }
         }
@@ -400,9 +402,13 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
 
+        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(sliderJoint2D);
+
+        int controlID = anchorInfo.GetControlID("sliderAngle");
+
+        HandleDragDrop(controlID, sliderJoint2D, joint2DSettings);
 
         EditorGUI.BeginChangeCheck();
-        int controlID = anchorInfo.GetControlID("sliderAngle");
 
         float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 2);
 
@@ -423,8 +429,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
                                         "The translation angle that the joint slides along. [ -1000000, 1000000 ]."),
                                     sliderJoint2D.angle);
                             if (EditorGUI.EndChangeCheck()) {
-                                Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(sliderJoint2D);
-
 
                                 using (new Modification("Slider Angle", sliderJoint2D)) {
                                     if (joint2DSettings.lockAnchors) {
@@ -455,8 +459,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
         if (EditorGUI.EndChangeCheck()) {
             Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
             Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
-
-            Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(sliderJoint2D);
 
             if (EditorGUI.actionKey) {
                 float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
