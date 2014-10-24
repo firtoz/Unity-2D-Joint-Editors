@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableEditor;
+using toxicFork.GUIHelpers.DisposableEditorGUI;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
 using UnityEngine;
@@ -62,12 +63,14 @@ public class WheelJoint2DEditor : Joint2DEditor
         Vector2 direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
                             JointHelpers.GetMainAnchorPosition(joint2D);
 
-        float wantedAngle = Helpers2D.GetAngle(direction);
+        if (direction.magnitude > AnchorEpsilon) {
+            float wantedAngle = Helpers2D.GetAngle(direction);
 
-        EditorHelpers.RecordUndo("Realign angle", wheelJoint2D);
-        JointSuspension2D susp = wheelJoint2D.suspension;
-        susp.angle = wantedAngle - wheelJoint2D.transform.eulerAngles.z;
-        wheelJoint2D.suspension = susp;
+            EditorHelpers.RecordUndo("Realign angle", wheelJoint2D);
+            JointSuspension2D susp = wheelJoint2D.suspension;
+            susp.angle = wantedAngle - wheelJoint2D.transform.eulerAngles.z;
+            wheelJoint2D.suspension = susp;   
+        }
     }
 
     protected override Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias)
@@ -169,7 +172,8 @@ public class WheelJoint2DEditor : Joint2DEditor
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(wheelJoint2D);
 
-        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(wheelJoint2D);
+        WheelJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate<WheelJoint2DSettings>(wheelJoint2D);
+
         HandleDragDrop(controlID, wheelJoint2D, joint2DSettings);
 
         EditorGUI.BeginChangeCheck();
@@ -180,52 +184,7 @@ public class WheelJoint2DEditor : Joint2DEditor
 
         EditorHelpers.ContextClick(controlID, () => {
             GenericMenu menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Edit Suspension Angle"), false,
-                () =>
-                    EditorHelpers.ShowDropDown(
-                        new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
-                        delegate(Action close, bool focused) {
-                            EditorGUI.BeginChangeCheck();
-                            GUI.SetNextControlName("SuspensionAngle");
-                            float suspensionAngle =
-                                EditorGUILayout.FloatField(
-                                    new GUIContent("Suspension Angle",
-                                        "The world movement angle for the suspension. [ -1000000, 1000000 ]."),
-                                    wheelJoint2D.suspension.angle);
-                            if (EditorGUI.EndChangeCheck()) {
-                                using (new Modification("Suspension Angle", wheelJoint2D)) {
-                                    float angleDelta = Mathf.DeltaAngle(wheelJoint2D.suspension.angle, suspensionAngle);
-                                    EditorHelpers.RecordUndo("Alter Wheel Joint 2D Angle", wheelJoint2D);
-                                    JointSuspension2D susp = wheelJoint2D.suspension;
-                                    susp.angle = suspensionAngle;
-
-                                    wheelJoint2D.suspension = susp;
-
-
-                                    if (joint2DSettings.lockAnchors) {
-                                        Vector2 connectedAnchorPosition =
-                                            JointHelpers.GetConnectedAnchorPosition(wheelJoint2D);
-                                        Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
-
-                                        JointHelpers.SetWorldConnectedAnchorPosition(wheelJoint2D,
-                                            mainAnchorPosition +
-                                            (Vector2) (Helpers2D.Rotate(angleDelta)*connectedOffset));
-                                    }
-
-                                    JointSuspension2D suspension = wheelJoint2D.suspension;
-
-                                    suspension.angle = suspensionAngle;
-
-                                    wheelJoint2D.suspension = suspension;
-                                }
-                            }
-                            if (GUILayout.Button("Done") ||
-                                (Event.current.isKey &&
-                                 (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Escape) &&
-                                 focused)) {
-                                close();
-                            }
-                        }));
+            AddSuspensionAngleContextMenuItem(wheelJoint2D, menu, mousePosition);
             menu.ShowAsContext();
         });
 
@@ -233,7 +192,7 @@ public class WheelJoint2DEditor : Joint2DEditor
         {
             Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(wheelJoint2D);
             Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
-
+            bool snapped = false;
 
             if (EditorGUI.actionKey)
             {
@@ -262,6 +221,7 @@ public class WheelJoint2DEditor : Joint2DEditor
                             .normalized);
                 }
 
+
                 foreach (Vector2 direction in directionsToSnapTo)
                 {
                     Ray rayTowardsConnectedAnchor = new Ray(mainAnchorPosition, direction);
@@ -277,6 +237,7 @@ public class WheelJoint2DEditor : Joint2DEditor
                             Helpers2D.ClosestPointToRay(rayTowardsConnectedAnchor,
                                 mainAnchorPosition + currentDirection);
 
+                        snapped = true;
                         newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
 
                         break;
@@ -284,9 +245,15 @@ public class WheelJoint2DEditor : Joint2DEditor
                 }
             }
 
+            float wantedAngle = newAngle - wheelJoint2D.transform.eulerAngles.z;
+
+            if (!snapped)
+            {
+                wantedAngle = Handles.SnapValue(wantedAngle, 45);
+            }
+
             if (joint2DSettings.lockAnchors)
             {
-                float wantedAngle = newAngle - wheelJoint2D.transform.eulerAngles.z;
                 float angleDelta = Mathf.DeltaAngle(wheelJoint2D.suspension.angle, wantedAngle);
                 EditorHelpers.RecordUndo("Alter Wheel Joint 2D Angle", wheelJoint2D);
                 JointSuspension2D susp = wheelJoint2D.suspension;
@@ -298,34 +265,116 @@ public class WheelJoint2DEditor : Joint2DEditor
             }
             else
             {
-                Ray wantedAngleRay = new Ray(mainAnchorPosition,
+                if (EditorGUI.actionKey) {
+                    Ray wantedAngleRay = new Ray(mainAnchorPosition,
                     (JointHelpers.GetConnectedAnchorPosition(wheelJoint2D) - mainAnchorPosition).normalized);
-                float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
-                Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-                Vector2 anglePosition =
-                    Helpers2D.ClosestPointToRay(new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle)),
-                        mousePosition2D);
+                    float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
+                    Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                    Vector2 anglePosition =
+                        Helpers2D.ClosestPointToRay(new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle)),
+                            mousePosition2D);
 
+                    Vector2 closestPosition = Helpers2D.ClosestPointToRay(wantedAngleRay, anglePosition);
+                    if (Vector2.Distance(closestPosition, anglePosition) < handleSize*0.125f) {
+                        Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
+                        Vector2 closestPositionToDirection =
+                            Helpers2D.ClosestPointToRay(wantedAngleRay,
+                                mainAnchorPosition + currentDirection);
 
-                Vector2 closestPosition = Helpers2D.ClosestPointToRay(wantedAngleRay, anglePosition);
-
-                if (EditorGUI.actionKey && Vector2.Distance(closestPosition, anglePosition) < handleSize * 0.125f)
-                {
-                    Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
-                    Vector2 closestPositionToDirection =
-                        Helpers2D.ClosestPointToRay(wantedAngleRay,
-                            mainAnchorPosition + currentDirection);
-
-                    newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
+                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
+                        wantedAngle = newAngle - wheelJoint2D.transform.eulerAngles.z;
+                    }
                 }
+
                 EditorHelpers.RecordUndo("Change Suspension Angle", wheelJoint2D);
                 JointSuspension2D susp = wheelJoint2D.suspension;
-                susp.angle = newAngle - wheelJoint2D.transform.eulerAngles.z;
+                susp.angle = wantedAngle;
                 wheelJoint2D.suspension = susp;
             }
         }
     }
 
+    private static void AddSuspensionAngleContextMenuItem(WheelJoint2D wheelJoint2D, GenericMenu menu, Vector2 mousePosition) {
+        menu.AddItem(new GUIContent("Edit Suspension Angle"), false,
+            delegate {
+                Vector2 mainAnchorPosition =
+                    JointHelpers.GetMainAnchorPosition(wheelJoint2D);
+
+                WheelJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate<WheelJoint2DSettings>(wheelJoint2D);
+
+                EditorHelpers.ShowDropDown(
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
+                    delegate(Action close, bool focused) {
+                        EditorGUI.BeginChangeCheck();
+                        GUI.SetNextControlName("SuspensionAngle");
+                        float suspensionAngle =
+                            EditorGUILayout.FloatField(
+                                new GUIContent("Suspension Angle",
+                                    "The world movement angle for the suspension. [ -1000000, 1000000 ]."),
+                                wheelJoint2D.suspension.angle);
+                        if (EditorGUI.EndChangeCheck()) {
+                            using (new Modification("Suspension Angle", wheelJoint2D)) {
+                                float angleDelta = Mathf.DeltaAngle(wheelJoint2D.suspension.angle, suspensionAngle);
+                                EditorHelpers.RecordUndo("Alter Wheel Joint 2D Angle", wheelJoint2D);
+                                JointSuspension2D susp = wheelJoint2D.suspension;
+                                susp.angle = suspensionAngle;
+
+                                wheelJoint2D.suspension = susp;
+
+
+                                if (joint2DSettings.lockAnchors) {
+                                    Vector2 connectedAnchorPosition =
+                                        JointHelpers.GetConnectedAnchorPosition(wheelJoint2D);
+                                    Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
+
+                                    JointHelpers.SetWorldConnectedAnchorPosition(wheelJoint2D,
+                                        mainAnchorPosition +
+                                        (Vector2) (Helpers2D.Rotate(angleDelta)*connectedOffset));
+                                }
+
+                                JointSuspension2D suspension = wheelJoint2D.suspension;
+
+                                suspension.angle = suspensionAngle;
+
+                                wheelJoint2D.suspension = suspension;
+                            }
+                        }
+                        if (GUILayout.Button("Done") ||
+                            (Event.current.isKey &&
+                             (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Escape) &&
+                             focused)) {
+                            close();
+                        }
+                    });
+            });
+    }
+
+    protected override bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
+        JointHelpers.AnchorBias bias) {
+        WheelJoint2D wheelJoint2D = joint2D as WheelJoint2D;
+        if (wheelJoint2D == null) {
+            return false;
+        }
+
+
+
+        if (EditorHelpers.IsWarm(info.GetControlID("suspensionAngle")) && DragAndDrop.objectReferences.Length == 0)
+        {
+            float suspensionAngle = wheelJoint2D.suspension.angle;
+
+            GUIContent labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
+            Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+
+            float fontSize = HandleUtility.GetHandleSize(mainAnchorPosition) * (1f / 64f);
+
+            float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
+            
+                        Handles.Label(mainAnchorPosition + (Camera.current.transform.up * labelOffset), labelContent,
+                            EditorHelpers.FontWithBackgroundStyle);
+        }
+
+        return false;
+    }
 
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint) {
         //swap limits
@@ -349,12 +398,67 @@ public class WheelJoint2DEditor : Joint2DEditor
         WheelJoint2D wheelJoint2D = joint as WheelJoint2D;
         if (wheelJoint2D != null)
         {
+            Vector2 mousePosition = Event.current.mousePosition;
+
+            AddSuspensionAngleContextMenuItem(wheelJoint2D, menu, mousePosition);
+
             menu.AddItem(new GUIContent("Use Motor"), wheelJoint2D.useMotor, () =>
             {
                 EditorHelpers.RecordUndo("Use Motor", wheelJoint2D);
                 wheelJoint2D.useMotor = !wheelJoint2D.useMotor;
                 EditorUtility.SetDirty(wheelJoint2D);
             });
+
+
+            menu.AddItem(new GUIContent("Configure Motor"), false, () =>
+                EditorHelpers.ShowDropDown(
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
+                    delegate(Action close, bool focused)
+                    {
+                        EditorGUILayout.LabelField(new GUIContent("Wheel Joint 2D Motor", "The joint motor."));
+                        using (new Indent())
+                        {
+                            EditorGUI.BeginChangeCheck();
+
+                            bool useMotor =
+                                EditorGUILayout.Toggle(
+                                    new GUIContent("Use Motor", "Whether to use the joint motor or not."),
+                                    wheelJoint2D.useMotor);
+
+                            GUI.SetNextControlName("Motor Config");
+                            float motorSpeed = EditorGUILayout.FloatField(
+                                new GUIContent("Motor Speed",
+                                    "The target motor speed in degrees/second. [-100000, 1000000 ]."),
+                                wheelJoint2D.motor.motorSpeed);
+                            GUI.SetNextControlName("Motor Config");
+                            float maxMotorTorque = EditorGUILayout.FloatField(
+                                new GUIContent("Maximum Motor Force",
+                                    "The maximum force the motor can use to achieve the desired motor speed. [ 0, 1000000 ]."),
+                                wheelJoint2D.motor.maxMotorTorque);
+
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                using (new Modification("Configure Motor", wheelJoint2D))
+                                {
+                                    JointMotor2D motor = wheelJoint2D.motor;
+                                    motor.motorSpeed = motorSpeed;
+                                    motor.maxMotorTorque = maxMotorTorque;
+                                    wheelJoint2D.motor = motor;
+
+                                    wheelJoint2D.useMotor = useMotor;
+                                }
+                            }
+                        }
+
+
+                        if (GUILayout.Button("Done") ||
+                            (Event.current.isKey &&
+                             (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Escape) &&
+                             focused))
+                        {
+                            close();
+                        }
+                    }));
         }
     }
 }
