@@ -45,23 +45,23 @@ public class JointHelpers {
 		}
 	}
 
-    public static void SetAnchorPosition(AnchoredJoint2D joint2D, Vector2 position, AnchorBias bias)
+    public static void SetWorldAnchorPosition(AnchoredJoint2D joint2D, Vector2 position, AnchorBias bias)
     {
 		switch (bias) {
 			case AnchorBias.Connected:
 				SetWorldConnectedAnchorPosition(joint2D, position);
 				break;
 			case AnchorBias.Main:
-				SetWorldAnchorPosition(joint2D, position);
+				SetWorldMainAnchorPosition(joint2D, position);
 				break;
 			case AnchorBias.Either:
-				SetWorldAnchorPosition(joint2D, position);
+				SetWorldMainAnchorPosition(joint2D, position);
 				SetWorldConnectedAnchorPosition(joint2D, position);
 				break;
 		}
 	}
 
-    public static void SetWorldAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldAnchor)
+    public static void SetWorldMainAnchorPosition(AnchoredJoint2D joint2D, Vector2 worldAnchor)
     {
 		joint2D.anchor = Helpers2D.InverseTransformPoint(joint2D.transform, worldAnchor);
 	}
