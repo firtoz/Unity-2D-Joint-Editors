@@ -31,7 +31,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
     protected virtual void ReAlignAnchors(AnchoredJoint2D joint2D, JointHelpers.AnchorBias alignmentBias) {
         JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(alignmentBias);
-        JointHelpers.SetAnchorPosition(joint2D, GetWantedAnchorPosition(joint2D, oppositeBias), oppositeBias);
+        JointHelpers.SetWorldAnchorPosition(joint2D, GetWantedAnchorPosition(joint2D, oppositeBias), oppositeBias);
     }
 
     public bool HasFrameBounds() {
@@ -166,7 +166,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 else {
                     menu.AddItem(new GUIContent("Bring other anchor here"), false, () => {
                         EditorHelpers.RecordUndo("Move Joint Anchor", joint);
-                        JointHelpers.SetAnchorPosition(joint, anchorPosition, otherBias);
+                        JointHelpers.SetWorldAnchorPosition(joint, anchorPosition, otherBias);
                         EditorUtility.SetDirty(joint);
                     });
                 }
@@ -204,10 +204,10 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     EditorUtility.CopySerialized(joint, cloneJoint);
                     cloneJoint.connectedBody = joint.rigidbody2D;
 
-                    JointHelpers.SetAnchorPosition(cloneJoint,
+                    JointHelpers.SetWorldAnchorPosition(cloneJoint,
                         JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Main),
                         JointHelpers.AnchorBias.Connected);
-                    JointHelpers.SetAnchorPosition(cloneJoint,
+                    JointHelpers.SetWorldAnchorPosition(cloneJoint,
                         JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Connected),
                         JointHelpers.AnchorBias.Main);
 
@@ -762,7 +762,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             position = AlterDragResult(sliderID, position, joint2D, bias,
                 HandleUtility.GetHandleSize(position)*editorSettings.anchorScale*0.25f);
 
-            JointHelpers.SetAnchorPosition(joint2D, position, bias);
+            JointHelpers.SetWorldAnchorPosition(joint2D, position, bias);
         }
         return changed;
     }

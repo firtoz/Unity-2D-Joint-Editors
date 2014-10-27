@@ -405,8 +405,9 @@ public class SliderJoint2DEditor : Joint2DEditor {
         float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
+        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
 
-        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(sliderJoint2D);
+        SliderJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate <SliderJoint2DSettings>(sliderJoint2D);
 
         int controlID = anchorInfo.GetControlID("sliderAngle");
 
@@ -414,7 +415,27 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         EditorGUI.BeginChangeCheck();
 
-        float newAngle = LineAngleHandle(controlID, worldAngle, mainAnchorPosition, 0.5f, 2);
+        Vector2 angleWidgetPosition;
+
+        float newAngle;
+
+
+        JointHelpers.AnchorBias sliderBias;
+
+        if (joint2DSettings.anchorPriority == SliderJoint2DSettings.AnchorPriority.Main) {
+            sliderBias = JointHelpers.AnchorBias.Main;
+        } else {
+            sliderBias = JointHelpers.AnchorBias.Connected;
+        }
+
+        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(sliderBias);
+        angleWidgetPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, sliderBias);
+
+        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
+
+        Vector2 offsetToOther = otherAnchorPosition - angleWidgetPosition;
+
+        newAngle = LineAngleHandle(controlID, worldAngle, angleWidgetPosition, 0.5f, 2);
 
         Vector2 mousePosition = Event.current.mousePosition;
 
@@ -425,49 +446,47 @@ public class SliderJoint2DEditor : Joint2DEditor {
         });
 
         if (EditorGUI.EndChangeCheck()) {
-            Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
-            Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
+
             bool snapped = false;
 
             if (EditorGUI.actionKey) {
-                float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
+                float handleSize = HandleUtility.GetHandleSize(angleWidgetPosition);
 
                 Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
 
-                Ray currentAngleRay = new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle));
+                Ray currentAngleRay = new Ray(angleWidgetPosition, Helpers2D.GetDirection(newAngle));
 
                 Vector2 mousePositionProjectedToAngle = Helpers2D.ClosestPointToRay(currentAngleRay, mousePosition2D);
 
                 List<Vector2> directionsToSnapTo = new List<Vector2> {
-                    (GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Main) - mainAnchorPosition)
-                        .normalized
+                    (GetTargetPosition(sliderJoint2D, sliderBias) - angleWidgetPosition).normalized
                 };
 
                 if (!joint2DSettings.lockAnchors) {
-                    directionsToSnapTo.Insert(0, connectedOffset.normalized);
+                    directionsToSnapTo.Insert(0, offsetToOther.normalized);
                 }
 
                 if (sliderJoint2D.connectedBody) {
                     directionsToSnapTo.Add(
-                        (GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected) - mainAnchorPosition)
+                        (GetTargetPosition(sliderJoint2D, oppositeBias) - angleWidgetPosition)
                             .normalized);
                 }
 
                 foreach (Vector2 direction in directionsToSnapTo) {
-                    Ray rayTowardsConnectedAnchor = new Ray(mainAnchorPosition, direction);
+                    Ray rayTowardsDirection = new Ray(angleWidgetPosition, direction);
 
-                    Vector2 closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsConnectedAnchor,
+                    Vector2 closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsDirection,
                         mousePositionProjectedToAngle);
 
                     if (Vector2.Distance(closestPointTowardsDirection, mousePositionProjectedToAngle) <
                         handleSize*0.125f) {
                         Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
                         Vector2 closestPositionToDirection =
-                            Helpers2D.ClosestPointToRay(rayTowardsConnectedAnchor,
-                                mainAnchorPosition + currentDirection);
+                            Helpers2D.ClosestPointToRay(rayTowardsDirection,
+                                angleWidgetPosition + currentDirection);
 
                         snapped = true;
-                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
+                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - angleWidgetPosition);
 
                         break;
                     }
@@ -482,42 +501,19 @@ public class SliderJoint2DEditor : Joint2DEditor {
                 wantedAngle = Handles.SnapValue(wantedAngle, 45);
             }
 
+            EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
+
             if (joint2DSettings.lockAnchors) {
                 float angleDelta = Mathf.DeltaAngle(sliderJoint2D.angle, wantedAngle);
 
-                EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
-                sliderJoint2D.angle = wantedAngle;
 
-                JointHelpers.SetWorldConnectedAnchorPosition(sliderJoint2D,
-                    mainAnchorPosition + (Vector2) (Helpers2D.Rotate(angleDelta)*connectedOffset));
-            }
-            else {
-                if (EditorGUI.actionKey)
-                {
-                    Ray wantedAngleRay = new Ray(mainAnchorPosition,
-                    (JointHelpers.GetConnectedAnchorPosition(sliderJoint2D) - mainAnchorPosition).normalized);
-                    float handleSize = HandleUtility.GetHandleSize(mainAnchorPosition);
-                    Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-                    Vector2 anglePosition =
-                        Helpers2D.ClosestPointToRay(new Ray(mainAnchorPosition, Helpers2D.GetDirection(newAngle)),
-                            mousePosition2D);
+                JointHelpers.SetWorldAnchorPosition(sliderJoint2D,
+                    angleWidgetPosition + (Vector2)(Helpers2D.Rotate(angleDelta) * offsetToOther), oppositeBias);
 
-                    Vector2 closestPosition = Helpers2D.ClosestPointToRay(wantedAngleRay, anglePosition);
-                    if (Vector2.Distance(closestPosition, anglePosition) < handleSize * 0.125f)
-                    {
-                        Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
-                        Vector2 closestPositionToDirection =
-                            Helpers2D.ClosestPointToRay(wantedAngleRay,
-                                mainAnchorPosition + currentDirection);
-
-                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - mainAnchorPosition);
-                        wantedAngle = newAngle - sliderJoint2D.transform.eulerAngles.z;
-                    }
-                }
-
-                EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
                 sliderJoint2D.angle = wantedAngle;
             }
+
+            sliderJoint2D.angle = wantedAngle;
         }
 
         if (sliderJoint2D.useLimits) {
