@@ -875,8 +875,20 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             if (EditorGUI.actionKey) {
                 List<Vector2> snapPositions = new List<Vector2> {
                     transform.position,
-                    JointHelpers.GetAnchorPosition(joint2D, bias)
+                    JointHelpers.GetMainAnchorPosition(joint2D),
+                    JointHelpers.GetConnectedAnchorPosition(joint2D)
                 };
+
+
+                //snap to other offset as well!
+                JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
+
+                Transform oppositeTransform = JointHelpers.GetTargetTransform(joint2D, oppositeBias);
+                if (oppositeTransform)
+                {
+                    snapPositions.Add(Helpers2D.TransformPoint(oppositeTransform, jointSettings.GetOffset(oppositeBias)));
+                    snapPositions.Add(oppositeTransform.position);
+                }
 
                 foreach (Vector2 position in snapPositions) {
                     if (Vector2.Distance(worldOffset, position) < handleSize*0.25f) {
@@ -885,7 +897,6 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     }
                 }
             }
-
 
             EditorHelpers.RecordUndo("Change Offset", jointSettings);
             jointSettings.SetOffset(bias, Helpers2D.InverseTransformPoint(transform, worldOffset));
