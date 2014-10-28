@@ -404,8 +404,8 @@ public class SliderJoint2DEditor : Joint2DEditor {
     private void DrawSlider(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
         float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
-        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
+//        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
+//        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
 
         SliderJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate <SliderJoint2DSettings>(sliderJoint2D);
 
@@ -414,10 +414,6 @@ public class SliderJoint2DEditor : Joint2DEditor {
         HandleDragDrop(controlID, sliderJoint2D, joint2DSettings);
 
         EditorGUI.BeginChangeCheck();
-
-        Vector2 angleWidgetPosition;
-
-        float newAngle;
 
 
         JointHelpers.AnchorBias sliderBias;
@@ -429,13 +425,13 @@ public class SliderJoint2DEditor : Joint2DEditor {
         }
 
         JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(sliderBias);
-        angleWidgetPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, sliderBias);
+        Vector2 angleWidgetPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, sliderBias);
 
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
 
         Vector2 offsetToOther = otherAnchorPosition - angleWidgetPosition;
 
-        newAngle = LineAngleHandle(controlID, worldAngle, angleWidgetPosition, 0.5f, 2);
+        float newAngle = LineAngleHandle(controlID, worldAngle, angleWidgetPosition, 0.5f, 2);
 
         Vector2 mousePosition = Event.current.mousePosition;
 
@@ -695,7 +691,7 @@ public class SliderJoint2DEditor : Joint2DEditor {
 
         float newLimit = EditorHelpers.LineSlider(limitControlID, anchorPosition,
             val,
-            Helpers2D.GetAngle(direction), 0.125f, false, true);
+            Helpers2D.GetAngle(direction), 0.125f, false, limit == Limit.Min);
 
         if (EditorGUI.EndChangeCheck()) {
             if (snapList != null) {
