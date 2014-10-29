@@ -465,7 +465,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                         if (WantsLocking()) {
                             ToggleAnchorLock();
                         }
-                        AlterOffsets(enabled);
+//                        AlterOffsets(enabled);
                     }
                 }
 
@@ -492,8 +492,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         EditorGUI.BeginChangeCheck();
 
         using (new GUIEnabled(enabled)) {
-            SerializedProperty useOffsets = serializedSettings.FindProperty("useOffsets");
-            EditorGUILayout.PropertyField(useOffsets);
+//            SerializedProperty useOffsets = serializedSettings.FindProperty("useOffsets");
+//            EditorGUILayout.PropertyField(useOffsets);
             
             SerializedProperty mainBodyOffset = serializedSettings.FindProperty("mainBodyOffset");
             EditorGUILayout.PropertyField(mainBodyOffset, MainOffsetContent);
@@ -1098,7 +1098,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
     }
 
-    SerializedObject serializedSettings = null;
+    SerializedObject serializedSettings;
 
     public void OnEnable() {
         editorSettings = JointEditorSettings.Singleton;
