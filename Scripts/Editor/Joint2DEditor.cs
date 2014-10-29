@@ -53,6 +53,30 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         return GetTargetPositionWithOffset(joint2D, bias);
     }
 
+    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
+    {
+        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(joint2D);
+
+        Vector2 targetPosition = JointHelpers.GetTargetPosition(joint2D, bias);
+
+        if (!joint2DSettings.useOffsets)
+        {
+            return targetPosition;
+        }
+
+        Transform targetTransform = JointHelpers.GetTargetTransform(joint2D, bias);
+
+        Vector2 offset = joint2DSettings.GetOffset(bias);
+
+        Vector2 worldOffset = offset;
+        if (targetTransform != null)
+        {
+            worldOffset = Helpers2D.TransformVector(targetTransform, worldOffset);
+        }
+
+        return targetPosition + worldOffset;
+    }
+
     public virtual Bounds OnGetFrameBounds() {
         Bounds bounds = Selection.activeGameObject.renderer
             ? Selection.activeGameObject.renderer.bounds
@@ -394,15 +418,15 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     private static readonly GUIContent DefaultGizmosContent =
         new GUIContent("Default Gizmos", "Toggles the display of default joint gizmos on the scene GUI (only effective if custom gizmos are disabled).");
 
-    protected void ToggleShowGizmos(SerializedObject serializedSettings) {
+    private void ToggleShowGizmos() {
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(serializedSettings.FindProperty("showCustomGizmos"), CustomGizmosContent);
         using (new GUIEnabled(!serializedSettings.FindProperty("showCustomGizmos").boolValue)) {
             EditorGUILayout.PropertyField(serializedSettings.FindProperty("showDefaultgizmos"), DefaultGizmosContent);
         }
-        if (EditorGUI.EndChangeCheck()) {
-            serializedSettings.ApplyModifiedProperties();
-        }
+//        if (EditorGUI.EndChangeCheck()) {
+//            serializedSettings.ApplyModifiedProperties();
+//        }
     }
 
     public override sealed void OnInspectorGUI() {
@@ -410,6 +434,10 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             DrawDefaultInspector();
             return;
         }
+        if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed") {
+            Repaint();
+        }
+
         EditorGUI.BeginChangeCheck();
         bool showAdvancedOptions = EditorGUILayout.Foldout(editorSettings.showAdvancedOptions, "Advanced Options");
         if (EditorGUI.EndChangeCheck()) {
@@ -417,30 +445,37 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             editorSettings.showAdvancedOptions = showAdvancedOptions;
             EditorUtility.SetDirty(editorSettings);
         }
-        if (showAdvancedOptions) {
+        if (showAdvancedOptions && serializedSettings != null)
+        {
+            EditorGUI.BeginChangeCheck();
             using (new Indent()) {
-                List<Object> allSettings =
-                    targets.Cast<Joint2D>().Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
-                        .Where(jointSettings => jointSettings != null).Cast<Object>().ToList();
-
-                SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
+                serializedSettings.UpdateIfDirtyOrScript();
 
                 SerializedProperty showJointGizmos = serializedSettings.FindProperty("showCustomGizmos");
                 bool enabled = GUI.enabled &&
                                (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
                 EditorGUILayout.LabelField("Display:");
                 using (new Indent()) {
-                    ToggleShowGizmos(serializedSettings);
+                    ToggleShowGizmos();
                     InspectorDisplayGUI(enabled);
                 }
                 if (WantsLocking()) {
                     EditorGUILayout.LabelField("Features:");
                     using (new Indent()) {
                         if (WantsLocking()) {
-                            ToggleAnchorLock(serializedSettings);
+                            ToggleAnchorLock();
                         }
-                        AlterOffsets(serializedSettings, enabled);
+                        AlterOffsets(enabled);
                     }
+                }
+
+                serializedSettings.ApplyModifiedProperties();
+            }
+
+            if (EditorGUI.EndChangeCheck()) {
+                foreach (Object targetObject in serializedSettings.targetObjects)
+                {
+                    EditorUtility.SetDirty(targetObject);
                 }
             }
         }
@@ -453,19 +488,18 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     private static readonly GUIContent ConnectedOffsetContent = new GUIContent("Connected Offset",
         "This offset is used to display the current angle of the object that is connected by joint.");
 
-    private void AlterOffsets(SerializedObject serializedSettings, bool enabled) {
+    private void AlterOffsets(bool enabled) {
         EditorGUI.BeginChangeCheck();
 
         using (new GUIEnabled(enabled)) {
+            SerializedProperty useOffsets = serializedSettings.FindProperty("useOffsets");
+            EditorGUILayout.PropertyField(useOffsets);
+            
             SerializedProperty mainBodyOffset = serializedSettings.FindProperty("mainBodyOffset");
             EditorGUILayout.PropertyField(mainBodyOffset, MainOffsetContent);
 
             SerializedProperty connectedBodyOffset = serializedSettings.FindProperty("connectedBodyOffset");
             EditorGUILayout.PropertyField(connectedBodyOffset, ConnectedOffsetContent);
-        }
-
-        if (EditorGUI.EndChangeCheck()) {
-            serializedSettings.ApplyModifiedProperties();
         }
     }
 
@@ -474,7 +508,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             "Toggles anchor locking, which helps you keep the main and connected anchors of the joint properly aligned.");
 
 
-    private void ToggleAnchorLock(SerializedObject serializedSettings) {
+    private void ToggleAnchorLock() {
         EditorGUI.BeginChangeCheck();
 
         SerializedProperty lockAnchors = serializedSettings.FindProperty("lockAnchors");
@@ -886,7 +920,9 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                 Transform oppositeTransform = JointHelpers.GetTargetTransform(joint2D, oppositeBias);
                 if (oppositeTransform)
                 {
-                    snapPositions.Add(Helpers2D.TransformPoint(oppositeTransform, jointSettings.GetOffset(oppositeBias)));
+                    if (jointSettings.useOffsets) {
+                        snapPositions.Add(Helpers2D.TransformPoint(oppositeTransform, jointSettings.GetOffset(oppositeBias)));
+                    }
                     snapPositions.Add(oppositeTransform.position);
                 }
 
@@ -922,12 +958,17 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             connected = new AnchorInfo(controlNames),
             locked = new AnchorInfo(controlNames);
 
-        if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset"))) {
-            DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
-        }
+        if (jointSettings.useOffsets) {
 
-        if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset"))) {
-            DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
+            if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset")))
+            {
+                DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
+            }
+
+            if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset")))
+            {
+                DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
+            }   
         }
 
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
@@ -1057,6 +1098,8 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         }
     }
 
+    SerializedObject serializedSettings = null;
+
     public void OnEnable() {
         editorSettings = JointEditorSettings.Singleton;
 
@@ -1077,6 +1120,12 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
         if (WantsLocking()) {
             SceneView.onSceneGUIDelegate += OnSceneGUIDelegate;
         }
+
+        List<Object> allSettings =
+            targets.Cast<Joint2D>().Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
+                .Where(jointSettings => jointSettings != null).Cast<Object>().ToList();
+
+        serializedSettings = new SerializedObject(allSettings.ToArray());
     }
 
     public void OnDisable() {
@@ -1096,17 +1145,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
 
-    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        Transform transform = JointHelpers.GetTargetTransform(joint2D, bias);
-        Vector2 offset = SettingsHelper.GetOrCreate(joint2D).GetOffset(bias);
-
-        Vector2 worldOffset = offset;
-        if (transform != null) {
-            worldOffset = Helpers2D.TransformVector(transform, worldOffset);
-        }
-
-        return JointHelpers.GetTargetPosition(joint2D, bias) + worldOffset;
-    }
+    
 
 
     private readonly Dictionary<AnchoredJoint2D, PositionInfo> positions =

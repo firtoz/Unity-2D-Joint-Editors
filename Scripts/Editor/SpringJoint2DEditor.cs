@@ -21,9 +21,9 @@ public class SpringJoint2DEditor : Joint2DEditor {
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         SpringJoint2D springJoint2D = (SpringJoint2D)joint2D;
 
-        Vector2 center = JointHelpers.GetAnchorPosition(springJoint2D, bias);
-        float scale = editorSettings.anchorScale;
-        float handleSize = HandleUtility.GetHandleSize(center)*scale;
+//        Vector2 center = JointHelpers.GetAnchorPosition(springJoint2D, bias);
+//        float scale = editorSettings.anchorScale;
+//        float handleSize = HandleUtility.GetHandleSize(center)*scale;
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(springJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(springJoint2D);
@@ -37,28 +37,28 @@ public class SpringJoint2DEditor : Joint2DEditor {
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
-        if (bias == JointHelpers.AnchorBias.Main) {
-            Vector2 mainBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
-            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
-                if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
-                    Handles.DrawLine(mainBodyPosition, center);
-                }
-            }
-        }
-        else if (bias == JointHelpers.AnchorBias.Connected) {
-            Vector2 connectedBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Connected);
-            if (springJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
-                    if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
-                        Handles.DrawLine(connectedBodyPosition, center);
-                    }
-                    else {
-                        float rot = JointHelpers.GetTargetRotation(springJoint2D, JointHelpers.AnchorBias.Connected);
-                        Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
-                    }
-                }
-            }
-        }
+//        if (bias == JointHelpers.AnchorBias.Main) {
+//            Vector2 mainBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
+//            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
+//                if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
+//                    Handles.DrawLine(mainBodyPosition, center);
+//                }
+//            }
+//        }
+//        else if (bias == JointHelpers.AnchorBias.Connected) {
+//            Vector2 connectedBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Connected);
+//            if (springJoint2D.connectedBody) {
+//                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
+//                    if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
+//                        Handles.DrawLine(connectedBodyPosition, center);
+//                    }
+//                    else {
+//                        float rot = JointHelpers.GetTargetRotation(springJoint2D, JointHelpers.AnchorBias.Connected);
+//                        Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
+//                    }
+//                }
+//            }
+//        }
         return false;
     }
 
