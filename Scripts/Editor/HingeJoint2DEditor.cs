@@ -190,7 +190,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(hingeJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(hingeJoint2D);
-        if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
+        if (bias == JointHelpers.AnchorBias.Main && Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
             using (new HandleColor(Color.green)) {
                 Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
             }
