@@ -68,9 +68,7 @@ public class SpringJoint2DEditor : Joint2DEditor {
             return position;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
-            ? JointHelpers.AnchorBias.Connected
-            : JointHelpers.AnchorBias.Main;
+        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
 
         SpringJoint2D springJoint2D = (SpringJoint2D)joint;
 
@@ -87,6 +85,21 @@ public class SpringJoint2DEditor : Joint2DEditor {
         Vector2 normalizedDiff = diff.normalized;
 
         Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*springJoint2D.distance;
+
+        Vector2 mainTargetPosition = JointHelpers.GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
+        if (Vector2.Distance(position, mainTargetPosition) < snapDistance)
+        {
+            return mainTargetPosition;
+        }
+
+        if (springJoint2D.connectedBody)
+        {
+            Vector2 connectedTargetPosition = JointHelpers.GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Connected);
+            if (Vector2.Distance(position, connectedTargetPosition) < snapDistance)
+            {
+                return connectedTargetPosition;
+            }
+        }
 
         if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
             return wantedAnchorPosition;
@@ -145,7 +158,7 @@ public class SpringJoint2DEditor : Joint2DEditor {
                 throw new ArgumentOutOfRangeException();
         }
 
-        if (bias == wantedBias && EditorGUI.actionKey && GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
+        if (EditorGUI.actionKey && GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
         {
             Handles.DrawWireDisc(otherAnchorPosition, Vector3.forward, joint2D.distance); 
         }
