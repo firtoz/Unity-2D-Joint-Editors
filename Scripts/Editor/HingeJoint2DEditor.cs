@@ -421,36 +421,36 @@ public class HingeJoint2DEditor : Joint2DEditor {
     private void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         Vector2 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
-//        float scale = editorSettings.anchorScale;
-//        float handleSize = HandleUtility.GetHandleSize(center)*scale;
+        float scale = editorSettings.anchorScale;
+        float handleSize = HandleUtility.GetHandleSize(center)*scale;
 
         Vector2 mainBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Main);
-//        using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
-//            if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
-//                Handles.DrawLine(mainBodyPosition, center);
-//            }
-//            else {
-//                float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main);
-//                Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
-//            }
-//        }
+        using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
+            if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
+                Handles.DrawLine(mainBodyPosition, center);
+            }
+            else {
+                float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Main);
+                Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
+            }
+        }
         Vector2 connectedBodyPosition = GetTargetPosition(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-//        if (hingeJoint2D.connectedBody) {
-//            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
-//                if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
-//                    Handles.DrawLine(connectedBodyPosition, center);
-//                }
-//                else {
-//                    float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected);
-//                    Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
-//                }
-//            }
-//        }
-//        else {
-//            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
-//                Handles.DrawLine(center, center + Helpers2D.GetDirection(0)*handleSize);
-//            }
-//        }
+        if (hingeJoint2D.connectedBody) {
+            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
+                if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
+                    Handles.DrawLine(connectedBodyPosition, center);
+                }
+                else {
+                    float rot = JointHelpers.GetTargetRotation(hingeJoint2D, JointHelpers.AnchorBias.Connected);
+                    Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
+                }
+            }
+        }
+        else {
+            using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
+                Handles.DrawLine(center, center + Helpers2D.GetDirection(0)*handleSize);
+            }
+        }
 
         int sliderControlID = anchorInfo.GetControlID("slider");
 
