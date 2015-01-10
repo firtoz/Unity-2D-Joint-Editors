@@ -1,5 +1,6 @@
-﻿using System.Linq;
+﻿#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -79,6 +80,7 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("Whether to show joint gizmos on the targets as well as the owners.")]
     public bool showConnectedJoints = false;
 
+#if UNITY_EDITOR
     private static JointEditorSettings _editorSettings;
     private static bool _loading;
 
@@ -120,10 +122,6 @@ public class JointEditorSettings : ScriptableObject {
     public void OnEnable() {
         _editorSettings = this;
     }
+#endif
 
-    public void Awake() {}
-
-    public void Start() {}
-
-    public void OnDisable() {}
 }

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor;
+using toxicFork.GUIHelpers;
 using UnityEngine;
-using System.Collections;
 
 [ExecuteInEditMode]
 public class Joint2DTarget : MonoBehaviour {
@@ -20,12 +19,11 @@ public class Joint2DTarget : MonoBehaviour {
         }
     }
 
-    // Update is called once per frame
+#if UNITY_EDITOR
     public void Update()
     {
-        if (!JointEditorSettings.Singleton.showConnectedJoints)
-        {
-            DestroyImmediate(this);
+        if (!JointEditorSettings.Singleton.showConnectedJoints) {
+            Helpers.DestroyImmediate(this);
             return;
         }
 
@@ -40,7 +38,8 @@ public class Joint2DTarget : MonoBehaviour {
         }
 
         if (attachedJoints.Count == 0) {
-            DestroyImmediate(this);
+            Helpers.DestroyImmediate(this);
         }
     }
+#endif
 }

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using toxicFork.GUIHelpers;
+using UnityEngine;
 
 //#if UNITY_EDITOR
 
@@ -13,46 +14,8 @@ public abstract class Joint2DSettings : MonoBehaviour {
     public void OnEnable() {
         if (setupComplete && attachedJoint == null) {
             Debug.Log("!!!");
-            //       DestroyImmediate(this);
         }
     }
-
-//#if UNITY_EDITOR
-//    protected void DrawAnchorLines()
-//    {
-////        return;
-////        if (_editorSettings == null)
-////        {
-////            _editorSettings = JointEditorSettings.Singleton;
-////            if (_editorSettings == null) {
-////                return;
-////            }
-////        }
-////        AnchoredJoint2D joint2D = attachedJoint as AnchoredJoint2D;
-////        if (joint2D == null)
-////        {
-////            return;
-////        }
-////
-////        Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-////        Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-////        Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
-////
-////        using (new HandleColor(_editorSettings.anchorsToMainBodyColor))
-////        {
-////            Vector2 mainPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Main);
-////            Handles.DrawLine(mainAnchorPosition, mainPosition);
-////        }
-////        if (joint2D.connectedBody)
-////        {
-////            using (new HandleColor(_editorSettings.anchorsToConnectedBodyColor))
-////            {
-////                Vector2 connectedPosition = GetTargetPositionWithOffset(joint2D, JointHelpers.AnchorBias.Connected);
-////                Handles.DrawLine(connectedAnchorPosition, connectedPosition);
-////            }
-////        }
-//    }
-//#endif
 
     public bool showCustomGizmos = true;
     public bool showDefaultgizmos = true;
@@ -76,8 +39,9 @@ public abstract class Joint2DSettings : MonoBehaviour {
             return;
         }
         if ((attachedJoint == null || !IsValidType())) {
-            DestroyImmediate(this);
+            Helpers.DestroyImmediate(this);
         }
+#if UNITY_EDITOR
         else {
             JointEditorSettings jointEditorSettings = JointEditorSettings.Singleton;
             if (jointEditorSettings != null && jointEditorSettings.showConnectedJoints)
@@ -95,32 +59,8 @@ public abstract class Joint2DSettings : MonoBehaviour {
                 joint2DTarget.UpdateJoint(attachedJoint);
             }
         }
+#endif
     }
-
-//#if UNITY_EDITOR
-
-//    public Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias)
-//    {
-//        Vector2 targetPosition = JointHelpers.GetTargetPosition(joint2D, bias);
-//
-//        if (!useOffsets)
-//        {
-//            return targetPosition;
-//        }
-//
-//        Transform targetTransform = JointHelpers.GetTargetTransform(joint2D, bias);
-//
-//        Vector2 offset = GetOffset(bias);
-//
-//        Vector2 worldOffset = offset;
-//        if (targetTransform != null)
-//        {
-//            worldOffset = Helpers2D.TransformVector(targetTransform, worldOffset);
-//        }
-//
-//        return targetPosition + worldOffset;
-//    }
-//#endif
 
     public Vector2 mainBodyOffset = Vector2.zero;
     public Vector2 connectedBodyOffset = Vector2.zero;

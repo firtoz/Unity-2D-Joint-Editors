@@ -13,6 +13,11 @@ public class Joint2DEditorPostProcessor
             {
                 Object.DestroyImmediate(jointEditorSettings);
             }    
+            Joint2DTarget[] joint2DTargets = Object.FindObjectsOfType<Joint2DTarget>();
+            foreach (Joint2DTarget target in joint2DTargets)
+            {
+                Object.DestroyImmediate(target);
+            }    
         }
     }
 }
