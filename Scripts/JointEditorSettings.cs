@@ -52,10 +52,6 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The color displayed to highlight when angle widgets are active.")]
     public Color activeAngleColor = Color.green;
 
-    //general toggles
-    [Tooltip("Whether locked anchors should actively try to realign themselves.")]
-    public bool automaticRealign = true;
-
     //hingejoint2d settings
     [Tooltip("The distance (in pixels) between the anchors and the angle limits widgets.")]
     public float angleLimitRadius = 30.0f;
@@ -64,9 +60,7 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]
     public Color limitsAreaColor = new Color(0.265f, 0.772f, 0.776f, 0.118f);
     [Tooltip("The fill color displayed when limits are incorrect.")]
-    [Header("test")]
     public Color incorrectLimitsArea = new Color(1, 0.5f, 0, 0.118f);
-    [Header("test")]
     [Tooltip("How should the rings be displayed?.")]
     public RingDisplayMode ringDisplayMode = RingDisplayMode.Hover;
     [Tooltip("The ring that highlights the path of the main body.")]
@@ -81,6 +75,9 @@ public class JointEditorSettings : ScriptableObject {
     public Color maxLimitColor = Color.cyan;
     
     public bool showAdvancedOptions = false;
+
+    [Tooltip("Whether to show joint gizmos on the targets as well as the owners.")]
+    public bool showConnectedJoints = false;
 
     private static JointEditorSettings _editorSettings;
     private static bool _loading;

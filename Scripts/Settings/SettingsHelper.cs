@@ -32,6 +32,9 @@ public class SettingsHelper
 
     public static Joint2DSettings GetOrCreate(Joint2D joint2D)
     {
+        if (!joint2D) {
+            throw new ArgumentException("The joint is null!?");
+        }
         if (joint2D is HingeJoint2D)
         {
             return GetOrCreate<HingeJoint2DSettings>(joint2D);

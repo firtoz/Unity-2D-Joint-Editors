@@ -186,7 +186,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
             return false;
         }
 
-        DrawDiscs(hingeJoint2D, anchorInfo, bias);
+        DrawLinesAndDiscs(hingeJoint2D, anchorInfo, bias);
 
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(hingeJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(hingeJoint2D);
@@ -418,7 +418,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
     }
 
 
-    private void DrawDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
+    private void DrawLinesAndDiscs(HingeJoint2D hingeJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         Vector2 center = JointHelpers.GetAnchorPosition(hingeJoint2D, bias);
 
         float scale = editorSettings.anchorScale;
@@ -452,25 +452,34 @@ public class HingeJoint2DEditor : Joint2DEditor {
             }
         }
 
-        int sliderControlID = anchorInfo.GetControlID("slider");
+        HingeJoint2DSettings settings = SettingsHelper.GetOrCreate<HingeJoint2DSettings>(hingeJoint2D);
+        if (settings.showDiscs)
+        {
+            int sliderControlID = anchorInfo.GetControlID("slider");
 
-        if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
-            (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
-             //if nothing else is hot and we are being hovered, or the anchor's widgets are hot
-             ((GUIUtility.hotControl == 0 && HandleUtility.nearestControl == sliderControlID) || GUIUtility.hotControl == sliderControlID))
-            ) {
-            using (new HandleColor(editorSettings.mainRingColor)) {
-                Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
-            }
+            if (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Always ||
+                (editorSettings.ringDisplayMode == JointEditorSettings.RingDisplayMode.Hover &&
+                //if nothing else is hot and we are being hovered, or the anchor's widgets are hot
+                 ((GUIUtility.hotControl == 0 && HandleUtility.nearestControl == sliderControlID) || GUIUtility.hotControl == sliderControlID))
+                )
+            {
+                using (new HandleColor(editorSettings.mainRingColor))
+                {
+                    Handles.DrawWireDisc(center, Vector3.forward, Vector2.Distance(center, mainBodyPosition));
+                }
 
-            if (hingeJoint2D.connectedBody) {
-                using (new HandleColor(editorSettings.connectedRingColor)) {
-                    Handles.DrawWireDisc(center, Vector3.forward,
-                        Vector2.Distance(center,
-                            connectedBodyPosition));
+                if (hingeJoint2D.connectedBody)
+                {
+                    using (new HandleColor(editorSettings.connectedRingColor))
+                    {
+                        Handles.DrawWireDisc(center, Vector3.forward,
+                            Vector2.Distance(center,
+                                connectedBodyPosition));
+                    }
                 }
             }
         }
+        
         HandleUtility.Repaint();
     }
 
@@ -482,6 +491,7 @@ public class HingeJoint2DEditor : Joint2DEditor {
 
         SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
         ToggleShowAngleLimits(serializedSettings, enabled);
+        ToggleShowDiscs(serializedSettings, enabled);
         using (new Indent()) {
             SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
             SelectAngleLimitsMode(serializedSettings,
@@ -526,6 +536,22 @@ public class HingeJoint2DEditor : Joint2DEditor {
         using (new GUIEnabled(enabled)) {
             SerializedProperty showAngleLimits = serializedSettings.FindProperty("showAngleLimits");
             EditorGUILayout.PropertyField(showAngleLimits, AngleLimitsContent);
+        }
+
+        if (EditorGUI.EndChangeCheck()) {
+            serializedSettings.ApplyModifiedProperties();
+        }
+    }
+
+    private static readonly GUIContent DiscsContent =
+        new GUIContent("Discs", "Toggles the display of movement discs on the scene GUI.");
+
+    private void ToggleShowDiscs(SerializedObject serializedSettings, bool enabled) {
+        EditorGUI.BeginChangeCheck();
+
+        using (new GUIEnabled(enabled)) {
+            SerializedProperty showAngleLimits = serializedSettings.FindProperty("showDiscs");
+            EditorGUILayout.PropertyField(showAngleLimits, DiscsContent);
         }
 
         if (EditorGUI.EndChangeCheck()) {
