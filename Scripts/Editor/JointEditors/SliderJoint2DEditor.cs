@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 
 [CustomEditor(typeof (SliderJoint2D))]
 [CanEditMultipleObjects]
-public class SliderJoint2DEditor : Joint2DEditor {
+public class SliderJoint2DEditor : Joint2DEditorBase {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {
         "sliderAngle",
         "minLimit",

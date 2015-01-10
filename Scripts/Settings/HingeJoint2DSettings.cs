@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class HingeJoint2DSettings : Joint2DSettings {
+public class HingeJoint2DSettings : Joint2DSettingsBase {
     public bool showRadiusHandles = false;
     public bool showAngleLimits = true;
     public bool showDiscs = true;
@@ -18,17 +18,4 @@ public class HingeJoint2DSettings : Joint2DSettings {
     {
         return attachedJoint is HingeJoint2D;
     }
-
-#if UNITY_EDITOR
-//
-//    public void OnDrawGizmos() {
-//        HingeJoint2D hingeJoint2D = attachedJoint as HingeJoint2D;
-//        if (hingeJoint2D == null)
-//        {
-//            return;
-//        }
-//
-//        DrawAnchorLines();
-//    }
-#endif
 }

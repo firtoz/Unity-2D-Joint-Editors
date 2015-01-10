@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 
 [CustomEditor(typeof (HingeJoint2D))]
 [CanEditMultipleObjects]
-public class HingeJoint2DEditor : Joint2DEditor {
+public class HingeJoint2DEditor : Joint2DEditorBase {
     protected override bool WantsLocking() {
         return true;
     }

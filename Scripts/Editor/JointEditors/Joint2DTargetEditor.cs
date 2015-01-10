@@ -6,8 +6,8 @@ using UnityEngine;
 [CanEditMultipleObjects]
 [CustomEditor(typeof (Joint2DTarget))]
 public class Joint2DTargetEditor : Editor {
-    private readonly Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditor>> editorMaps =
-        new Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditor>>();
+    private readonly Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditorBase>> editorMaps =
+        new Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditorBase>>();
 
     public void OnDisable() {
         foreach (var editorMap in editorMaps.Values) {
@@ -21,7 +21,7 @@ public class Joint2DTargetEditor : Editor {
         var jointTarget = target as Joint2DTarget;
         if (jointTarget) {
             if (!editorMaps.ContainsKey(jointTarget)) {
-                editorMaps[jointTarget] = new Dictionary<Joint2D, Joint2DEditor>();
+                editorMaps[jointTarget] = new Dictionary<Joint2D, Joint2DEditorBase>();
             }
 
             var editors = editorMaps[jointTarget];
@@ -35,7 +35,7 @@ public class Joint2DTargetEditor : Editor {
                 unseenJoints.Remove(attachedJoint);
 
                 if (!editors.ContainsKey(attachedJoint)) {
-                    editors[attachedJoint] = (Joint2DEditor) CreateEditor(attachedJoint);
+                    editors[attachedJoint] = (Joint2DEditorBase) CreateEditor(attachedJoint);
                     editors[attachedJoint].isCreatedByTarget = true;
                 }
 

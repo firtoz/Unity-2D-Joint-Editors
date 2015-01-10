@@ -1,5 +1,4 @@
-﻿#if UNITY_EDITOR
-using System;
+﻿using System;
 using System.Linq;
 using toxicFork.GUIHelpers;
 using UnityEditor;
@@ -7,7 +6,7 @@ using UnityEngine;
 
 public class SettingsHelper
 {
-    private static T Create<T>(Joint2D joint2D) where T : Joint2DSettings
+    private static T Create<T>(Joint2D joint2D) where T : Joint2DSettingsBase
     {
         T settings = Undo.AddComponent<T>(joint2D.gameObject);
         settings.hideFlags = HideFlags.HideInInspector;
@@ -18,19 +17,19 @@ public class SettingsHelper
         return settings;
     }
 
-    private static T Get<T>(Joint2D joint2D) where T : Joint2DSettings
+    private static T Get<T>(Joint2D joint2D) where T : Joint2DSettingsBase
     {
         T[] allSettings = joint2D.GetComponents<T>();
 
         return allSettings.FirstOrDefault(settings => settings.attachedJoint == joint2D);
     }
 
-    public static T GetOrCreate<T>(Joint2D joint2D) where T : Joint2DSettings
+    public static T GetOrCreate<T>(Joint2D joint2D) where T : Joint2DSettingsBase
     {
         return Get<T>(joint2D) ?? Create<T>(joint2D);
     }
 
-    public static Joint2DSettings GetOrCreate(Joint2D joint2D)
+    public static Joint2DSettingsBase GetOrCreate(Joint2D joint2D)
     {
         if (!joint2D) {
             throw new ArgumentException("The joint is null!?");
@@ -58,4 +57,3 @@ public class SettingsHelper
         throw new ArgumentException("There are no editors defined for the joint2D: " + joint2D.GetType());
     }
 }
-#endif

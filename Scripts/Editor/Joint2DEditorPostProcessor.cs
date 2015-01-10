@@ -8,8 +8,8 @@ public class Joint2DEditorPostProcessor
     public static void OnPostprocessScene()
     {
         if (BuildPipeline.isBuildingPlayer) {
-            Joint2DSettings[] editorSettings = Object.FindObjectsOfType<Joint2DSettings>();
-            foreach (Joint2DSettings jointEditorSettings in editorSettings)
+            Joint2DSettingsBase[] editorSettings = Object.FindObjectsOfType<Joint2DSettingsBase>();
+            foreach (Joint2DSettingsBase jointEditorSettings in editorSettings)
             {
                 Object.DestroyImmediate(jointEditorSettings);
             }    

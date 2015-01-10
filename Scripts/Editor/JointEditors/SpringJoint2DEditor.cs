@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 [CustomEditor(typeof (SpringJoint2D))]
 [CanEditMultipleObjects]
-public class SpringJoint2DEditor : Joint2DEditor {
+public class SpringJoint2DEditor : Joint2DEditorBase {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {"distance"};
 
     protected override HashSet<string> GetControlNames() {

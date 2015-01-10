@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 [CustomEditor(typeof (DistanceJoint2D))]
 [CanEditMultipleObjects]
-public class DistanceJoint2DEditor : Joint2DEditor {
+public class DistanceJoint2DEditor : Joint2DEditorBase {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {"distance"};
 
     protected override HashSet<string> GetControlNames() {

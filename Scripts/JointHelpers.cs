@@ -22,19 +22,6 @@ public class JointHelpers {
 		Either
 	}
 
-    public static AnchorBias GetBias(PositionInfo.Change change)
-    {
-        switch (change)
-        {
-            case PositionInfo.Change.MainChanged:
-                return AnchorBias.Main;
-            case PositionInfo.Change.ConnectedChanged:
-                return AnchorBias.Connected;
-            default:
-                return AnchorBias.Either;
-        }
-    }
-
     public static Vector2 GetAnchorPosition(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either)
     {
 		switch (bias) {

@@ -9,7 +9,7 @@ using UnityEngine;
 
 [CustomEditor(typeof (WheelJoint2D))]
 [CanEditMultipleObjects]
-public class WheelJoint2DEditor : Joint2DEditor
+public class WheelJoint2DEditor : Joint2DEditorBase
 {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {
         "suspensionAngle"

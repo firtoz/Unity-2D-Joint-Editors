@@ -11,7 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public abstract class Joint2DEditor : Editor, IJoint2DEditor {
+public abstract class Joint2DEditorBase : Editor {
     protected const float AnchorEpsilon = JointHelpers.AnchorEpsilon;
 
     protected static JointEditorSettings editorSettings;
@@ -54,7 +54,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
     private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(joint2D);
+        Joint2DSettingsBase joint2DSettings = SettingsHelper.GetOrCreate(joint2D);
 
         Vector2 targetPosition = JointHelpers.GetTargetPosition(joint2D, bias);
 
@@ -154,7 +154,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
         Event current = Event.current;
 
-        Joint2DSettings joint2DSettings = SettingsHelper.GetOrCreate(joint);
+        Joint2DSettingsBase joint2DSettings = SettingsHelper.GetOrCreate(joint);
 
         EditorHelpers.ContextClick(controlID, () => {
             GenericMenu menu = new GenericMenu();
@@ -227,9 +227,9 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                         JointHelpers.GetAnchorPosition(joint, JointHelpers.AnchorBias.Connected),
                         JointHelpers.AnchorBias.Main);
 
-                    Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint);
-                    Joint2DSettings cloneSettings =
-                        Undo.AddComponent(connectedObject, jointSettings.GetType()) as Joint2DSettings;
+                    Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint);
+                    Joint2DSettingsBase cloneSettings =
+                        Undo.AddComponent(connectedObject, jointSettings.GetType()) as Joint2DSettingsBase;
 
                     if (cloneSettings == null) {
                         return;
@@ -336,7 +336,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
     }
 
 
-    protected void HandleDragDrop(int controlID, AnchoredJoint2D joint, Joint2DSettings joint2DSettings) {
+    protected void HandleDragDrop(int controlID, AnchoredJoint2D joint, Joint2DSettingsBase joint2DSettings) {
         Event current = Event.current;
 
         if (HandleUtility.nearestControl == controlID) {
@@ -547,7 +547,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
     protected virtual void ToggleIndividualAnchorLock(bool wantsLock, AnchoredJoint2D joint2D,
         JointHelpers.AnchorBias alignmentBias) {
-        Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+        Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
         string action = wantsLock ? "Lock Anchors" : "Unlock Anchors";
         EditorHelpers.RecordUndo(action, jointSettings);
@@ -615,7 +615,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     }
                     foreach (var tar in targets) {
                         var joint2D = (AnchoredJoint2D) tar;
-                        Joint2DSettings joint2DSettings =
+                        Joint2DSettingsBase joint2DSettings =
                             SettingsHelper.GetOrCreate(joint2D);
                         bool wantsLock = joint2DSettings.lockAnchors;
 
@@ -635,7 +635,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
                     EditorHelpers.RecordUndo("Inspector", joint2D);
                     JointHelpers.SetWorldConnectedAnchorPosition(joint2D, worldConnectedAnchors[joint2D]);
 
-                    Joint2DSettings joint2DSettings =
+                    Joint2DSettingsBase joint2DSettings =
                         SettingsHelper.GetOrCreate(joint2D);
                     bool wantsLock = joint2DSettings.lockAnchors;
 
@@ -715,7 +715,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture);
 
         if (lockPressed) {
-            Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+            Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
             EditorHelpers.RecordUndo("Lock Anchors", jointSettings, joint2D);
             jointSettings.lockAnchors = true;
@@ -736,7 +736,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             editorSettings.lockButtonTexture, editorSettings.unlockButtonTexture);
 
         if (lockPressed) {
-            Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+            Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
             EditorHelpers.RecordUndo("Unlock Anchors", jointSettings);
             jointSettings.lockAnchors = false;
@@ -848,7 +848,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
 
     protected void DrawOffset(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+        Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
         Vector2 localOffset = jointSettings.GetOffset(bias);
         Transform transform = JointHelpers.GetTargetTransform(joint2D, bias);
@@ -956,7 +956,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
 
 
     protected void AnchorGUI(AnchoredJoint2D joint2D) {
-        Joint2DSettings jointSettings = SettingsHelper.GetOrCreate(joint2D);
+        Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
         bool anchorLock = WantsLocking() && jointSettings.lockAnchors;
 
@@ -1049,7 +1049,7 @@ public abstract class Joint2DEditor : Editor, IJoint2DEditor {
             return;
         }
 
-        Joint2DSettings settings = SettingsHelper.GetOrCreate(joint2D);
+        Joint2DSettingsBase settings = SettingsHelper.GetOrCreate(joint2D);
         if (settings && !settings.showCustomGizmos) {
             if (settings.showDefaultgizmos && !isCreatedByTarget) {
                 DrawDefaultSceneGUI(joint2D);

@@ -1,15 +1,8 @@
 ﻿using toxicFork.GUIHelpers;
 using UnityEngine;
 
-//#if UNITY_EDITOR
-
-//#endif
-
 [ExecuteInEditMode]
-public abstract class Joint2DSettings : MonoBehaviour {
-//#if UNITY_EDITOR
-//    private static JointEditorSettings _editorSettings;
-//#endif
+public abstract class Joint2DSettingsBase : MonoBehaviour {
 
     public void OnEnable() {
         if (setupComplete && attachedJoint == null) {
