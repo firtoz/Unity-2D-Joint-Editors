@@ -50,28 +50,7 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     protected virtual Vector2 GetTargetPosition(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        return GetTargetPositionWithOffset(joint2D, bias);
-    }
-
-    private static Vector2 GetTargetPositionWithOffset(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
-        Joint2DSettingsBase joint2DSettings = SettingsHelper.GetOrCreate(joint2D);
-
-        Vector2 targetPosition = JointHelpers.GetTargetPosition(joint2D, bias);
-
-        if (!joint2DSettings.useOffsets) {
-            return targetPosition;
-        }
-
-        Transform targetTransform = JointHelpers.GetTargetTransform(joint2D, bias);
-
-        Vector2 offset = joint2DSettings.GetOffset(bias);
-
-        Vector2 worldOffset = offset;
-        if (targetTransform != null) {
-            worldOffset = Helpers2D.TransformVector(targetTransform, worldOffset);
-        }
-
-        return targetPosition + worldOffset;
+        return JointHelpers.GetTargetPosition(joint2D, bias);
     }
 
     public virtual Bounds OnGetFrameBounds() {
@@ -846,92 +825,6 @@ public abstract class Joint2DEditorBase : Editor {
         return false;
     }
 
-
-    protected void DrawOffset(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
-
-        Vector2 localOffset = jointSettings.GetOffset(bias);
-        Transform transform = JointHelpers.GetTargetTransform(joint2D, bias);
-        if (transform == null) {
-            return;
-        }
-
-
-        Vector2 worldOffset = Helpers2D.TransformPoint(transform, localOffset);
-
-        EditorGUI.BeginChangeCheck();
-        float handleSize = HandleUtility.GetHandleSize(worldOffset)*0.5f;
-
-        using (GUITextureDrawer drawer =CreateOffsetDrawer()) {
-            drawer.alwaysVisible = true;
-
-            int controlID = anchorInfo.GetControlID("offset");
-
-            worldOffset = Handles.Slider2D(controlID, worldOffset, Vector3.forward, Vector3.up, Vector3.right,
-                handleSize,
-                drawer.DrawSquare, Vector2.zero);
-
-            bool hovering = HandleUtility.nearestControl == controlID;
-
-            bool showCursor = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
-
-            if (showCursor && _hoverControlID != controlID) {
-                _hoverControlID = controlID;
-
-                HandleUtility.Repaint();
-            } else if (!showCursor && _hoverControlID == controlID) {
-                _hoverControlID = 0;
-                HandleUtility.Repaint();
-            }
-
-            if (_hoverControlID == controlID && Event.current.type == EventType.repaint) {
-                EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
-            }
-
-            if (showCursor && Event.current.type == EventType.repaint) {
-                using (new HandleColor(editorSettings.anchorHoverColor)) {
-                    Handles.DrawSolidDisc(worldOffset, Vector3.forward, handleSize*.5f);
-                    Handles.DrawWireDisc(worldOffset, Vector3.forward, handleSize*.5f);
-                }
-            }
-        }
-
-
-        if (EditorGUI.EndChangeCheck()) {
-            if (EditorGUI.actionKey) {
-                List<Vector2> snapPositions = new List<Vector2> {
-                    transform.position,
-                    JointHelpers.GetMainAnchorPosition(joint2D),
-                    JointHelpers.GetConnectedAnchorPosition(joint2D)
-                };
-
-
-                //snap to other offset as well!
-                JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
-
-                Transform oppositeTransform = JointHelpers.GetTargetTransform(joint2D, oppositeBias);
-                if (oppositeTransform) {
-                    if (jointSettings.useOffsets) {
-                        snapPositions.Add(Helpers2D.TransformPoint(oppositeTransform,
-                            jointSettings.GetOffset(oppositeBias)));
-                    }
-                    snapPositions.Add(oppositeTransform.position);
-                }
-
-                foreach (Vector2 position in snapPositions) {
-                    if (Vector2.Distance(worldOffset, position) < handleSize*0.25f) {
-                        worldOffset = position;
-                        break;
-                    }
-                }
-            }
-
-            EditorHelpers.RecordUndo("Change Offset", jointSettings);
-            jointSettings.SetOffset(bias, Helpers2D.InverseTransformPoint(transform, worldOffset));
-            EditorUtility.SetDirty(jointSettings);
-        }
-    }
-
     private GUITextureDrawer CreateTextureDrawer(Texture2D sliderTexture, Quaternion angle) {
         return new GUITextureDrawer(sliderTexture,
             angle,
@@ -949,12 +842,6 @@ public abstract class Joint2DEditorBase : Editor {
         return CreateTextureDrawer(editorSettings.hotAnchorTexture, angle);
     }
 
-    private GUITextureDrawer CreateOffsetDrawer()
-    {
-        return CreateTextureDrawer(editorSettings.offsetTexture, Quaternion.identity);
-    }
-
-
     protected void AnchorGUI(AnchoredJoint2D joint2D) {
         Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
@@ -971,16 +858,6 @@ public abstract class Joint2DEditorBase : Editor {
         AnchorInfo main = new AnchorInfo(controlNames),
             connected = new AnchorInfo(controlNames),
             locked = new AnchorInfo(controlNames);
-
-        if (jointSettings.useOffsets) {
-            if ((EditorGUI.actionKey || GUIUtility.hotControl == main.GetControlID("offset"))) {
-                DrawOffset(joint2D, main, JointHelpers.AnchorBias.Main);
-            }
-
-            if ((EditorGUI.actionKey || GUIUtility.hotControl == connected.GetControlID("offset"))) {
-                DrawOffset(joint2D, connected, JointHelpers.AnchorBias.Connected);
-            }
-        }
 
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
 

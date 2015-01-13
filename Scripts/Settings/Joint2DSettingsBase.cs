@@ -14,8 +14,6 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
     public bool showDefaultgizmos = true;
     public bool lockAnchors = false;
 
-    [Tooltip("Whether to show the offset widgets or not.")] public bool useOffsets = false;
-
     public Joint2D attachedJoint;
     [SerializeField] private bool setupComplete;
 

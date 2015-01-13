@@ -27,7 +27,6 @@ internal class JointEditorSettingsEditor : Editor {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("mainAnchorTexture"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("lockedAnchorTexture"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("hotAnchorTexture"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("offsetTexture"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("lockButtonTexture"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("unlockButtonTexture"));
         });

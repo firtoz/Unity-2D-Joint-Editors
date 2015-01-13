@@ -20,8 +20,6 @@ public class JointEditorSettings : ScriptableObject {
     public Texture2D lockedAnchorTexture;
     [Tooltip("The texture to display when an anchor is being hovered.")]
     public Texture2D hotAnchorTexture;
-    [Tooltip("The texture for the offset gizmo. Is visible when the control key is held.")]
-    public Texture2D offsetTexture;
     [Tooltip("The texture for the lock button. Is visible when the shift key is held.")]
     public Texture2D lockButtonTexture;
     [Tooltip("The texture for the unlock button. Is visible when the shift key is held.")]
