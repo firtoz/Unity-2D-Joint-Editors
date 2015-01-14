@@ -29,6 +29,19 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
             }
         }
 
+        if (isCreatedByTarget) {
+            if (bias == JointHelpers.AnchorBias.Main) {
+                Color color = editorSettings.anchorsToMainBodyColor;
+                using (new HandleColor(color)) {
+                    Vector3 mainBodyPosition = JointHelpers.GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main);
+                    if (Vector2.Distance(mainBodyPosition, mainAnchorPosition) > AnchorEpsilon)
+                    {
+                        Handles.DrawLine(mainBodyPosition, mainAnchorPosition);
+                    }
+                }
+            }
+        }
+
         DrawDistance(distanceJoint2D, anchorInfo, bias);
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
@@ -142,11 +155,15 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
-            float newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
-                Helpers2D.GetAngle(normalizedDiff), 0.125f, true);
 
-            EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance,
-                Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
+            float newDistance;
+            using ( new HandleColor(isCreatedByTarget ? new Color(1, 1, 1, editorSettings.connectedJointTransparency) : Color.white)) {
+                newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance, Helpers2D.GetAngle(normalizedDiff), 0.125f, true);
+
+                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance,
+                    Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
+            }
+
 
             if (EditorGUI.EndChangeCheck())
             {

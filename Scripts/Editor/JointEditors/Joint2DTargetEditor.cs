@@ -17,6 +17,20 @@ public class Joint2DTargetEditor : Editor {
         }
     }
 
+    public override void OnInspectorGUI() {
+        bool guiEnabled = GUI.enabled;
+        GUI.enabled = true;
+        EditorGUILayout.LabelField("This component is used by the 2D Joint Editors plugin");
+        EditorGUILayout.LabelField(" to display connected joints. If you would like to ");
+        EditorGUILayout.LabelField(" disable this feature, please edit the settings ");
+        EditorGUILayout.LabelField(" file which can be found in Joint2DEditor/Data/settings.");
+        EditorGUILayout.LabelField("The option can be found at the bottom as 'Show Connected Joints'");
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("This component will automatically be removed ");
+        EditorGUILayout.LabelField(" when the scene is being built.");
+        GUI.enabled = guiEnabled;
+    }
+
     public void OnSceneGUI() {
         var jointTarget = target as Joint2DTarget;
         if (jointTarget) {

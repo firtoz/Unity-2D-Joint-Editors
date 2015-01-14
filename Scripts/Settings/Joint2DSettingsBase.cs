@@ -3,11 +3,12 @@ using UnityEngine;
 
 [ExecuteInEditMode]
 public abstract class Joint2DSettingsBase : MonoBehaviour {
-
     public void OnEnable() {
         if (setupComplete && attachedJoint == null) {
             Debug.Log("!!!");
         }
+
+        Update();
     }
 
     public bool showCustomGizmos = true;
@@ -22,7 +23,6 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
         attachedJoint = joint2D;
     }
 
-
     public abstract bool IsValidType();
 
     public void Update() {
@@ -35,8 +35,7 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
 #if UNITY_EDITOR
         else {
             JointEditorSettings jointEditorSettings = JointEditorSettings.Singleton;
-            if (jointEditorSettings != null && jointEditorSettings.showConnectedJoints)
-            {
+            if (jointEditorSettings != null && jointEditorSettings.showConnectedJoints) {
                 if (!attachedJoint.connectedBody) {
                     return;
                 }
@@ -44,7 +43,7 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
                 var joint2DTarget = connectedObject.GetComponent<Joint2DTarget>();
                 if (joint2DTarget == null) {
                     joint2DTarget = connectedObject.AddComponent<Joint2DTarget>();
-                    joint2DTarget.hideFlags = HideFlags.NotEditable;
+                    joint2DTarget.hideFlags = HideFlags.NotEditable; //need to show it in inspector because it will be used to show the widgets
                 }
 
                 joint2DTarget.UpdateJoint(attachedJoint);

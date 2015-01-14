@@ -5,8 +5,7 @@ public class HingeJoint2DSettings : Joint2DSettingsBase {
     public bool showAngleLimits = true;
     public bool showDiscs = true;
 
-    public enum AnchorPriority
-    {
+    public enum AnchorPriority {
         Main,
         Connected,
         Both
@@ -14,8 +13,7 @@ public class HingeJoint2DSettings : Joint2DSettingsBase {
 
     public AnchorPriority anchorPriority = AnchorPriority.Main;
 
-    public override bool IsValidType()
-    {
+    public override bool IsValidType() {
         return attachedJoint is HingeJoint2D;
     }
 }

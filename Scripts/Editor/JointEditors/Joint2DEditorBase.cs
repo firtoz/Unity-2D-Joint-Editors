@@ -79,7 +79,7 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     //used by selecting the owner of the joint when the editor is created by the target
-    private Vector2 lastMouseDown;
+    private readonly Dictionary<int, Vector2> lastMouseDown = new Dictionary<int, Vector2>();
 
     protected Vector2 AnchorSlider(int controlID, float handleScale,
         IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
@@ -258,9 +258,9 @@ public abstract class Joint2DEditorBase : Editor {
 
         switch (current.GetTypeForControl(controlID)) {
             case EventType.mouseDown:
-                lastMouseDown = current.mousePosition;
-
                 if (HandleUtility.nearestControl == controlID) {
+                    lastMouseDown[controlID] = current.mousePosition;
+
                     if (current.button == 0) {
                         AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
                         state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
@@ -268,12 +268,15 @@ public abstract class Joint2DEditorBase : Editor {
                 }
                 break;
             case EventType.mouseUp:
-                if (current.button == 0 && GUIUtility.hotControl == controlID && isCreatedByTarget && Vector2.Distance(lastMouseDown, current.mousePosition) < AnchorEpsilon)
+                if (current.button == 0 && HandleUtility.nearestControl == controlID && isCreatedByTarget && lastMouseDown.ContainsKey(controlID))
                 {
-                    EditorHelpers.SelectObject(joint.gameObject);
-                }
+                    if (Vector2.Distance(lastMouseDown[controlID], current.mousePosition) < AnchorEpsilon)
+                    {
+                        EditorHelpers.SelectObject(joint.gameObject);
+                    }
 
-                lastMouseDown = Vector2.zero;
+                    lastMouseDown.Remove(controlID);
+                }
                 break;
         }
 
@@ -413,9 +416,6 @@ public abstract class Joint2DEditorBase : Editor {
             .boolValue)) {
             EditorGUILayout.PropertyField(serializedSettings.FindProperty("showDefaultgizmos"), DefaultGizmosContent);
         }
-//        if (EditorGUI.EndChangeCheck()) {
-//            serializedSettings.ApplyModifiedProperties();
-//        }
     }
 
     public override sealed void OnInspectorGUI() {
@@ -829,7 +829,7 @@ public abstract class Joint2DEditorBase : Editor {
         return new GUITextureDrawer(sliderTexture,
             angle,
             editorSettings.anchorDisplayScale,
-            isCreatedByTarget ? 0.25f : 1f);
+            isCreatedByTarget ? editorSettings.connectedJointTransparency : 1f);
     }
 
 
@@ -1129,7 +1129,7 @@ public abstract class Joint2DEditorBase : Editor {
                         } else {
                             wantedColor = editorSettings.angleWidgetColor;
                             if (GUIUtility.hotControl != 0) {
-                                wantedColor.a = 0.25f; //semitransparent if not active control
+                                wantedColor.a = editorSettings.connectedJointTransparency; //semitransparent if not active control
                             }
                         }
                     }

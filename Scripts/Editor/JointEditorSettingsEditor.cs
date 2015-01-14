@@ -19,6 +19,9 @@ internal class JointEditorSettingsEditor : Editor {
     private static readonly GUIContent SliderJoint2DLabel = new GUIContent("Slider Joint 2D",
         "Settings for slide joint 2d component editors");
 
+    private static readonly GUIContent ConnectedJointsLabel = new GUIContent("Connected Joints",
+        "Settings for the display of connected joints");
+
     public override void OnInspectorGUI() {
         EditorGUI.BeginChangeCheck();
 
@@ -51,6 +54,7 @@ internal class JointEditorSettingsEditor : Editor {
         FoldoutHelper.Foldout("hingejoint2d", HingeJoint2DLabel, () => {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleHandleSize"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("hingeSnapAngle"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("limitsAreaColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("incorrectLimitsArea"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ringDisplayMode"));
@@ -63,7 +67,14 @@ internal class JointEditorSettingsEditor : Editor {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("maxLimitColor"));
             });
 
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("showConnectedJoints"));
+
+        FoldoutHelper.Foldout("connectedJoints", ConnectedJointsLabel, () =>
+        {
+            SerializedProperty showConnectedJointsProperty = serializedObject.FindProperty("showConnectedJoints");
+            EditorGUILayout.PropertyField(showConnectedJointsProperty, new GUIContent("Show", showConnectedJointsProperty.tooltip));
+            SerializedProperty connectedJointTransparencyProperty = serializedObject.FindProperty("connectedJointTransparency");
+            EditorGUILayout.PropertyField(connectedJointTransparencyProperty, new GUIContent("Opacity", connectedJointTransparencyProperty.tooltip));
+        });
 
         if (EditorGUI.EndChangeCheck()) {
             serializedObject.ApplyModifiedProperties();

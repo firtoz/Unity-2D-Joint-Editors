@@ -1,9 +1,7 @@
 ﻿using UnityEngine;
 
-public class DistanceJoint2DSettings : Joint2DSettingsBase
-{
-    public enum AnchorPriority
-    {
+public class DistanceJoint2DSettings : Joint2DSettingsBase {
+    public enum AnchorPriority {
         Main,
         Connected
     }
