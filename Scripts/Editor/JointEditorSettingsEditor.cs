@@ -5,22 +5,26 @@ using UnityEngine;
 internal class JointEditorSettingsEditor : Editor {
     private static readonly PersistentFoldoutHelper FoldoutHelper = new PersistentFoldoutHelper("2DJointEditors.JointEditorSettings");
 
-    private static readonly GUIContent CustomTexturesLabel = new GUIContent("Textures",
-        "Textures for visual editor components.");
+    private static readonly GUIContent CustomTexturesLabel = 
+        new GUIContent("Textures", "Textures for visual editor components.");
 
-    private static readonly GUIContent SizesLabel = new GUIContent("Sizes", "Sizes for visual editor components");
+    private static readonly GUIContent SizesLabel = 
+        new GUIContent("Sizes", "Sizes for visual editor components");
 
-    private static readonly GUIContent ColorsLabel = new GUIContent("Colors",
-        "Color settings for the visual editor components");
+    private static readonly GUIContent ColorsLabel = 
+        new GUIContent("Colors", "Color settings for the visual editor components");
 
-    private static readonly GUIContent HingeJoint2DLabel = new GUIContent("Hinge Joint 2D",
-        "Settings for hinge joint 2d component editors");
+    private static readonly GUIContent HingeJoint2DLabel = 
+        new GUIContent("Hinge Joint 2D", "Settings for hinge joint 2d component editors");
 
-    private static readonly GUIContent SliderJoint2DLabel = new GUIContent("Slider Joint 2D",
-        "Settings for slide joint 2d component editors");
+    private static readonly GUIContent SliderJoint2DLabel = 
+        new GUIContent("Slider Joint 2D", "Settings for slide joint 2d component editors");
 
-    private static readonly GUIContent ConnectedJointsLabel = new GUIContent("Connected Joints",
-        "Settings for the display of connected joints");
+    private static readonly GUIContent ConnectedJointsLabel = 
+        new GUIContent("Connected Joints", "Settings for the display of connected joints");
+
+    private static readonly GUIContent TogglesLabel = 
+        new GUIContent("Switches", "Settings for the display of additional features");
 
     public override void OnInspectorGUI() {
         EditorGUI.BeginChangeCheck();
@@ -39,6 +43,8 @@ internal class JointEditorSettingsEditor : Editor {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorDisplayScale"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("lockButtonScale"));
         });
+
+        FoldoutHelper.Foldout("toggles", TogglesLabel, () => EditorGUILayout.PropertyField(serializedObject.FindProperty("drawLinesToBodies")));
 
         FoldoutHelper.Foldout("colors", ColorsLabel, () => {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorHoverColor"));

@@ -29,18 +29,6 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
             }
         }
 
-        if (isCreatedByTarget) {
-            if (bias == JointHelpers.AnchorBias.Main) {
-                Color color = editorSettings.anchorsToMainBodyColor;
-                using (new HandleColor(color)) {
-                    Vector3 mainBodyPosition = JointHelpers.GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main);
-                    if (Vector2.Distance(mainBodyPosition, mainAnchorPosition) > AnchorEpsilon)
-                    {
-                        Handles.DrawLine(mainBodyPosition, mainAnchorPosition);
-                    }
-                }
-            }
-        }
 
         DrawDistance(distanceJoint2D, anchorInfo, bias);
 

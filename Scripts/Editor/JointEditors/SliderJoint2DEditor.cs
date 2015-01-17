@@ -623,7 +623,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                                          (minSign < 0 ? (1f) : 0.75f);
 
 
-                Handles.Label(anchorPosition + (direction)*(sliderJoint2D.limits.min + minLabelDistance),
+                EditorHelpers.OverlayLabel(anchorPosition + (direction)*(sliderJoint2D.limits.min + minLabelDistance),
                     text, EditorHelpers.FontWithBackgroundStyle);
             }
             if (GUIUtility.hotControl == maxLimitControlID) {
@@ -633,7 +633,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                                          fontSize*
                                          EditorHelpers.FontWithBackgroundStyle.CalcSize(new GUIContent(text)).magnitude*
                                          (maxSign < 0 ? (1f) : 0.75f);
-                Handles.Label(anchorPosition + (direction)*(sliderJoint2D.limits.max + maxLabelDistance),
+                EditorHelpers.OverlayLabel(anchorPosition + (direction) * (sliderJoint2D.limits.max + maxLabelDistance),
                     text, EditorHelpers.FontWithBackgroundStyle);
             }
             if (GUIUtility.hotControl == minLimitControlID ||
@@ -856,7 +856,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
             float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
 
-            Handles.Label(mainAnchorPosition + (Camera.current.transform.up * labelOffset), labelContent,
+            EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up * labelOffset), labelContent,
                 EditorHelpers.FontWithBackgroundStyle);
         }
 

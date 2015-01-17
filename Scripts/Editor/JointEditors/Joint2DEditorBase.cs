@@ -78,11 +78,10 @@ public abstract class Joint2DEditorBase : Editor {
         return bounds;
     }
 
-    //used by selecting the owner of the joint when the editor is created by the target
-    private readonly Dictionary<int, Vector2> lastMouseDown = new Dictionary<int, Vector2>();
-
     protected Vector2 AnchorSlider(int controlID, float handleScale,
         IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
+        AnchorSliderState sliderState = StateObject.Get<AnchorSliderState>(controlID);
+
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint, bias);
         float handleSize = HandleUtility.GetHandleSize(anchorPosition)*handleScale;
         EditorGUI.BeginChangeCheck();
@@ -121,7 +120,12 @@ public abstract class Joint2DEditorBase : Editor {
         }
 
         if (_hoverControlID == controlID && Event.current.type == EventType.repaint) {
-            EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
+            if (isCreatedByTarget && !(sliderState.pressed && sliderState.dragging))
+            {
+                EditorHelpers.SetEditorCursor(MouseCursor.Link);
+            } else {
+                EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
+            }
         }
 
         if (showCursor && Event.current.type == EventType.repaint) {
@@ -257,26 +261,26 @@ public abstract class Joint2DEditorBase : Editor {
         });
 
         switch (current.GetTypeForControl(controlID)) {
+            case EventType.mouseDrag:
+                if (sliderState.pressed) {
+                    sliderState.dragging = true;
+                }
+                break;
             case EventType.mouseDown:
                 if (HandleUtility.nearestControl == controlID) {
-                    lastMouseDown[controlID] = current.mousePosition;
-
                     if (current.button == 0) {
-                        AnchorSliderState state = StateObject.Get<AnchorSliderState>(controlID);
-                        state.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
+                        sliderState.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
+                        sliderState.dragging = false;
+                        sliderState.pressed = true;
                     }
                 }
                 break;
             case EventType.mouseUp:
-                if (current.button == 0 && HandleUtility.nearestControl == controlID && isCreatedByTarget && lastMouseDown.ContainsKey(controlID))
-                {
-                    if (Vector2.Distance(lastMouseDown[controlID], current.mousePosition) < AnchorEpsilon)
-                    {
-                        EditorHelpers.SelectObject(joint.gameObject);
-                    }
-
-                    lastMouseDown.Remove(controlID);
+                if (sliderState.pressed && !sliderState.dragging) {
+                    EditorHelpers.SelectObject(joint.gameObject);
                 }
+                sliderState.dragging = false;
+                sliderState.pressed = false;
                 break;
         }
 
@@ -304,6 +308,7 @@ public abstract class Joint2DEditorBase : Editor {
             result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
                 drawer.DrawSquare, Vector2.zero);
         }
+
         if (EditorGUI.EndChangeCheck() && EditorGUI.actionKey && snapPositions != null) {
             foreach (Vector2 snapPosition in snapPositions) {
                 float distance = Vector2.Distance(result, snapPosition);
@@ -691,7 +696,8 @@ public abstract class Joint2DEditorBase : Editor {
         bool lockPressed = EditorHelpers.CustomHandleButton(controlID,
             center,
             HandleUtility.GetHandleSize(center)*editorSettings.lockButtonScale,
-            editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture);
+            editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture,
+            new Color(1, 1, 1, isCreatedByTarget ? 0.5f : 1));
 
         if (lockPressed) {
             Joint2DSettingsBase jointSettings = SettingsHelper.GetOrCreate(joint2D);
@@ -812,9 +818,45 @@ public abstract class Joint2DEditorBase : Editor {
             changed = true;
         }
 
+        if (bias == JointHelpers.AnchorBias.Either) {
+            DrawLineToBody(joint2D, JointHelpers.AnchorBias.Main);
+            DrawLineToBody(joint2D, JointHelpers.AnchorBias.Connected);
+        } else {
+            DrawLineToBody(joint2D, bias);
+        }
+
         changed = SingleAnchorGUI(joint2D, anchorInfo, bias) || changed;
 
         return changed;
+    }
+
+    private void DrawLineToBody(AnchoredJoint2D joint2D, JointHelpers.AnchorBias bias) {
+        if (bias == JointHelpers.AnchorBias.Connected && !joint2D.connectedBody) {
+            return;
+        }
+
+        if (editorSettings.drawLinesToBodies || isCreatedByTarget) {
+            Color lineColor;
+
+            if (bias == JointHelpers.AnchorBias.Main) {
+                lineColor = editorSettings.anchorsToMainBodyColor;
+            } else {
+                lineColor = editorSettings.anchorsToConnectedBodyColor;
+            }
+
+            if (isCreatedByTarget) {
+                lineColor.a *= editorSettings.connectedJointTransparency;
+            }
+
+            using (new HandleColor(lineColor)) {
+                Vector3 bodyPosition = JointHelpers.GetTargetPosition(joint2D, bias);
+                Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
+
+                if (Vector2.Distance(bodyPosition, anchorPosition) > AnchorEpsilon) {
+                    Handles.DrawLine(bodyPosition, anchorPosition);
+                }
+            }
+        }
     }
 
     protected virtual bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
@@ -1129,7 +1171,7 @@ public abstract class Joint2DEditorBase : Editor {
                         } else {
                             wantedColor = editorSettings.angleWidgetColor;
                             if (GUIUtility.hotControl != 0) {
-                                wantedColor.a = editorSettings.connectedJointTransparency; //semitransparent if not active control
+                                wantedColor.a *= editorSettings.connectedJointTransparency; //semitransparent if not active control
                             }
                         }
                     }
@@ -1147,6 +1189,8 @@ public abstract class Joint2DEditorBase : Editor {
 
 public class AnchorSliderState {
     public Vector2 mouseOffset;
+    public bool dragging;
+    public bool pressed;
 }
 
 public class AngleState {
