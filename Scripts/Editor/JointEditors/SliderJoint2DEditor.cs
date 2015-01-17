@@ -494,7 +494,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
             if (!snapped)
             {
-                wantedAngle = Handles.SnapValue(wantedAngle, 45);
+                wantedAngle = Handles.SnapValue(wantedAngle, editorSettings.snapAngle);
             }
 
             EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);

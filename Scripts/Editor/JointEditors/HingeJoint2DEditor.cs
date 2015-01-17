@@ -120,9 +120,6 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
 
             EditorHelpers.OverlayLabel((Vector3)anglePosition + (Camera.current.transform.up * labelOffset), labelContent,
                 EditorHelpers.FontWithBackgroundStyle);
-
-//            Handles.Label((Vector3) anglePosition + (Camera.current.transform.up*labelOffset), labelContent,
-//                EditorHelpers.FontWithBackgroundStyle);
         }
         return false;
     }
@@ -333,7 +330,7 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
 
                     if (EditorGUI.EndChangeCheck()) {
                         EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                        limits.min = Handles.SnapValue(liveMainAngle - minMainAngle, editorSettings.hingeSnapAngle);
+                        limits.min = Handles.SnapValue(liveMainAngle - minMainAngle, editorSettings.snapAngle);
                         hingeJoint2D.limits = limits;
                         changed = true;
                     }
@@ -350,7 +347,7 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
 
                     if (EditorGUI.EndChangeCheck()) {
                         EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                        limits.max = Handles.SnapValue(liveMainAngle - maxMainAngle, editorSettings.hingeSnapAngle);
+                        limits.max = Handles.SnapValue(liveMainAngle - maxMainAngle, editorSettings.snapAngle);
                         hingeJoint2D.limits = limits;
                         changed = true;
                     }
@@ -408,7 +405,7 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
 
                         if (EditorGUI.EndChangeCheck()) {
                             EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                            limits.min = Handles.SnapValue(minConnectedAngle - liveConnectedAngle, editorSettings.hingeSnapAngle);
+                            limits.min = Handles.SnapValue(minConnectedAngle - liveConnectedAngle, editorSettings.snapAngle);
                             hingeJoint2D.limits = limits;
                             changed = true;
                         }
@@ -426,7 +423,7 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
 
                         if (EditorGUI.EndChangeCheck()) {
                             EditorHelpers.RecordUndo("Change Angle Limits", hingeJoint2D);
-                            limits.max = Handles.SnapValue(maxConnectedAngle - liveConnectedAngle, editorSettings.hingeSnapAngle);
+                            limits.max = Handles.SnapValue(maxConnectedAngle - liveConnectedAngle, editorSettings.snapAngle);
                             hingeJoint2D.limits = limits;
                             changed = true;
                         }

@@ -60,7 +60,7 @@ internal class JointEditorSettingsEditor : Editor {
         FoldoutHelper.Foldout("hingejoint2d", HingeJoint2DLabel, () => {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleHandleSize"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("hingeSnapAngle"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("snapAngle"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("limitsAreaColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("incorrectLimitsArea"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ringDisplayMode"));

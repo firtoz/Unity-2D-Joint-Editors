@@ -74,7 +74,7 @@ public class JointEditorSettings : ScriptableObject {
     public float angleHandleSize = 5.0f;
 
     [Tooltip("The snapping angle for the angle limits when you hold the control key.")]
-    public float hingeSnapAngle = 45.0f;
+    public float snapAngle = 45.0f;
 
     [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]
     public Color limitsAreaColor = new Color(0.265f, 0.772f, 0.776f, 0.118f);
