@@ -193,7 +193,7 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
         }
     }
 
-    private static void DistanceContext(SpringJoint2D springJoint2D, int controlID)
+    private void DistanceContext(SpringJoint2D springJoint2D, int controlID)
     {
         Vector2 mousePosition = Event.current.mousePosition;
 
@@ -201,7 +201,8 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
         {
             GenericMenu menu = new GenericMenu();
             menu.AddItem(new GUIContent("Edit Distance"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Edit Distance",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
                     delegate(Action close, bool focused)
                     {

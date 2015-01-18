@@ -294,7 +294,7 @@ public class WheelJoint2DEditor : Joint2DEditorBase
         }
     }
 
-    private static void AddSuspensionAngleContextMenuItem(WheelJoint2D wheelJoint2D, GenericMenu menu, Vector2 mousePosition) {
+    private void AddSuspensionAngleContextMenuItem(WheelJoint2D wheelJoint2D, GenericMenu menu, Vector2 mousePosition) {
         menu.AddItem(new GUIContent("Edit Suspension Angle"), false,
             delegate {
                 Vector2 mainAnchorPosition =
@@ -302,7 +302,8 @@ public class WheelJoint2DEditor : Joint2DEditorBase
 
                 WheelJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate<WheelJoint2DSettings>(wheelJoint2D);
 
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Edit Suspension Angle",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();
@@ -409,9 +410,9 @@ public class WheelJoint2DEditor : Joint2DEditorBase
                 EditorUtility.SetDirty(wheelJoint2D);
             });
 
-
             menu.AddItem(new GUIContent("Configure Motor"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Configure Motor",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
                     delegate(Action close, bool focused)
                     {

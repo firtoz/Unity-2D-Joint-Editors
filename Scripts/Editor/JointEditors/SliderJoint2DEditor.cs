@@ -223,7 +223,8 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
 
             menu.AddItem(new GUIContent("Configure Motor"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Configure Motor",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Slider Joint 2D Motor", "The joint motor."));
@@ -274,7 +275,8 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
             });
 
             menu.AddItem(new GUIContent("Configure Limits"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Configure Limits",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Translation Limits", "The joint translation limits"));
@@ -517,13 +519,14 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         }
     }
 
-    private static void AddEditSliderAngleMenuItem(SliderJoint2D sliderJoint2D, GenericMenu menu, Vector2 mousePosition) {
+    private void AddEditSliderAngleMenuItem(SliderJoint2D sliderJoint2D, GenericMenu menu, Vector2 mousePosition) {
         SliderJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
 
         menu.AddItem(new GUIContent("Edit Slider Angle"), false,
             () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Edit Slider Angle",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();
@@ -559,7 +562,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                     }));
     }
 
-    private static void HandleLimits(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
+    private void HandleLimits(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
         float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
         SliderJoint2DSettings settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
@@ -579,7 +582,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         LimitWidget(sliderJoint2D, anchorInfo, bias, worldAngle);
     }
 
-    private static void LimitWidget(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias,
+    private void LimitWidget(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias,
         float worldAngle) {
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
 
@@ -735,7 +738,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         }
     }
 
-    private static void LimitContext(SliderJoint2D sliderJoint2D, int controlID, Limit limit) {
+    private void LimitContext(SliderJoint2D sliderJoint2D, int controlID, Limit limit) {
         Vector2 mousePosition = Event.current.mousePosition;
 
         string limitName = (limit == Limit.Min ? "Lower" : "Upper") + " Translation Limit";
@@ -743,7 +746,8 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         EditorHelpers.ContextClick(controlID, () => {
             GenericMenu menu = new GenericMenu();
             menu.AddItem(new GUIContent("Edit " + limitName), false, () =>
-                EditorHelpers.ShowDropDown(
+                    ShowUtility(
+                    "Edit " + limitName,
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();

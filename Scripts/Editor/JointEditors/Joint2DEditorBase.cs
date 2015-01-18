@@ -24,6 +24,19 @@ public abstract class Joint2DEditorBase : Editor {
 
     private HashSet<string> controlNames;
 
+    private EditorWindow utilityWindow;
+
+    protected void ShowUtility(string title, Rect windowRect, Action<Action, bool> action)
+    {
+        if (utilityWindow)
+        {
+            utilityWindow.Close();
+            utilityWindow = null;
+        }
+
+        utilityWindow = EditorHelpers.ShowUtility(title, windowRect, action);
+    }
+
     protected virtual Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias) {
         JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
         return JointHelpers.GetAnchorPosition(anchoredJoint2D, oppositeBias);
@@ -173,7 +186,8 @@ public abstract class Joint2DEditorBase : Editor {
             }
 
 
-            menu.AddItem(new GUIContent("Collide Connected",
+            string collisionLabel = joint.collideConnected ? "Disable Collision" : "Enable Collision";
+            menu.AddItem(new GUIContent(collisionLabel,
                 "Whether rigid bodies connected with this joint can collide or not."), joint.collideConnected,
                 () => {
                     EditorHelpers.RecordUndo("Move Joint Anchor", joint);
@@ -1054,14 +1068,19 @@ public abstract class Joint2DEditorBase : Editor {
         }
     }
 
-    public void OnDisable() {
+    public virtual void OnDisable() {
         foreach (Editor defaultEditor in defaultEditors.Values) {
             if (defaultEditor != null) {
                 DestroyImmediate(defaultEditor);
             }
         }
-    }
 
+        if (utilityWindow)
+        {
+            utilityWindow.Close();
+            utilityWindow = null;
+        }
+    }
 
     private static int _hoverControlID;
     public bool isCreatedByTarget = false;

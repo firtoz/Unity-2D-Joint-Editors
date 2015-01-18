@@ -129,7 +129,7 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
                editorSettings.angleLimitRadius;
     }
 
-    private static void LimitContext(HingeJoint2D hingeJoint2D, int controlID, Limit limit) {
+    private void LimitContext(HingeJoint2D hingeJoint2D, int controlID, Limit limit) {
         Vector2 mousePosition = Event.current.mousePosition;
 
         string limitName = (limit == Limit.Min ? "Lower" : "Upper") + " Angle Limit";
@@ -137,7 +137,8 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
         EditorHelpers.ContextClick(controlID, () => {
             GenericMenu menu = new GenericMenu();
             menu.AddItem(new GUIContent("Edit " + limitName), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Edit " + limitName,
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*2),
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();
@@ -622,7 +623,8 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
             Vector2 mousePosition = Event.current.mousePosition;
 
             menu.AddItem(new GUIContent("Configure Motor"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Configure Motor",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Hinge Joint 2D Motor", "The joint motor."));
@@ -672,7 +674,8 @@ public class HingeJoint2DEditor : Joint2DEditorBase {
             });
 
             menu.AddItem(new GUIContent("Configure Limits"), false, () =>
-                EditorHelpers.ShowDropDown(
+                ShowUtility(
+                    "Configure Limits",
                     new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Angle Limits", "The joint angle limits"));
