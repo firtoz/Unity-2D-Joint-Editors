@@ -21,10 +21,6 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
         SpringJoint2D springJoint2D = (SpringJoint2D)joint2D;
 
-//        Vector2 center = JointHelpers.GetAnchorPosition(springJoint2D, bias);
-//        float scale = editorSettings.anchorScale;
-//        float handleSize = HandleUtility.GetHandleSize(center)*scale;
-
         Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(springJoint2D);
         Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(springJoint2D);
         if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon) {
@@ -37,28 +33,6 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
 
-//        if (bias == JointHelpers.AnchorBias.Main) {
-//            Vector2 mainBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
-//            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
-//                if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
-//                    Handles.DrawLine(mainBodyPosition, center);
-//                }
-//            }
-//        }
-//        else if (bias == JointHelpers.AnchorBias.Connected) {
-//            Vector2 connectedBodyPosition = GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Connected);
-//            if (springJoint2D.connectedBody) {
-//                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
-//                    if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
-//                        Handles.DrawLine(connectedBodyPosition, center);
-//                    }
-//                    else {
-//                        float rot = JointHelpers.GetTargetRotation(springJoint2D, JointHelpers.AnchorBias.Connected);
-//                        Handles.DrawLine(center, center + Helpers2D.GetDirection(rot)*handleSize);
-//                    }
-//                }
-//            }
-//        }
         return false;
     }
 
@@ -82,10 +56,6 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
             diff = -Vector2.up;
         }
 
-        Vector2 normalizedDiff = diff.normalized;
-
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff*springJoint2D.distance;
-
         Vector2 mainTargetPosition = JointHelpers.GetTargetPosition(springJoint2D, JointHelpers.AnchorBias.Main);
         if (Vector2.Distance(position, mainTargetPosition) < snapDistance)
         {
@@ -100,6 +70,11 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
                 return connectedTargetPosition;
             }
         }
+
+        Vector2 normalizedDiff = diff.normalized;
+
+        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff * springJoint2D.distance;
+
 
         if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
             return wantedAnchorPosition;
@@ -134,9 +109,7 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
             return;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
-            ? JointHelpers.AnchorBias.Connected
-            : JointHelpers.AnchorBias.Main;
+        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
 
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, otherBias);
@@ -158,7 +131,7 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
                 throw new ArgumentOutOfRangeException();
         }
 
-        if (EditorGUI.actionKey && GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
+        if (bias == wantedBias && EditorGUI.actionKey && GUIUtility.hotControl == anchorInfo.GetControlID("slider"))
         {
             Handles.DrawWireDisc(otherAnchorPosition, Vector3.forward, joint2D.distance); 
         }
@@ -168,11 +141,34 @@ public class SpringJoint2DEditor : Joint2DEditorBase {
             int distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
-            float newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
+
+
+            float newDistance;
+            using (new HandleColor(isCreatedByTarget ? new Color(1, 1, 1, editorSettings.connectedJointTransparency) : Color.white))
+            {
+                newDistance = EditorHelpers.LineSlider(distanceControlID, otherAnchorPosition, joint2D.distance,
                 Helpers2D.GetAngle(normalizedDiff), 0.125f, true);
 
-            EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff*newDistance,
-                Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
+                EditorHelpers.DrawThickLine(anchorPosition, otherAnchorPosition + normalizedDiff * newDistance,
+                 Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
+            }
+
+            if (Event.current.type == EventType.repaint)
+            {
+                if (EditorHelpers.IsWarm(distanceControlID) && DragAndDrop.objectReferences.Length == 0)
+                {
+
+                    GUIContent labelContent = new GUIContent(string.Format("Distance: {0:0.00}", joint2D.distance));
+
+                    Vector2 sliderPosition = otherAnchorPosition + normalizedDiff * joint2D.distance;
+
+                    float fontSize = HandleUtility.GetHandleSize(sliderPosition) * (1f / 64f);
+
+                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(normalizedDiff)));
+
+                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                }
+            }
 
             if (EditorGUI.EndChangeCheck()) {
                 using (new Modification("Change Distance", joint2D)) {

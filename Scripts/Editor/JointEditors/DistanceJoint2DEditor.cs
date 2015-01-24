@@ -29,7 +29,6 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
             }
         }
 
-
         DrawDistance(distanceJoint2D, anchorInfo, bias);
 
         Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
@@ -54,9 +53,7 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
             return position;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
-            ? JointHelpers.AnchorBias.Connected
-            : JointHelpers.AnchorBias.Main;
+        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
 
         DistanceJoint2D distanceJoint2D = (DistanceJoint2D) joint;
 
@@ -68,6 +65,21 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
         Vector2 diff = otherAnchorPosition - currentAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon) {
             diff = -Vector2.up;
+        }
+
+        Vector2 mainTargetPosition = JointHelpers.GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Main);
+        if (Vector2.Distance(position, mainTargetPosition) < snapDistance)
+        {
+            return mainTargetPosition;
+        }
+
+        if (distanceJoint2D.connectedBody)
+        {
+            Vector2 connectedTargetPosition = JointHelpers.GetTargetPosition(distanceJoint2D, JointHelpers.AnchorBias.Connected);
+            if (Vector2.Distance(position, connectedTargetPosition) < snapDistance)
+            {
+                return connectedTargetPosition;
+            }
         }
 
         Vector2 normalizedDiff = diff.normalized;
@@ -102,20 +114,16 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
 
     private void DrawDistance(DistanceJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
     {
-        if (joint2D == null)
-        {
+        if (joint2D == null) {
             return;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
-            ? JointHelpers.AnchorBias.Connected
-            : JointHelpers.AnchorBias.Main;
+        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
 
         Vector2 anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
         Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, otherBias);
         Vector2 diff = anchorPosition - otherAnchorPosition;
-        if (diff.magnitude <= Mathf.Epsilon)
-        {
+        if (diff.magnitude <= Mathf.Epsilon) {
             diff = Vector2.up * (bias == JointHelpers.AnchorBias.Connected ? 1 : -1);
         }
         Vector2 normalizedDiff = diff.normalized;
