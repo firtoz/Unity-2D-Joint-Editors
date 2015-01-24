@@ -19,6 +19,9 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         "maxLimit"
     };
 
+    private const float OneOver16 = 1f/16f;
+    private const float OneOver64 = 1f/64f;
+
     protected override HashSet<string> GetControlNames() {
         return ControlNames;
     }
@@ -615,38 +618,46 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
             Handles.DrawLine(anchorPosition + direction*sliderJoint2D.limits.min,
                 anchorPosition + direction*sliderJoint2D.limits.max);
 
-            float fontSize = HandleUtility.GetHandleSize(anchorPosition)*(1f/64f);
+            float fontSize;
 
-            if (GUIUtility.hotControl == minLimitControlID) {
-                String text = String.Format("{0:0.00}", sliderJoint2D.limits.min);
-                float minSign = Mathf.Sign(sliderJoint2D.limits.min);
-                float minLabelDistance = minSign*
-                                         fontSize*
-                                         EditorHelpers.FontWithBackgroundStyle.CalcSize(new GUIContent(text)).magnitude*
-                                         (minSign < 0 ? (1f) : 0.75f);
+            if (Event.current.type == EventType.repaint)
+            {
+                if (EditorHelpers.IsWarm(minLimitControlID) && DragAndDrop.objectReferences.Length == 0)
+                {
 
+                    GUIContent labelContent = new GUIContent(string.Format("Min: {0:0.00}", sliderJoint2D.limits.min));
 
-                EditorHelpers.OverlayLabel(anchorPosition + (direction)*(sliderJoint2D.limits.min + minLabelDistance),
-                    text, EditorHelpers.FontWithBackgroundStyle);
+                    Vector2 sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.min);
+
+                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * OneOver64;
+
+                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+
+                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                }
+                if (EditorHelpers.IsWarm(maxLimitControlID) && DragAndDrop.objectReferences.Length == 0)
+                {
+
+                    GUIContent labelContent = new GUIContent(string.Format("Max: {0:0.00}", sliderJoint2D.limits.max));
+
+                    Vector2 sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.max);
+
+                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * OneOver64;
+
+                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+
+                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                }
             }
-            if (GUIUtility.hotControl == maxLimitControlID) {
-                String text = String.Format("{0:0.00}", sliderJoint2D.limits.max);
-                float maxSign = Mathf.Sign(sliderJoint2D.limits.max);
-                float maxLabelDistance = maxSign*
-                                         fontSize*
-                                         EditorHelpers.FontWithBackgroundStyle.CalcSize(new GUIContent(text)).magnitude*
-                                         (maxSign < 0 ? (1f) : 0.75f);
-                EditorHelpers.OverlayLabel(anchorPosition + (direction) * (sliderJoint2D.limits.max + maxLabelDistance),
-                    text, EditorHelpers.FontWithBackgroundStyle);
-            }
+
             if (GUIUtility.hotControl == minLimitControlID ||
                 GUIUtility.hotControl == maxLimitControlID) {
                 using (new HandleColor(new Color(1, 1, 1, 0.25f))) {
-                    float handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition)*0.0625f;
+                    float handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition)*OneOver16;
 
                     Handles.DrawLine(wantedOppositeAnchorPosition - direction*handleSize,
                         wantedOppositeAnchorPosition + direction*handleSize);
-                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2)*0.0625f;
+                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2)*OneOver16;
                     Handles.DrawLine(wantedOppositeAnchorPosition2 - direction*handleSize,
                         wantedOppositeAnchorPosition2 + direction*handleSize);
                     Handles.DrawWireArc(anchorPosition, Vector3.forward, wantedOppositeAnchorPosition, 360,
@@ -849,19 +860,21 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
             return false;
         }
 
-        if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) && DragAndDrop.objectReferences.Length == 0)
-        {
-            float suspensionAngle = sliderJoint2D.angle;
+        if (Event.current.type == EventType.repaint) {
+            if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) && DragAndDrop.objectReferences.Length == 0) {
+                float suspensionAngle = sliderJoint2D.angle;
 
-            GUIContent labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
-            Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+                GUIContent labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
+                Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
 
-            float fontSize = HandleUtility.GetHandleSize(mainAnchorPosition) * (1f / 64f);
+                float fontSize = HandleUtility.GetHandleSize(mainAnchorPosition)*OneOver64;
 
-            float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
+                float labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent)
+                                                          .y;
 
-            EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up * labelOffset), labelContent,
-                EditorHelpers.FontWithBackgroundStyle);
+                EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up*labelOffset), labelContent,
+                    EditorHelpers.FontWithBackgroundStyle);
+            }
         }
 
         return false;

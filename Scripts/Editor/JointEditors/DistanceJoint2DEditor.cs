@@ -152,6 +152,22 @@ public class DistanceJoint2DEditor : Joint2DEditorBase {
                     Vector2.Distance(anchorPosition, otherAnchorPosition) > newDistance ? 2 : 1, true);
             }
 
+            if (Event.current.type == EventType.repaint) {
+                if (EditorHelpers.IsWarm(distanceControlID) && DragAndDrop.objectReferences.Length == 0)
+                {
+
+                    GUIContent labelContent = new GUIContent(string.Format("Distance: {0:0.00}", joint2D.distance));
+
+                    Vector2 sliderPosition = otherAnchorPosition + normalizedDiff * joint2D.distance;
+
+                    float fontSize = HandleUtility.GetHandleSize(sliderPosition) * (1f / 64f);
+
+                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad*Helpers2D.GetAngle(normalizedDiff)));
+
+                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                }
+            }
+
 
             if (EditorGUI.EndChangeCheck())
             {

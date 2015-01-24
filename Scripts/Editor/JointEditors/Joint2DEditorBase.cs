@@ -185,18 +185,16 @@ public abstract class Joint2DEditorBase : Editor {
                 }
             }
 
-
-            string collisionLabel = joint.collideConnected ? "Disable Collision" : "Enable Collision";
-            menu.AddItem(new GUIContent(collisionLabel,
+            menu.AddItem(new GUIContent("Toggle Collide Connected",
                 "Whether rigid bodies connected with this joint can collide or not."), joint.collideConnected,
                 () => {
                     EditorHelpers.RecordUndo("Move Joint Anchor", joint);
                     joint.collideConnected = !joint.collideConnected;
                     EditorUtility.SetDirty(joint);
                 });
-
-            //                    EditorGUI.ObjectField()
+            
             menu.AddSeparator("");
+
             int itemCount = menu.GetItemCount();
 
             ExtraMenuItems(menu, joint);
@@ -804,7 +802,7 @@ public abstract class Joint2DEditorBase : Editor {
 
         bool changed = PreSliderGUI(joint2D, anchorInfo, bias);
 
-        if (!changed && WantsLocking() && Event.current.shift &&
+        if (!changed && WantsLocking() && (Event.current.shift || GUIUtility.hotControl == lockID) &&
             (GUIUtility.hotControl == lockID || !anchorInfo.IsActive())) {
             bool farAway =
                 Vector2.Distance(
@@ -915,6 +913,16 @@ public abstract class Joint2DEditorBase : Editor {
             connected = new AnchorInfo(controlNames),
             locked = new AnchorInfo(controlNames);
 
+        if (jointAnchorInfos.ContainsKey(joint2D)) {
+            jointAnchorInfos[joint2D].Clear();
+        } else {
+            jointAnchorInfos[joint2D] = new List<AnchorInfo>();
+        }
+
+        jointAnchorInfos[joint2D].AddRange(new [] {
+            main, connected, locked
+        });
+
         List<Vector2> otherAnchors = GetAllAnchorsInSelection(joint2D);
 
         if (anchorLock && DragBothAnchorsWhenLocked()) {
@@ -969,6 +977,8 @@ public abstract class Joint2DEditorBase : Editor {
     protected virtual bool DragBothAnchorsWhenLocked() {
         return true;
     }
+
+    private readonly Dictionary<Joint2D, List<AnchorInfo>> jointAnchorInfos = new Dictionary<Joint2D, List<AnchorInfo>>(); 
 
     public void OnSceneGUI() {
         AnchoredJoint2D joint2D = target as AnchoredJoint2D;
@@ -1075,10 +1085,21 @@ public abstract class Joint2DEditorBase : Editor {
             }
         }
 
+        CleanupHotControls();
+
         if (utilityWindow)
         {
             utilityWindow.Close();
             utilityWindow = null;
+        }
+    }
+
+    private void CleanupHotControls() {
+        if ((from jointAnchorInfo in jointAnchorInfos.Values
+             let names = GetControlNames()
+             where jointAnchorInfo.Any(info => names.Select(controlName => info.GetControlID(controlName)).Any(controlID => GUIUtility.hotControl == controlID))
+             select jointAnchorInfo).Any()) {
+            GUIUtility.hotControl = 0;
         }
     }
 
