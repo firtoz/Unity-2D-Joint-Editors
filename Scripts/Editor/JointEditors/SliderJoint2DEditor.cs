@@ -869,11 +869,17 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
                 float fontSize = HandleUtility.GetHandleSize(mainAnchorPosition)*OneOver64;
 
-                float labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent)
-                                                          .y;
+                float labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
 
                 EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up*labelOffset), labelContent,
                     EditorHelpers.FontWithBackgroundStyle);
+            }
+        } else {
+            if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) 
+                && DragAndDrop.objectReferences.Length == 0) {
+                if (SceneView.lastActiveSceneView) {
+                    SceneView.lastActiveSceneView.Repaint();
+                }
             }
         }
 
