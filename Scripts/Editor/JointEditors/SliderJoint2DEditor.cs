@@ -877,7 +877,9 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         } else {
             if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) 
                 && DragAndDrop.objectReferences.Length == 0) {
-                SceneView.RepaintAll();
+                if (SceneView.lastActiveSceneView) {
+                    SceneView.lastActiveSceneView.Repaint();
+                }
             }
         }
 
