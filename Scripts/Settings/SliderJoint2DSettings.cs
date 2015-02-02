@@ -1,12 +1,12 @@
 ﻿using UnityEngine;
 
-public class SliderJoint2DSettings : Joint2DSettingsBase {
-    public enum AnchorPriority {
-        Main,
-        Connected
-    }
+public class SliderJoint2DSettings : JointSettingsWithBias
+{
+    public override void Setup(Joint2D joint2D) {
+        base.Setup(joint2D);
 
-    public AnchorPriority anchorPriority = AnchorPriority.Main;
+        anchorPriority = AnchorPriority.Main;
+    }
 
     public override bool IsValidType() {
         return attachedJoint is SliderJoint2D;

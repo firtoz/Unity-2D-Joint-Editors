@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public abstract class JointWithDistanceSettings : Joint2DSettingsBase {
+public abstract class JointSettingsWithBias : Joint2DSettingsBase {
     public enum AnchorPriority {
         Main,
         Connected

@@ -129,10 +129,10 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
         JointHelpers.AnchorBias wantedBias;
         switch (GetSettings(jointWithDistance).anchorPriority)
         {
-            case JointWithDistanceSettings.AnchorPriority.Main:
+            case JointSettingsWithBias.AnchorPriority.Main:
                 wantedBias = JointHelpers.AnchorBias.Main;
                 break;
-            case JointWithDistanceSettings.AnchorPriority.Connected:
+            case JointSettingsWithBias.AnchorPriority.Connected:
                 wantedBias = JointHelpers.AnchorBias.Connected;
                 break;
             default:
@@ -243,14 +243,14 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
     private void SelectAngleLimitsMode(SerializedObject serializedSettings, bool enabled)
     {
         EditorGUI.BeginChangeCheck();
-        JointWithDistanceSettings.AnchorPriority value;
+        JointSettingsWithBias.AnchorPriority value;
 
         using (new GUIEnabled(enabled))
         {
             SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
             EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
-            value = (JointWithDistanceSettings.AnchorPriority)
-                Enum.Parse(typeof(JointWithDistanceSettings.AnchorPriority),
+            value = (JointSettingsWithBias.AnchorPriority)
+                Enum.Parse(typeof(JointSettingsWithBias.AnchorPriority),
                     anchorPriority.enumNames[anchorPriority.enumValueIndex]);
         }
 
@@ -259,7 +259,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
             foreach (Object tar in targets)
             {
                 T jointWithDistance = tar as T;
-                JointWithDistanceSettings settings = GetSettings(jointWithDistance);
+                JointSettingsWithBias settings = GetSettings(jointWithDistance);
 
                 using (new Modification("toggle angle limits display mode", settings))
                 {
@@ -269,7 +269,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
         }
     }
 
-    protected abstract JointWithDistanceSettings GetSettings(T jointWithDistance);
+    protected abstract JointSettingsWithBias GetSettings(T jointWithDistance);
 
 
     protected override void InspectorDisplayGUI(bool enabled)
@@ -293,13 +293,13 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
         var settings = GetSettings(jointWithDistance);
 
-        if (settings.anchorPriority == JointWithDistanceSettings.AnchorPriority.Main)
+        if (settings.anchorPriority == JointSettingsWithBias.AnchorPriority.Main)
         {
-            settings.anchorPriority = JointWithDistanceSettings.AnchorPriority.Connected;
+            settings.anchorPriority = JointSettingsWithBias.AnchorPriority.Connected;
         }
-        else if (settings.anchorPriority == JointWithDistanceSettings.AnchorPriority.Connected)
+        else if (settings.anchorPriority == JointSettingsWithBias.AnchorPriority.Connected)
         {
-            settings.anchorPriority = JointWithDistanceSettings.AnchorPriority.Main;
+            settings.anchorPriority = JointSettingsWithBias.AnchorPriority.Main;
         }
     }
 }

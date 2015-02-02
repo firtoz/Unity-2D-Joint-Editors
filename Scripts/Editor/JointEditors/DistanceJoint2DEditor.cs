@@ -27,7 +27,7 @@ public class DistanceJoint2DEditor : JointEditorWithDistanceBase<DistanceJoint2D
         joint.distance = distance;
     }
 
-    protected override JointWithDistanceSettings GetSettings(DistanceJoint2D jointWithDistance) {
+    protected override JointSettingsWithBias GetSettings(DistanceJoint2D jointWithDistance) {
         return SettingsHelper.GetOrCreate<DistanceJoint2DSettings>(jointWithDistance);
     }
 }

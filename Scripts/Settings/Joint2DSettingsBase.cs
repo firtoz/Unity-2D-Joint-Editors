@@ -18,7 +18,7 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
     public Joint2D attachedJoint;
     [SerializeField] private bool setupComplete;
 
-    public void Setup(Joint2D joint2D) {
+    public virtual void Setup(Joint2D joint2D) {
         setupComplete = true;
         attachedJoint = joint2D;
     }

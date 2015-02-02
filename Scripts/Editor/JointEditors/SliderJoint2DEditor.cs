@@ -4,23 +4,22 @@ using System.Linq;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableEditor;
 using toxicFork.GUIHelpers.DisposableEditorGUI;
-using toxicFork.GUIHelpers.DisposableGUI;
 using toxicFork.GUIHelpers.DisposableHandles;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 [CustomEditor(typeof (SliderJoint2D))]
 [CanEditMultipleObjects]
-public class SliderJoint2DEditor : Joint2DEditorBase {
+public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
+{
     private static readonly HashSet<string> ControlNames = new HashSet<string> {
         "sliderAngle",
         "minLimit",
         "maxLimit"
     };
 
-    private const float OneOver16 = 1f/16f;
-    private const float OneOver64 = 1f/64f;
+    private const float ONE_OVER16 = 1f/16f;
+    private const float ONE_OVER64 = 1f/64f;
 
     protected override HashSet<string> GetControlNames() {
         return ControlNames;
@@ -30,18 +29,33 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         return true;
     }
 
+    protected override JointSettingsWithBias GetSettings(SliderJoint2D joint2D) {
+        return SettingsHelper.GetOrCreate<SliderJoint2DSettings>(joint2D);
+    }
+
+    protected override GUIContent GetAngleEditinGUIContent() {
+        return new GUIContent("Slider Angle", "The translation angle that the joint slides along. [ -1000000, 1000000 ].");
+    }
+
+    protected override void SetAngle(SliderJoint2D joint2D, float wantedAngle) {
+        joint2D.angle = wantedAngle;
+    }
+
+    protected override float GetAngle(SliderJoint2D joint2D) {
+        return joint2D.angle;
+    }
+
     protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
         JointHelpers.AnchorBias bias, float snapDistance) {
         if (!EditorGUI.actionKey) {
             return position;
         }
 
+        var sliderJoint2D = (SliderJoint2D) joint;
 
-        SliderJoint2D sliderJoint2D = (SliderJoint2D) joint;
-
-        bool lockAnchors = SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors;
-        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
-        Vector2 oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
+        var lockAnchors = SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors;
+        var oppositeBias = JointHelpers.GetOppositeBias(bias);
+        var oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
 
         Vector2[] targetPositions;
 
@@ -60,50 +74,29 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         if (sliderJoint2D.useLimits) {
             Ray slideRay;
 
-            float min = sliderJoint2D.limits.min;
-            float max = sliderJoint2D.limits.max;
+            var min = sliderJoint2D.limits.min;
+            var max = sliderJoint2D.limits.max;
 
 
             if (lockAnchors) {
                 slideRay = new Ray(oppositeAnchorPosition,
                     (position - oppositeAnchorPosition).normalized);
 
-//                if (Helpers2D.DistanceToLine(slideRay, position) < snapDistance) {
-//                    
-//                }
-
-//                Vector2 minPos = slideRay.GetPoint(min);
-//
-//                if (Vector2.Distance(position, minPos) < snapDistance)
-//                {
-//                    return minPos;
-//                }
-//
-//
-//                Vector2 maxPos = slideRay.GetPoint(max);
-//                Debug.DrawLine(position, maxPos);
-//
-//
-//                if (Vector2.Distance(position, maxPos) < snapDistance)
-//                {
-//                    return maxPos;
-//                }
-
-                foreach (Vector2 targetPosition in targetPositions) {
+                foreach (var targetPosition in targetPositions) {
                     if (Vector2.Distance(oppositeAnchorPosition, targetPosition) <= AnchorEpsilon) {
                         continue;
                     }
 
-                    Ray fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+                    var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
                         (targetPosition - oppositeAnchorPosition).normalized);
 
                     if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) >= snapDistance) {
                         continue;
                     }
 
-                    Vector2 closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
+                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
 
-                    Ray ray = new Ray(oppositeAnchorPosition, (closestPointToRay - oppositeAnchorPosition).normalized);
+                    var ray = new Ray(oppositeAnchorPosition, (closestPointToRay - oppositeAnchorPosition).normalized);
 
                     Vector2 wantedMinPosition = ray.GetPoint(min);
                     Vector2 wantedMaxPosition = ray.GetPoint(max);
@@ -118,7 +111,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                 }
             }
             else {
-                float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+                var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
                 if (bias == JointHelpers.AnchorBias.Main) {
                     worldAngle += 180;
@@ -147,15 +140,15 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
         if (lockAnchors) {
             //align onto the rays from either target towards the opposite bias
-            foreach (Vector2 targetPosition in targetPositions) {
+            foreach (var targetPosition in targetPositions) {
                 if (Vector2.Distance(targetPosition, oppositeAnchorPosition) <= AnchorEpsilon) {
                     continue;
                 }
-                Ray fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+                var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
                     (targetPosition - oppositeAnchorPosition).normalized);
 
                 if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) < snapDistance) {
-                    Vector2 closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
+                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
                     return closestPointToRay;
                 }
             }
@@ -164,7 +157,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         if (!lockAnchors &&
             !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
                 JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)) {
-            Vector2 wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
+            var wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
 
             if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
                 return wantedAnchorPosition;
@@ -179,13 +172,13 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
     }
 
     protected override void ReAlignAnchors(AnchoredJoint2D joint2D, JointHelpers.AnchorBias alignmentBias) {
-        SliderJoint2D sliderJoint2D = (SliderJoint2D) joint2D;
+        var sliderJoint2D = (SliderJoint2D) joint2D;
 
         //align the angle to the connected anchor
-        Vector2 direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
+        var direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
                             JointHelpers.GetMainAnchorPosition(joint2D);
         if (direction.magnitude > AnchorEpsilon) {
-            float wantedAngle = Helpers2D.GetAngle(direction);
+            var wantedAngle = Helpers2D.GetAngle(direction);
 
             EditorHelpers.RecordUndo("Realign angle", sliderJoint2D);
             sliderJoint2D.angle = wantedAngle - sliderJoint2D.transform.eulerAngles.z;
@@ -198,32 +191,30 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
     private static Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias,
         Vector2 position) {
-        SliderJoint2D sliderJoint2D = (SliderJoint2D) anchoredJoint2D;
+        var sliderJoint2D = (SliderJoint2D) anchoredJoint2D;
 
-        JointHelpers.AnchorBias otherBias = JointHelpers.GetOppositeBias(bias);
+        var otherBias = JointHelpers.GetOppositeBias(bias);
 
-        float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+        var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
-        Ray slideRay = new Ray(JointHelpers.GetAnchorPosition(sliderJoint2D, otherBias),
+        var slideRay = new Ray(JointHelpers.GetAnchorPosition(sliderJoint2D, otherBias),
             Helpers2D.GetDirection(worldAngle));
-        Vector2 wantedAnchorPosition = Helpers2D.ClosestPointToRay(slideRay, position);
+        var wantedAnchorPosition = Helpers2D.ClosestPointToRay(slideRay, position);
         return wantedAnchorPosition;
     }
 
-
     protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint) {
-        SliderJoint2D sliderJoint2D = joint as SliderJoint2D;
-        if (sliderJoint2D != null) {
-            Vector2 mousePosition = Event.current.mousePosition;
+        base.ExtraMenuItems(menu, joint);
 
-            AddEditSliderAngleMenuItem(sliderJoint2D, menu, mousePosition);
+        var sliderJoint2D = joint as SliderJoint2D;
+        if (sliderJoint2D != null) {
+            var mousePosition = Event.current.mousePosition;
 
             menu.AddItem(new GUIContent("Use Motor"), sliderJoint2D.useMotor, () => {
                 EditorHelpers.RecordUndo("Use Motor", sliderJoint2D);
                 sliderJoint2D.useMotor = !sliderJoint2D.useMotor;
                 EditorUtility.SetDirty(sliderJoint2D);
             });
-
 
             menu.AddItem(new GUIContent("Configure Motor"), false, () =>
                 ShowUtility(
@@ -234,25 +225,25 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                         using (new Indent()) {
                             EditorGUI.BeginChangeCheck();
 
-                            bool useMotor =
+                            var useMotor =
                                 EditorGUILayout.Toggle(
                                     new GUIContent("Use Motor", "Whether to use the joint motor or not."),
                                     sliderJoint2D.useMotor);
 
                             GUI.SetNextControlName("Motor Config");
-                            float motorSpeed = EditorGUILayout.FloatField(
+                            var motorSpeed = EditorGUILayout.FloatField(
                                 new GUIContent("Motor Speed",
                                     "The target motor speed in degrees/second. [-100000, 1000000 ]."),
                                 sliderJoint2D.motor.motorSpeed);
                             GUI.SetNextControlName("Motor Config");
-                            float maxMotorTorque = EditorGUILayout.FloatField(
+                            var maxMotorTorque = EditorGUILayout.FloatField(
                                 new GUIContent("Maximum Motor Force",
                                     "The maximum force the motor can use to achieve the desired motor speed. [ 0, 1000000 ]."),
                                 sliderJoint2D.motor.maxMotorTorque);
 
                             if (EditorGUI.EndChangeCheck()) {
                                 using (new Modification("Configure Motor", sliderJoint2D)) {
-                                    JointMotor2D motor = sliderJoint2D.motor;
+                                    var motor = sliderJoint2D.motor;
                                     motor.motorSpeed = motorSpeed;
                                     motor.maxMotorTorque = maxMotorTorque;
                                     sliderJoint2D.motor = motor;
@@ -286,25 +277,25 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                         using (new Indent()) {
                             EditorGUI.BeginChangeCheck();
 
-                            bool useLimits =
+                            var useLimits =
                                 EditorGUILayout.Toggle(
                                     new GUIContent("Use Limits", "Whether to use the translation limits or not."),
                                     sliderJoint2D.useLimits);
 
                             GUI.SetNextControlName("Limits Config");
-                            float lowerTranslationLimit = EditorGUILayout.FloatField(
+                            var lowerTranslationLimit = EditorGUILayout.FloatField(
                                 new GUIContent("Lower Angle",
                                     "The lower translation limit to constrain the joint to. [ -100000, 1000000 ]."),
                                 sliderJoint2D.limits.min);
                             GUI.SetNextControlName("Limits Config");
-                            float upperTranslationLimit = EditorGUILayout.FloatField(
+                            var upperTranslationLimit = EditorGUILayout.FloatField(
                                 new GUIContent("Upper Angle",
                                     "The upper translation limit to constraint the joint to. [ -100000, 1000000 ]."),
                                 sliderJoint2D.limits.max);
 
                             if (EditorGUI.EndChangeCheck()) {
                                 using (new Modification("Configure Limits", sliderJoint2D)) {
-                                    JointTranslationLimits2D limits2D = sliderJoint2D.limits;
+                                    var limits2D = sliderJoint2D.limits;
                                     limits2D.min = lowerTranslationLimit;
                                     limits2D.max = upperTranslationLimit;
                                     sliderJoint2D.limits = limits2D;
@@ -326,14 +317,12 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
     }
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {
-        SliderJoint2D sliderJoint2D = (SliderJoint2D) joint2D;
+        var sliderJoint2D = (SliderJoint2D) joint2D;
 
-//        Vector2 center = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
+        var mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
+        var connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
 
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
-        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
-
-        int sliderAngleControlID = anchorInfo.GetControlID("sliderAngle");
+        var sliderAngleControlID = anchorInfo.GetControlID("sliderAngle");
 
         if (bias != JointHelpers.AnchorBias.Connected &&
             (
@@ -341,11 +330,16 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                 GUIUtility.hotControl == anchorInfo.GetControlID("minLimit") ||
                 GUIUtility.hotControl == anchorInfo.GetControlID("maxLimit") ||
                 !Event.current.shift)) {
-            DrawSlider(sliderJoint2D, anchorInfo);
+                    DrawAngleWidget(sliderJoint2D, sliderAngleControlID);
+
+            if (sliderJoint2D.useLimits)
+            {
+                HandleLimits(sliderJoint2D, anchorInfo);
+            }
         }
 
         if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
-            Vector2 snap = GetWantedAnchorPosition(sliderJoint2D, bias);
+            var snap = GetWantedAnchorPosition(sliderJoint2D, bias);
             using (new HandleColor(new Color(1, 1, 1, .5f))) {
                 Handles.DrawLine(connectedAnchorPosition, snap);
                 Handles.DrawLine(mainAnchorPosition, snap);
@@ -358,25 +352,6 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                 Handles.DrawLine(mainAnchorPosition, GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected));
             }
         }
-
-//        if (bias == JointHelpers.AnchorBias.Main) {
-//            Vector2 mainBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Main);
-//            using (new HandleColor(editorSettings.anchorsToMainBodyColor)) {
-//                if (Vector2.Distance(mainBodyPosition, center) > AnchorEpsilon) {
-//                    Handles.DrawLine(mainBodyPosition, center);
-//                }
-//            }
-//        }
-//        else if (bias == JointHelpers.AnchorBias.Connected) {
-//            Vector2 connectedBodyPosition = GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected);
-//            if (sliderJoint2D.connectedBody) {
-//                using (new HandleColor(editorSettings.anchorsToConnectedBodyColor)) {
-//                    if (Vector2.Distance(connectedBodyPosition, center) > AnchorEpsilon) {
-//                        Handles.DrawLine(connectedBodyPosition, center);
-//                    }
-//                }
-//            }
-//        }
         return false;
     }
 
@@ -386,16 +361,16 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
 
     public override Bounds OnGetFrameBounds() {
-        Bounds baseBounds = base.OnGetFrameBounds();
+        var baseBounds = base.OnGetFrameBounds();
 
-        foreach (SliderJoint2D joint2D in targets.Cast<SliderJoint2D>()) {
-            Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-            Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-            Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
+        foreach (var joint2D in targets.Cast<SliderJoint2D>()) {
+            var mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+            var connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+            var diff = connectedAnchorPosition - mainAnchorPosition;
             if (diff.magnitude <= Mathf.Epsilon) {
                 diff = -Vector2.up;
             }
-            Vector2 normalizedDiff = diff.normalized;
+            var normalizedDiff = diff.normalized;
 
             baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff*joint2D.limits.min);
             baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff*joint2D.limits.max);
@@ -406,176 +381,17 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         return baseBounds;
     }
 
-    private void DrawSlider(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
-        float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
-
-//        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
-//        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
-
-        SliderJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate <SliderJoint2DSettings>(sliderJoint2D);
-
-        int controlID = anchorInfo.GetControlID("sliderAngle");
-
-        HandleDragDrop(controlID, sliderJoint2D, joint2DSettings);
-
-        EditorGUI.BeginChangeCheck();
-
-
-        JointHelpers.AnchorBias sliderBias;
-
-        if (joint2DSettings.anchorPriority == SliderJoint2DSettings.AnchorPriority.Main) {
-            sliderBias = JointHelpers.AnchorBias.Main;
-        } else {
-            sliderBias = JointHelpers.AnchorBias.Connected;
-        }
-
-        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(sliderBias);
-        Vector2 angleWidgetPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, sliderBias);
-
-        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
-
-        Vector2 offsetToOther = otherAnchorPosition - angleWidgetPosition;
-
-        float newAngle = LineAngleHandle(controlID, worldAngle, angleWidgetPosition, 0.5f, 2);
-
-        Vector2 mousePosition = Event.current.mousePosition;
-
-        EditorHelpers.ContextClick(controlID, () => {
-            GenericMenu menu = new GenericMenu();
-            AddEditSliderAngleMenuItem(sliderJoint2D, menu, mousePosition);
-            menu.ShowAsContext();
-        });
-
-        if (EditorGUI.EndChangeCheck()) {
-
-            bool snapped = false;
-
-            if (EditorGUI.actionKey) {
-                float handleSize = HandleUtility.GetHandleSize(angleWidgetPosition);
-
-                Vector2 mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-
-                Ray currentAngleRay = new Ray(angleWidgetPosition, Helpers2D.GetDirection(newAngle));
-
-                Vector2 mousePositionProjectedToAngle = Helpers2D.ClosestPointToRay(currentAngleRay, mousePosition2D);
-
-                List<Vector2> directionsToSnapTo = new List<Vector2> {
-                    (GetTargetPosition(sliderJoint2D, sliderBias) - angleWidgetPosition).normalized
-                };
-
-                if (!joint2DSettings.lockAnchors) {
-                    directionsToSnapTo.Insert(0, offsetToOther.normalized);
-                }
-
-                if (sliderJoint2D.connectedBody) {
-                    directionsToSnapTo.Add(
-                        (GetTargetPosition(sliderJoint2D, oppositeBias) - angleWidgetPosition)
-                            .normalized);
-                }
-
-                foreach (Vector2 direction in directionsToSnapTo) {
-                    Ray rayTowardsDirection = new Ray(angleWidgetPosition, direction);
-
-                    Vector2 closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsDirection,
-                        mousePositionProjectedToAngle);
-
-                    if (Vector2.Distance(closestPointTowardsDirection, mousePositionProjectedToAngle) <
-                        handleSize*0.125f) {
-                        Vector2 currentDirection = Helpers2D.GetDirection(newAngle);
-                        Vector2 closestPositionToDirection =
-                            Helpers2D.ClosestPointToRay(rayTowardsDirection,
-                                angleWidgetPosition + currentDirection);
-
-                        snapped = true;
-                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - angleWidgetPosition);
-
-                        break;
-                    }
-                }
-
-            }
-
-            float wantedAngle = newAngle - sliderJoint2D.transform.eulerAngles.z;
-
-            if (!snapped)
-            {
-                wantedAngle = Handles.SnapValue(wantedAngle, editorSettings.snapAngle);
-            }
-
-            EditorHelpers.RecordUndo("Alter Slider Joint 2D Angle", sliderJoint2D);
-
-            if (joint2DSettings.lockAnchors) {
-                float angleDelta = Mathf.DeltaAngle(sliderJoint2D.angle, wantedAngle);
-
-
-                JointHelpers.SetWorldAnchorPosition(sliderJoint2D,
-                    angleWidgetPosition + (Vector2)(Helpers2D.Rotate(angleDelta) * offsetToOther), oppositeBias);
-
-                sliderJoint2D.angle = wantedAngle;
-            }
-
-            sliderJoint2D.angle = wantedAngle;
-        }
-
-        if (sliderJoint2D.useLimits) {
-            HandleLimits(sliderJoint2D, anchorInfo);
-        }
-    }
-
-    private void AddEditSliderAngleMenuItem(SliderJoint2D sliderJoint2D, GenericMenu menu, Vector2 mousePosition) {
-        SliderJoint2DSettings joint2DSettings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(sliderJoint2D);
-
-        menu.AddItem(new GUIContent("Edit Slider Angle"), false,
-            () =>
-                ShowUtility(
-                    "Edit Slider Angle",
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
-                    delegate(Action close, bool focused) {
-                        EditorGUI.BeginChangeCheck();
-                        GUI.SetNextControlName("SliderAngle");
-                        float sliderAngle =
-                            EditorGUILayout.FloatField(
-                                new GUIContent("Slider Angle",
-                                    "The translation angle that the joint slides along. [ -1000000, 1000000 ]."),
-                                sliderJoint2D.angle);
-                        if (EditorGUI.EndChangeCheck()) {
-                            using (new Modification("Slider Angle", sliderJoint2D)) {
-                                if (joint2DSettings.lockAnchors) {
-                                    float angleDelta = Mathf.DeltaAngle(sliderJoint2D.angle, sliderAngle);
-
-                                    Vector2 connectedAnchorPosition =
-                                        JointHelpers.GetConnectedAnchorPosition(sliderJoint2D);
-                                    Vector2 connectedOffset = connectedAnchorPosition - mainAnchorPosition;
-
-                                    JointHelpers.SetWorldConnectedAnchorPosition(sliderJoint2D,
-                                        mainAnchorPosition +
-                                        (Vector2) (Helpers2D.Rotate(angleDelta)*connectedOffset));
-                                }
-
-                                sliderJoint2D.angle = sliderAngle;
-                            }
-                        }
-                        if (GUILayout.Button("Done") ||
-                            (Event.current.isKey &&
-                             (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Escape) &&
-                             focused)) {
-                            close();
-                        }
-                    }));
-    }
-
     private void HandleLimits(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo) {
-        float worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+        var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
 
-        SliderJoint2DSettings settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
+        var settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
 
         JointHelpers.AnchorBias bias;
         switch (settings.anchorPriority) {
-            case SliderJoint2DSettings.AnchorPriority.Main:
+            case JointSettingsWithBias.AnchorPriority.Main:
                 bias = JointHelpers.AnchorBias.Main;
                 break;
-            case SliderJoint2DSettings.AnchorPriority.Connected:
+            case JointSettingsWithBias.AnchorPriority.Connected:
                 bias = JointHelpers.AnchorBias.Connected;
                 break;
             default:
@@ -587,31 +403,31 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
     private void LimitWidget(SliderJoint2D sliderJoint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias,
         float worldAngle) {
-        Vector2 anchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
+        var anchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, bias);
 
-        JointHelpers.AnchorBias oppositeBias = JointHelpers.GetOppositeBias(bias);
+        var oppositeBias = JointHelpers.GetOppositeBias(bias);
 
-        Vector2 oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
-        Vector2 direction = Helpers2D.GetDirection(worldAngle);
+        var oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
+        var direction = Helpers2D.GetDirection(worldAngle);
         if (bias == JointHelpers.AnchorBias.Connected) {
             direction *= -1f;
         }
-        Vector2 delta = oppositeAnchorPosition - anchorPosition;
+        var delta = oppositeAnchorPosition - anchorPosition;
 
-        float angleDiff = Mathf.DeltaAngle(Helpers2D.GetAngle(delta), worldAngle);
+        var angleDiff = Mathf.DeltaAngle(Helpers2D.GetAngle(delta), worldAngle);
 
         Vector2 rotatedDelta = Helpers2D.Rotate(angleDiff)*delta;
 
-        Vector2 wantedOppositeAnchorPosition = anchorPosition + rotatedDelta;
-        Vector2 wantedOppositeAnchorPosition2 = anchorPosition - rotatedDelta;
+        var wantedOppositeAnchorPosition = anchorPosition + rotatedDelta;
+        var wantedOppositeAnchorPosition2 = anchorPosition - rotatedDelta;
 
-        int minLimitControlID = anchorInfo.GetControlID("minLimit");
-        int maxLimitControlID = anchorInfo.GetControlID("maxLimit");
+        var minLimitControlID = anchorInfo.GetControlID("minLimit");
+        var maxLimitControlID = anchorInfo.GetControlID("maxLimit");
 
         LimitContext(sliderJoint2D, minLimitControlID, Limit.Min);
         LimitContext(sliderJoint2D, maxLimitControlID, Limit.Max);
 
-        Color limitColor = sliderJoint2D.limits.min > sliderJoint2D.limits.max
+        var limitColor = sliderJoint2D.limits.min > sliderJoint2D.limits.max
             ? editorSettings.incorrectLimitsColor
             : editorSettings.correctLimitsColor;
         using (new HandleColor(limitColor)) {
@@ -625,26 +441,26 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                 if (EditorHelpers.IsWarm(minLimitControlID) && DragAndDrop.objectReferences.Length == 0)
                 {
 
-                    GUIContent labelContent = new GUIContent(string.Format("Min: {0:0.00}", sliderJoint2D.limits.min));
+                    var labelContent = new GUIContent(string.Format("Min: {0:0.00}", sliderJoint2D.limits.min));
 
-                    Vector2 sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.min);
+                    var sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.min);
 
-                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * OneOver64;
+                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * ONE_OVER64;
 
-                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
 
                     EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
                 }
                 if (EditorHelpers.IsWarm(maxLimitControlID) && DragAndDrop.objectReferences.Length == 0)
                 {
 
-                    GUIContent labelContent = new GUIContent(string.Format("Max: {0:0.00}", sliderJoint2D.limits.max));
+                    var labelContent = new GUIContent(string.Format("Max: {0:0.00}", sliderJoint2D.limits.max));
 
-                    Vector2 sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.max);
+                    var sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.max);
 
-                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * OneOver64;
+                    fontSize = HandleUtility.GetHandleSize(sliderPosition) * ONE_OVER64;
 
-                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
 
                     EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
                 }
@@ -653,11 +469,11 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
             if (GUIUtility.hotControl == minLimitControlID ||
                 GUIUtility.hotControl == maxLimitControlID) {
                 using (new HandleColor(new Color(1, 1, 1, 0.25f))) {
-                    float handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition)*OneOver16;
+                    var handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition)*ONE_OVER16;
 
                     Handles.DrawLine(wantedOppositeAnchorPosition - direction*handleSize,
                         wantedOppositeAnchorPosition + direction*handleSize);
-                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2)*OneOver16;
+                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2)*ONE_OVER16;
                     Handles.DrawLine(wantedOppositeAnchorPosition2 - direction*handleSize,
                         wantedOppositeAnchorPosition2 + direction*handleSize);
                     Handles.DrawWireArc(anchorPosition, Vector3.forward, wantedOppositeAnchorPosition, 360,
@@ -666,7 +482,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
             }
 
 
-            bool actionKey = EditorGUI.actionKey;
+            var actionKey = EditorGUI.actionKey;
 
             List<Vector2> snapList = null;
             if (actionKey) {
@@ -691,7 +507,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         EditorGUI.BeginChangeCheck();
 
         float val;
-        JointTranslationLimits2D limits2D = sliderJoint2D.limits;
+        var limits2D = sliderJoint2D.limits;
         switch (limit) {
             case Limit.Min:
                 val = limits2D.min;
@@ -703,13 +519,13 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                 throw new ArgumentOutOfRangeException("limit");
         }
 
-        float newLimit = EditorHelpers.LineSlider(limitControlID, anchorPosition,
+        var newLimit = EditorHelpers.LineSlider(limitControlID, anchorPosition,
             val,
             Helpers2D.GetAngle(direction), 0.125f, false, limit == Limit.Min);
 
         if (EditorGUI.EndChangeCheck()) {
             if (snapList != null) {
-                List<Vector2> limitSnapList = new List<Vector2>(snapList);
+                var limitSnapList = new List<Vector2>(snapList);
                 switch (limit) {
                     case Limit.Min:
                         limitSnapList.Add(anchorPosition + direction*limits2D.max);
@@ -721,11 +537,11 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                         throw new ArgumentOutOfRangeException("limit");
                 }
 
-                Vector2 limitGUIPosition =
+                var limitGUIPosition =
                     HandleUtility.WorldToGUIPoint(anchorPosition + direction*newLimit);
 
-                foreach (Vector2 snapPosition in limitSnapList) {
-                    Vector2 snapGUIPosition = HandleUtility.WorldToGUIPoint(snapPosition);
+                foreach (var snapPosition in limitSnapList) {
+                    var snapGUIPosition = HandleUtility.WorldToGUIPoint(snapPosition);
                     if (Vector2.Distance(limitGUIPosition, snapGUIPosition) < 10) {
                         newLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
                             snapPosition);
@@ -750,12 +566,12 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
     }
 
     private void LimitContext(SliderJoint2D sliderJoint2D, int controlID, Limit limit) {
-        Vector2 mousePosition = Event.current.mousePosition;
+        var mousePosition = Event.current.mousePosition;
 
-        string limitName = (limit == Limit.Min ? "Lower" : "Upper") + " Translation Limit";
+        var limitName = (limit == Limit.Min ? "Lower" : "Upper") + " Translation Limit";
 
         EditorHelpers.ContextClick(controlID, () => {
-            GenericMenu menu = new GenericMenu();
+            var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Edit " + limitName), false, () =>
                     ShowUtility(
                     "Edit " + limitName,
@@ -763,12 +579,12 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();
                         GUI.SetNextControlName(limitName);
-                        float newLimit = EditorGUILayout.FloatField(limitName,
+                        var newLimit = EditorGUILayout.FloatField(limitName,
                             limit == Limit.Min
                                 ? sliderJoint2D.limits.min
                                 : sliderJoint2D.limits.max);
                         if (EditorGUI.EndChangeCheck()) {
-                            JointTranslationLimits2D limits = sliderJoint2D.limits;
+                            var limits = sliderJoint2D.limits;
                             if (limit == Limit.Min) {
                                 limits.min = newLimit;
                             }
@@ -790,63 +606,27 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
         });
     }
 
-    protected override void InspectorDisplayGUI(bool enabled) {
-        List<Object> allSettings =
-            targets.Cast<SliderJoint2D>()
-                .Select(sliderJoint2D => SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D))
-                .Where(sliderSettings => sliderSettings != null).Cast<Object>().ToList();
-
-        SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
-        SelectAngleLimitsMode(serializedSettings, enabled);
-    }
-
-    private static readonly GUIContent AngleLimitsModeContent =
-        new GUIContent("Anchor Priority",
-            "Which anchor's angle limits would you like to see? If there is no connected body this setting will be ignored.");
-
-    private void SelectAngleLimitsMode(SerializedObject serializedSettings, bool enabled) {
-        EditorGUI.BeginChangeCheck();
-        SliderJoint2DSettings.AnchorPriority value;
-
-        using (new GUIEnabled(enabled)) {
-            SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
-            EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
-            value = (SliderJoint2DSettings.AnchorPriority)
-                Enum.Parse(typeof (SliderJoint2DSettings.AnchorPriority),
-                    anchorPriority.enumNames[anchorPriority.enumValueIndex]);
-        }
-
-        if (EditorGUI.EndChangeCheck()) {
-            foreach (Object t in targets) {
-                SliderJoint2D sliderJoint2D = (SliderJoint2D) t;
-                SliderJoint2DSettings settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
-
-                EditorHelpers.RecordUndo("toggle angle limits display mode", settings);
-                settings.anchorPriority = value;
-                EditorUtility.SetDirty(settings);
-            }
-        }
-    }
+    
 
 
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint) {
         //swap limits
-        SliderJoint2D sliderJoint2D = cloneJoint as SliderJoint2D;
+        var sliderJoint2D = cloneJoint as SliderJoint2D;
         if (!sliderJoint2D) {
             return;
         }
 
 
-        SliderJoint2DSettings settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
+        var settings = SettingsHelper.GetOrCreate<SliderJoint2DSettings>(sliderJoint2D);
 
-        if (settings.anchorPriority == SliderJoint2DSettings.AnchorPriority.Main) {
-            settings.anchorPriority = SliderJoint2DSettings.AnchorPriority.Connected;
+        if (settings.anchorPriority == JointSettingsWithBias.AnchorPriority.Main) {
+            settings.anchorPriority = JointSettingsWithBias.AnchorPriority.Connected;
         }
-        else if (settings.anchorPriority == SliderJoint2DSettings.AnchorPriority.Connected) {
-            settings.anchorPriority = SliderJoint2DSettings.AnchorPriority.Main;
+        else if (settings.anchorPriority == JointSettingsWithBias.AnchorPriority.Connected) {
+            settings.anchorPriority = JointSettingsWithBias.AnchorPriority.Main;
         }
 
-        float worldAngle = sliderJoint2D.connectedBody.transform.eulerAngles.z + sliderJoint2D.angle;
+        var worldAngle = sliderJoint2D.connectedBody.transform.eulerAngles.z + sliderJoint2D.angle;
 
         sliderJoint2D.angle = (180.0f + worldAngle) - sliderJoint2D.transform.eulerAngles.z;
     }
@@ -854,7 +634,7 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
     protected override bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
         JointHelpers.AnchorBias bias)
     {
-        SliderJoint2D sliderJoint2D = joint2D as SliderJoint2D;
+        var sliderJoint2D = joint2D as SliderJoint2D;
         if (sliderJoint2D == null)
         {
             return false;
@@ -862,14 +642,14 @@ public class SliderJoint2DEditor : Joint2DEditorBase {
 
         if (Event.current.type == EventType.repaint) {
             if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) && DragAndDrop.objectReferences.Length == 0) {
-                float suspensionAngle = sliderJoint2D.angle;
+                var suspensionAngle = sliderJoint2D.angle;
 
-                GUIContent labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
+                var labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
                 Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
 
-                float fontSize = HandleUtility.GetHandleSize(mainAnchorPosition)*OneOver64;
+                var fontSize = HandleUtility.GetHandleSize(mainAnchorPosition)*ONE_OVER64;
 
-                float labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
+                var labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
 
                 EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up*labelOffset), labelContent,
                     EditorHelpers.FontWithBackgroundStyle);

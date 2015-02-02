@@ -12,7 +12,7 @@ public class SpringJoint2DEditor : JointEditorWithDistanceBase<SpringJoint2D> {
         joint.distance = distance;
     }
 
-    protected override JointWithDistanceSettings GetSettings(SpringJoint2D jointWithDistance) {
+    protected override JointSettingsWithBias GetSettings(SpringJoint2D jointWithDistance) {
         return SettingsHelper.GetOrCreate<SpringJoint2DSettings>(jointWithDistance);
     }
 }
