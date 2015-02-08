@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
+using UnityEditor;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -25,8 +26,16 @@ public class Joint2DTarget : MonoBehaviour {
         }
     }
 
+    [SerializeField] 
+    private bool wantsDestroy;
+
     public void Update()
     {
+        if (wantsDestroy)
+        {
+            return;
+        }
+
         if (!JointEditorSettings.Singleton.showConnectedJoints) {
             Helpers.DestroyImmediate(this);
             return;
@@ -41,7 +50,8 @@ public class Joint2DTarget : MonoBehaviour {
         }
 
         if (attachedJoints.Count == 0) {
-            Helpers.DestroyImmediate(this);
+            wantsDestroy = true;
+            EditorApplication.delayCall += () => Helpers.DestroyImmediate(this);
         }
     }
 #endif
