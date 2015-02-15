@@ -103,7 +103,7 @@ internal class JointEditorSettingsEditor : Editor {
             }
             if (GUILayout.Button("Disable 2D Joint Editors")) {
                 if (EditorUtility.DisplayDialog("Disable 2D Joint Editors",
-                    "Are you sure about disabling all 2D Joint Editors features? \n\nThis will wipe your joint-specific settings forever! \n\nThis should ONLY be used if you would like to uninstall the package!",
+                    "Warning!!\n\nThis will wipe your joint-specific settings forever! \n\nThis should ONLY be used if you would like to uninstall the package! \n\n Are you sure about disabling all 2D Joint Editors features?",
                     "Yes", "No")) {
                     disableEverythingProperty.boolValue = true;
 

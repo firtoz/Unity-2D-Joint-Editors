@@ -208,30 +208,30 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
         EditorHelpers.ContextClick(controlID, () =>
         {
             GenericMenu menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Edit Distance"), false, () =>
-                ShowUtility("Edit Distance",
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
-                    delegate(Action close, bool focused)
-                    {
-                        EditorGUI.BeginChangeCheck();
-                        float newDistance = EditorGUILayout.FloatField("Distance", GetDistance(jointWithDistance));
-                        if (EditorGUI.EndChangeCheck())
-                        {
-                            using (new Modification("Change Distance", jointWithDistance))
-                            {
-                                SetDistance(jointWithDistance, newDistance);
-                            }
-                        }
-                        if (GUILayout.Button("Done") ||
-                            (Event.current.isKey &&
-                             (Event.current.keyCode == KeyCode.Escape) &&
-                             focused))
-                        {
-                            close();
-                        }
-                    }));
+            AddDistanceContextItem(jointWithDistance, menu, mousePosition);
             menu.ShowAsContext();
         });
+    }
+
+    private void AddDistanceContextItem(T jointWithDistance, GenericMenu menu, Vector2 mousePosition) {
+        menu.AddItem(new GUIContent("Edit Distance"), false, () =>
+            ShowUtility("Edit Distance",
+                new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
+                delegate(Action close, bool focused) {
+                    EditorGUI.BeginChangeCheck();
+                    float newDistance = EditorGUILayout.FloatField("Distance", GetDistance(jointWithDistance));
+                    if (EditorGUI.EndChangeCheck()) {
+                        using (new Modification("Change Distance", jointWithDistance)) {
+                            SetDistance(jointWithDistance, newDistance);
+                        }
+                    }
+                    if (GUILayout.Button("Done") ||
+                        (Event.current.isKey &&
+                         (Event.current.keyCode == KeyCode.Escape) &&
+                         focused)) {
+                        close();
+                    }
+                }));
     }
 
 // ReSharper disable StaticFieldInGenericType
@@ -301,5 +301,17 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
         {
             settings.anchorPriority = JointSettingsWithBias.AnchorPriority.Main;
         }
+    }
+
+
+    protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint)
+    {
+        base.ExtraMenuItems(menu, joint);
+
+        var jointWithDistance = joint as T;
+
+        var mousePosition = Event.current.mousePosition;
+
+        AddDistanceContextItem(jointWithDistance, menu, mousePosition);
     }
 }

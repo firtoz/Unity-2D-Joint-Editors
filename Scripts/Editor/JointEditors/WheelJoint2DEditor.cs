@@ -207,6 +207,14 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
                                 }
                             }
                         }
+
+                        if (GUILayout.Button("Done") ||
+                            (Event.current.isKey &&
+                             (Event.current.keyCode == KeyCode.Escape) &&
+                             focused))
+                        {
+                            close();
+                        }
                     });
             });
 

@@ -13,6 +13,9 @@ public class HingeJoint2DSettings : Joint2DSettingsBase {
 
     public AnchorPriority anchorPriority = AnchorPriority.Main;
 
+    public float mainAngleOffset = 0;
+    public float connectedAngleOffset = 0;
+
     public override bool IsValidType() {
         return attachedJoint is HingeJoint2D;
     }
