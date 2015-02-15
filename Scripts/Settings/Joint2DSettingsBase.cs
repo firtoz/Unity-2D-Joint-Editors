@@ -31,11 +31,20 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
         }
         if ((attachedJoint == null || !IsValidType())) {
             Helpers.DestroyImmediate(this);
+            return;
         }
 #if UNITY_EDITOR
-        else {
-            JointEditorSettings jointEditorSettings = JointEditorSettings.Singleton;
-            if (jointEditorSettings != null && jointEditorSettings.showConnectedJoints) {
+        JointEditorSettings jointEditorSettings = JointEditorSettings.Singleton;
+
+
+        if (jointEditorSettings != null) {
+            if (jointEditorSettings.disableEverything)
+            {
+                DestroyImmediate(this);
+                return;
+            }
+
+            if (jointEditorSettings.showConnectedJoints) {
                 if (!attachedJoint.connectedBody) {
                     return;
                 }

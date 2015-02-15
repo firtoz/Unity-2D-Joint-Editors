@@ -36,7 +36,9 @@ public class Joint2DTarget : MonoBehaviour {
             return;
         }
 
-        if (!JointEditorSettings.Singleton.showConnectedJoints) {
+        var jointEditorSettings = JointEditorSettings.Singleton;
+        if (jointEditorSettings == null || !jointEditorSettings.showConnectedJoints || jointEditorSettings.disableEverything)
+        {
             Helpers.DestroyImmediate(this);
             return;
         }

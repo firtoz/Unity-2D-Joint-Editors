@@ -12,6 +12,8 @@ public class JointEditorSettings : ScriptableObject {
         Never
     }
 
+    public bool disableEverything = false;
+
     //general textures
     [Tooltip("The texture to display for the connected anchor widget")]
     public Texture2D connectedAnchorTexture;

@@ -436,7 +436,8 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     public override sealed void OnInspectorGUI() {
-        if (editorSettings == null) {
+        if (editorSettings == null || PrefabUtility.GetPrefabType(target) == PrefabType.Prefab || editorSettings.disableEverything)
+        {
             DrawDefaultInspector();
             return;
         }
@@ -986,7 +987,8 @@ public abstract class Joint2DEditorBase : Editor {
             return;
         }
 
-        if (editorSettings == null && !isCreatedByTarget) {
+        if (editorSettings == null && !isCreatedByTarget || editorSettings.disableEverything)
+        {
             DrawDefaultSceneGUI(joint2D);
 
             return;
