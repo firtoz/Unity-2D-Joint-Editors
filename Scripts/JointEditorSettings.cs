@@ -128,12 +128,12 @@ public class JointEditorSettings : ScriptableObject {
 
                 _loading = true;
 
-                string[] settingsGUIDs = AssetDatabase.FindAssets("t:JointEditorSettings");
+                var settingsGUIDs = AssetDatabase.FindAssets("t:JointEditorSettings");
 
-                foreach (string guid in settingsGUIDs) {
-                    string settingsPath = AssetDatabase.GUIDToAssetPath(guid);
+                foreach (var guid in settingsGUIDs) {
+                    var settingsPath = AssetDatabase.GUIDToAssetPath(guid);
 //                    Debug.Log("settings path: "+ settingsPath);
-                    Object loadedAsset = AssetDatabase.LoadAssetAtPath(settingsPath, typeof (JointEditorSettings));
+                    var loadedAsset = AssetDatabase.LoadAssetAtPath(settingsPath, typeof (JointEditorSettings));
                     if (loadedAsset is JointEditorSettings) {
                         _editorSettings = (JointEditorSettings) loadedAsset;
                     }

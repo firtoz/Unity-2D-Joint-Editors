@@ -7,7 +7,7 @@ using UnityEngine;
 public class DistanceJoint2DEditor : JointEditorWithDistanceBase<DistanceJoint2D> {
     protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint)
     {
-        DistanceJoint2D distanceJoint2D = joint as DistanceJoint2D;
+        var distanceJoint2D = joint as DistanceJoint2D;
         if (distanceJoint2D != null)
         {
             menu.AddItem(new GUIContent("Max Distance Only"), distanceJoint2D.maxDistanceOnly, () =>

@@ -84,10 +84,10 @@ internal class JointEditorSettingsEditor : Editor {
 
 
             FoldoutHelper.Foldout("connectedJoints", ConnectedJointsLabel, () => {
-                SerializedProperty showConnectedJointsProperty = serializedObject.FindProperty("showConnectedJoints");
+                var showConnectedJointsProperty = serializedObject.FindProperty("showConnectedJoints");
                 EditorGUILayout.PropertyField(showConnectedJointsProperty,
                     new GUIContent("Show", showConnectedJointsProperty.tooltip));
-                SerializedProperty connectedJointTransparencyProperty =
+                var connectedJointTransparencyProperty =
                     serializedObject.FindProperty("connectedJointTransparency");
                 EditorGUILayout.PropertyField(connectedJointTransparencyProperty,
                     new GUIContent("Opacity", connectedJointTransparencyProperty.tooltip));
@@ -103,30 +103,33 @@ internal class JointEditorSettingsEditor : Editor {
             }
             if (GUILayout.Button("Disable 2D Joint Editors")) {
                 if (EditorUtility.DisplayDialog("Disable 2D Joint Editors",
-                    "Warning!!\n\nThis will wipe your joint-specific settings forever! \n\nThis should ONLY be used if you would like to uninstall the package! \n\n Are you sure about disabling all 2D Joint Editors features?",
+                    "Warning!!\n" +
+                    "\n" +
+                    "This will wipe your joint-specific settings forever!\n" +
+                    "\n" +
+                    "This should ONLY be used if you would like to uninstall the package!\n" +
+                    "\n" +
+                    "Are you sure about disabling all 2D Joint Editors features?",
                     "Yes", "No")) {
                     disableEverythingProperty.boolValue = true;
 
                     serializedObject.ApplyModifiedProperties();
-                    
-                    Joint2DSettingsBase[] editorSettings = Resources.FindObjectsOfTypeAll<Joint2DSettingsBase>();
-                    foreach (Joint2DSettingsBase jointEditorSettings in editorSettings) {
+
+                    var editorSettings = Resources.FindObjectsOfTypeAll<Joint2DSettingsBase>();
+                    foreach (var jointEditorSettings in editorSettings) {
                         DestroyImmediate(jointEditorSettings, true);
                     }
 
-                    Joint2DTarget[] joint2DTargets = Resources.FindObjectsOfTypeAll<Joint2DTarget>();
-                    foreach (Joint2DTarget joint2DTarget in joint2DTargets) {
+                    var joint2DTargets = Resources.FindObjectsOfTypeAll<Joint2DTarget>();
+                    foreach (var joint2DTarget in joint2DTargets) {
                         DestroyImmediate(joint2DTarget, true);
                     }
                 }
             }
-        }
-        else {
-            if (GUILayout.Button("Enable 2D Joint Editors")) {
-                disableEverythingProperty.boolValue = false;
+        } else if (GUILayout.Button("Enable 2D Joint Editors")) {
+            disableEverythingProperty.boolValue = false;
 
-                serializedObject.ApplyModifiedProperties();
-            }
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }

@@ -8,7 +8,7 @@ public class SettingsHelper
 {
     private static T Create<T>(Joint2D joint2D) where T : Joint2DSettingsBase
     {
-        T settings = Undo.AddComponent<T>(joint2D.gameObject);
+        var settings = Undo.AddComponent<T>(joint2D.gameObject);
         settings.hideFlags = HideFlags.HideInInspector;
 
         EditorHelpers.RecordUndo(null, settings);
@@ -19,7 +19,7 @@ public class SettingsHelper
 
     private static T Get<T>(Joint2D joint2D) where T : Joint2DSettingsBase
     {
-        T[] allSettings = joint2D.GetComponents<T>();
+        var allSettings = joint2D.GetComponents<T>();
 
         return allSettings.FirstOrDefault(settings => settings.attachedJoint == joint2D);
     }

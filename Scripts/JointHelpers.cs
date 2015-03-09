@@ -60,7 +60,7 @@ public class JointHelpers {
 
 
     public static Vector2 GetTargetPosition(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either) {
-        Transform transform = GetTargetTransform(joint2D, bias);
+        var transform = GetTargetTransform(joint2D, bias);
 
         if (transform == null) {
             return Vector2.zero;
@@ -70,7 +70,7 @@ public class JointHelpers {
 
 
     public static float GetTargetRotation(AnchoredJoint2D joint2D, AnchorBias bias = AnchorBias.Either) {
-        Transform transform = GetTargetTransform(joint2D, bias);
+        var transform = GetTargetTransform(joint2D, bias);
 
         if (transform == null) {
             return 0;

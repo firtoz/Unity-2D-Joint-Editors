@@ -34,7 +34,7 @@ public abstract class Joint2DSettingsBase : MonoBehaviour {
             return;
         }
 #if UNITY_EDITOR
-        JointEditorSettings jointEditorSettings = JointEditorSettings.Singleton;
+        var jointEditorSettings = JointEditorSettings.Singleton;
 
 
         if (jointEditorSettings != null) {

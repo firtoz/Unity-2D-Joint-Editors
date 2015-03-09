@@ -24,13 +24,13 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias)
     {
-        T jointWithDistance = joint2D as T;
+        var jointWithDistance = joint2D as T;
         if (!jointWithDistance) {
             return false;
         }
 
-        Vector2 mainAnchorPosition = JointHelpers.GetMainAnchorPosition(jointWithDistance);
-        Vector2 connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(jointWithDistance);
+        var mainAnchorPosition = JointHelpers.GetMainAnchorPosition(jointWithDistance);
+        var connectedAnchorPosition = JointHelpers.GetConnectedAnchorPosition(jointWithDistance);
         if (Vector2.Distance(mainAnchorPosition, connectedAnchorPosition) > AnchorEpsilon)
         {
             using (new HandleColor(Color.green))
@@ -55,26 +55,26 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
             return position;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
+        var otherBias = bias == JointHelpers.AnchorBias.Main
             ? JointHelpers.AnchorBias.Connected
             : JointHelpers.AnchorBias.Main;
 
-        T jointWithDistance = (T)joint;
+        var jointWithDistance = (T)joint;
 
-        AnchorSliderState anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
-        Vector2 currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-        Vector2 currentAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
+        var anchorSliderState = StateObject.Get<AnchorSliderState>(sliderID);
+        var currentMousePosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+        var currentAnchorPosition = currentMousePosition - anchorSliderState.mouseOffset;
 
-        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, otherBias);
-        Vector2 diff = otherAnchorPosition - currentAnchorPosition;
+        var otherAnchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, otherBias);
+        var diff = otherAnchorPosition - currentAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon)
         {
             diff = -Vector2.up;
         }
 
-        Vector2 normalizedDiff = diff.normalized;
+        var normalizedDiff = diff.normalized;
 
-        Vector2 wantedAnchorPosition = otherAnchorPosition - normalizedDiff * GetDistance(jointWithDistance);
+        var wantedAnchorPosition = otherAnchorPosition - normalizedDiff * GetDistance(jointWithDistance);
 
         if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance)
         {
@@ -86,19 +86,19 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
     public override Bounds OnGetFrameBounds()
     {
-        Bounds baseBounds = base.OnGetFrameBounds();
+        var baseBounds = base.OnGetFrameBounds();
 
-        foreach (T joint2D in targets.Cast<T>())
+        foreach (var joint2D in targets.Cast<T>())
         {
-            Vector2 mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
-            Vector2 connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
-            Vector2 diff = connectedAnchorPosition - mainAnchorPosition;
+            var mainAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Main);
+            var connectedAnchorPosition = JointHelpers.GetAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected);
+            var diff = connectedAnchorPosition - mainAnchorPosition;
             if (diff.magnitude <= Mathf.Epsilon)
             {
                 diff = -Vector2.up;
             }
-            Vector2 normalizedDiff = diff.normalized;
-            Vector2 wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff * GetDistance(joint2D);
+            var normalizedDiff = diff.normalized;
+            var wantedMainAnchorPosition = connectedAnchorPosition - normalizedDiff * GetDistance(joint2D);
 
             baseBounds.Encapsulate(wantedMainAnchorPosition);
         }
@@ -113,18 +113,18 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
             return;
         }
 
-        JointHelpers.AnchorBias otherBias = bias == JointHelpers.AnchorBias.Main
+        var otherBias = bias == JointHelpers.AnchorBias.Main
             ? JointHelpers.AnchorBias.Connected
             : JointHelpers.AnchorBias.Main;
 
-        Vector2 anchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, bias);
-        Vector2 otherAnchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, otherBias);
-        Vector2 diff = anchorPosition - otherAnchorPosition;
+        var anchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, bias);
+        var otherAnchorPosition = JointHelpers.GetAnchorPosition(jointWithDistance, otherBias);
+        var diff = anchorPosition - otherAnchorPosition;
         if (diff.magnitude <= Mathf.Epsilon)
         {
             diff = Vector2.up * (bias == JointHelpers.AnchorBias.Connected ? 1 : -1);
         }
-        Vector2 normalizedDiff = diff.normalized;
+        var normalizedDiff = diff.normalized;
 
         JointHelpers.AnchorBias wantedBias;
         switch (GetSettings(jointWithDistance).anchorPriority)
@@ -146,7 +146,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
         if (bias != wantedBias)
         {
-            int distanceControlID = anchorInfo.GetControlID("distance");
+            var distanceControlID = anchorInfo.GetControlID("distance");
 
             EditorGUI.BeginChangeCheck();
 
@@ -164,13 +164,13 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
                 if (EditorHelpers.IsWarm(distanceControlID) && DragAndDrop.objectReferences.Length == 0)
                 {
 
-                    GUIContent labelContent = new GUIContent(string.Format("Distance: {0:0.00}", GetDistance(jointWithDistance)));
+                    var labelContent = new GUIContent(string.Format("Distance: {0:0.00}", GetDistance(jointWithDistance)));
 
-                    Vector2 sliderPosition = otherAnchorPosition + normalizedDiff * GetDistance(jointWithDistance);
+                    var sliderPosition = otherAnchorPosition + normalizedDiff * GetDistance(jointWithDistance);
 
-                    float fontSize = HandleUtility.GetHandleSize(sliderPosition) * (1f / 64f);
+                    var fontSize = HandleUtility.GetHandleSize(sliderPosition) * (1f / 64f);
 
-                    float labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(normalizedDiff)));
+                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(normalizedDiff)));
 
                     EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
                 }
@@ -187,7 +187,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
                     }
                     else
                     {
-                        float distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
+                        var distanceBetweenAnchors = Vector2.Distance(otherAnchorPosition, anchorPosition);
                         SetDistance(jointWithDistance, EditorGUI.actionKey && Mathf.Abs(newDistance - distanceBetweenAnchors) <
                                            HandleUtility.GetHandleSize(anchorPosition) * 0.125f
                             ? distanceBetweenAnchors
@@ -203,11 +203,11 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
     private void DistanceContext(T jointWithDistance, int controlID)
     {
-        Vector2 mousePosition = Event.current.mousePosition;
+        var mousePosition = Event.current.mousePosition;
 
         EditorHelpers.ContextClick(controlID, () =>
         {
-            GenericMenu menu = new GenericMenu();
+            var menu = new GenericMenu();
             AddDistanceContextItem(jointWithDistance, menu, mousePosition);
             menu.ShowAsContext();
         });
@@ -219,7 +219,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
                 new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
                 delegate(Action close, bool focused) {
                     EditorGUI.BeginChangeCheck();
-                    float newDistance = EditorGUILayout.FloatField("Distance", GetDistance(jointWithDistance));
+                    var newDistance = EditorGUILayout.FloatField("Distance", GetDistance(jointWithDistance));
                     if (EditorGUI.EndChangeCheck()) {
                         using (new Modification("Change Distance", jointWithDistance)) {
                             SetDistance(jointWithDistance, newDistance);
@@ -247,7 +247,7 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
         using (new GUIEnabled(enabled))
         {
-            SerializedProperty anchorPriority = serializedSettings.FindProperty("anchorPriority");
+            var anchorPriority = serializedSettings.FindProperty("anchorPriority");
             EditorGUILayout.PropertyField(anchorPriority, AngleLimitsModeContent);
             value = (JointSettingsWithBias.AnchorPriority)
                 Enum.Parse(typeof(JointSettingsWithBias.AnchorPriority),
@@ -256,10 +256,10 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
         if (EditorGUI.EndChangeCheck())
         {
-            foreach (Object tar in targets)
+            foreach (var tar in targets)
             {
-                T jointWithDistance = tar as T;
-                JointSettingsWithBias settings = GetSettings(jointWithDistance);
+                var jointWithDistance = tar as T;
+                var settings = GetSettings(jointWithDistance);
 
                 using (new Modification("toggle angle limits display mode", settings))
                 {
@@ -274,18 +274,18 @@ public abstract class JointEditorWithDistanceBase<T> : Joint2DEditorBase where T
 
     protected override void InspectorDisplayGUI(bool enabled)
     {
-        List<Object> allSettings =
+        var allSettings =
             targets.Cast<T>()
                 .Select(jointWithDistance => GetSettings(jointWithDistance))
                 .Where(distanceSettings => distanceSettings != null).Cast<Object>().ToList();
 
-        SerializedObject serializedSettings = new SerializedObject(allSettings.ToArray());
+        var serializedSettings = new SerializedObject(allSettings.ToArray());
         SelectAngleLimitsMode(serializedSettings, enabled);
     }
 
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint)
     {
-        T jointWithDistance = cloneJoint as T;
+        var jointWithDistance = cloneJoint as T;
         if (!jointWithDistance)
         {
             return;

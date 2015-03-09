@@ -18,7 +18,7 @@ public class Joint2DTargetEditor : Editor {
     }
 
     public override void OnInspectorGUI() {
-        bool guiEnabled = GUI.enabled;
+        var guiEnabled = GUI.enabled;
         GUI.enabled = true;
         EditorGUILayout.LabelField("This component is used by the 2D Joint Editors plugin");
         EditorGUILayout.LabelField(" to display connected joints. If you would like to ");
@@ -42,10 +42,10 @@ public class Joint2DTargetEditor : Editor {
 
             var unseenJoints = new HashSet<Joint2D>(editors.Keys);
 
-            IEnumerable<Joint2D> jointsToEdit = jointTarget.attachedJoints
+            var jointsToEdit = jointTarget.attachedJoints
                 .Where(attachedJoint => !Selection.Contains(attachedJoint.gameObject));
 
-            foreach (Joint2D attachedJoint in jointsToEdit) {
+            foreach (var attachedJoint in jointsToEdit) {
                 unseenJoints.Remove(attachedJoint);
 
                 if (!editors.ContainsKey(attachedJoint)) {
@@ -57,7 +57,7 @@ public class Joint2DTargetEditor : Editor {
                 joint2DEditor.OnSceneGUI();
             }
 
-            foreach (Joint2D joint2D in unseenJoints) {
+            foreach (var joint2D in unseenJoints) {
                 DestroyImmediate(editors[joint2D]);
 
                 editors.Remove(joint2D);

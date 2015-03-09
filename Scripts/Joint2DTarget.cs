@@ -1,11 +1,17 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_EDITOR
+using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
 using UnityEditor;
+#endif
 using UnityEngine;
 
+
 [ExecuteInEditMode]
-public class Joint2DTarget : MonoBehaviour {
+public class Joint2DTarget : MonoBehaviour
+{
+#if UNITY_EDITOR
+
     public List<Joint2D> attachedJoints = new List<Joint2D>();
 
     public void UpdateJoint(Joint2D joint) {
@@ -18,7 +24,6 @@ public class Joint2DTarget : MonoBehaviour {
     [SerializeField]
     private bool initialized;
 
-#if UNITY_EDITOR
     public void OnEnable()
     {
         if (initialized) {
@@ -44,10 +49,10 @@ public class Joint2DTarget : MonoBehaviour {
         }
 
         var jointsToRemove = attachedJoints
-            .Where(attachedJoint => !attachedJoint || attachedJoint.connectedBody != rigidbody2D)
+            .Where(attachedJoint => !attachedJoint || attachedJoint.connectedBody != GetComponent<Rigidbody2D>())
             .ToList();
 
-        foreach (Joint2D joint2D in jointsToRemove) {
+        foreach (var joint2D in jointsToRemove) {
             attachedJoints.Remove(joint2D);
         }
 
