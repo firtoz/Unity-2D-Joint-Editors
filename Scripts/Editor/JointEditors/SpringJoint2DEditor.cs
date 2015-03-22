@@ -25,28 +25,25 @@ public class SpringJoint2DEditor : JointEditorWithDistanceBase<SpringJoint2D> {
 
         var mousePosition = Event.current.mousePosition;
 
-        menu.AddItem(new GUIContent("Configure Spring"), false, () =>
-        {
-            ShowUtility("Configure Spring",
-                new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
-                delegate(Action close, bool focused) {
-                    EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("m_DampingRatio"));
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Frequency"));
+        menu.AddItem(new GUIContent("Configure Spring"), false, () => ShowUtility("Configure Spring",
+            new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
+            delegate(Action close, bool focused) {
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_DampingRatio"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Frequency"));
 
-                    if (EditorGUI.EndChangeCheck()) {
-                        using (new Modification("Configure Spring", springJoint2D)) {
-                            serializedObject.ApplyModifiedProperties();
-                        }
+                if (EditorGUI.EndChangeCheck()) {
+                    using (new Modification("Configure Spring", springJoint2D)) {
+                        serializedObject.ApplyModifiedProperties();
                     }
+                }
 
-                    if (GUILayout.Button("Done") ||
-                        (Event.current.isKey &&
-                         (Event.current.keyCode == KeyCode.Escape) &&
-                         focused)) {
-                        close();
-                    }
-                });
-        });
+                if (GUILayout.Button("Done") ||
+                    (Event.current.isKey &&
+                     (Event.current.keyCode == KeyCode.Escape) &&
+                     focused)) {
+                    close();
+                }
+            }));
     }
 }

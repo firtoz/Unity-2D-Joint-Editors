@@ -10,16 +10,15 @@ using UnityEngine;
 
 [CustomEditor(typeof (SliderJoint2D))]
 [CanEditMultipleObjects]
-public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
-{
+public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D> {
     private static readonly HashSet<string> ControlNames = new HashSet<string> {
         "sliderAngle",
         "minLimit",
         "maxLimit"
     };
 
-    private const float ONE_OVER16 = 1f/16f;
-    private const float ONE_OVER64 = 1f/64f;
+    private const float ONE_OVER16 = 1f / 16f;
+    private const float ONE_OVER64 = 1f / 64f;
 
     protected override HashSet<string> GetControlNames() {
         return ControlNames;
@@ -34,7 +33,8 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
     }
 
     protected override GUIContent GetAngleEditinGUIContent() {
-        return new GUIContent("Slider Angle", "The translation angle that the joint slides along. [ -1000000, 1000000 ].");
+        return new GUIContent("Slider Angle",
+            "The translation angle that the joint slides along. [ -1000000, 1000000 ].");
     }
 
     protected override void SetAngle(SliderJoint2D joint2D, float wantedAngle) {
@@ -130,8 +130,6 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
 
 
             Vector2 maxPos = slideRay.GetPoint(max);
-            Debug.DrawLine(position, maxPos);
-
 
             if (Vector2.Distance(position, maxPos) < snapDistance) {
                 return maxPos;
@@ -176,7 +174,7 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
 
         //align the angle to the connected anchor
         var direction = JointHelpers.GetConnectedAnchorPosition(joint2D) -
-                            JointHelpers.GetMainAnchorPosition(joint2D);
+                        JointHelpers.GetMainAnchorPosition(joint2D);
         if (direction.magnitude > AnchorEpsilon) {
             var wantedAngle = Helpers2D.GetAngle(direction);
 
@@ -219,7 +217,7 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
             menu.AddItem(new GUIContent("Configure Motor"), false, () =>
                 ShowUtility(
                     "Configure Motor",
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Slider Joint 2D Motor", "The joint motor."));
                         using (new Indent()) {
@@ -271,7 +269,7 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
             menu.AddItem(new GUIContent("Configure Limits"), false, () =>
                 ShowUtility(
                     "Configure Limits",
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*6),
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 6),
                     delegate(Action close, bool focused) {
                         EditorGUILayout.LabelField(new GUIContent("Translation Limits", "The joint translation limits"));
                         using (new Indent()) {
@@ -330,23 +328,26 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
                 GUIUtility.hotControl == anchorInfo.GetControlID("minLimit") ||
                 GUIUtility.hotControl == anchorInfo.GetControlID("maxLimit") ||
                 !Event.current.shift)) {
-                    DrawAngleWidget(sliderJoint2D, sliderAngleControlID);
+            DrawAngleWidget(sliderJoint2D, sliderAngleControlID);
 
-            if (sliderJoint2D.useLimits)
-            {
+            if (sliderJoint2D.useLimits) {
                 HandleLimits(sliderJoint2D, anchorInfo);
             }
         }
 
         if (GUIUtility.hotControl == anchorInfo.GetControlID("slider")) {
             var snap = GetWantedAnchorPosition(sliderJoint2D, bias);
-            using (new HandleColor(new Color(1, 1, 1, .5f))) {
+            using (
+                new HandleColor(new Color(1, 1, 1,
+                    isCreatedByTarget ? .5f * editorSettings.connectedJointTransparency : .5f))) {
                 Handles.DrawLine(connectedAnchorPosition, snap);
                 Handles.DrawLine(mainAnchorPosition, snap);
             }
         }
 
-        using (new HandleColor(new Color(1, 1, 1, 0.125f))) {
+        using (
+            new HandleColor(new Color(1, 1, 1,
+                0.125f * (isCreatedByTarget ? editorSettings.connectedJointTransparency : 1.0f)))) {
             Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
             if (sliderJoint2D.connectedBody && GUIUtility.hotControl == sliderAngleControlID) {
                 Handles.DrawLine(mainAnchorPosition, GetTargetPosition(sliderJoint2D, JointHelpers.AnchorBias.Connected));
@@ -372,10 +373,10 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
             }
             var normalizedDiff = diff.normalized;
 
-            baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff*joint2D.limits.min);
-            baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff*joint2D.limits.max);
-            baseBounds.Encapsulate(mainAnchorPosition - normalizedDiff*joint2D.limits.min);
-            baseBounds.Encapsulate(mainAnchorPosition - normalizedDiff*joint2D.limits.max);
+            baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff * joint2D.limits.min);
+            baseBounds.Encapsulate(mainAnchorPosition + normalizedDiff * joint2D.limits.max);
+            baseBounds.Encapsulate(mainAnchorPosition - normalizedDiff * joint2D.limits.min);
+            baseBounds.Encapsulate(mainAnchorPosition - normalizedDiff * joint2D.limits.max);
         }
 
         return baseBounds;
@@ -416,7 +417,7 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
 
         var angleDiff = Mathf.DeltaAngle(Helpers2D.GetAngle(delta), worldAngle);
 
-        Vector2 rotatedDelta = Helpers2D.Rotate(angleDiff)*delta;
+        Vector2 rotatedDelta = Helpers2D.Rotate(angleDiff) * delta;
 
         var wantedOppositeAnchorPosition = anchorPosition + rotatedDelta;
         var wantedOppositeAnchorPosition2 = anchorPosition - rotatedDelta;
@@ -430,52 +431,59 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
         var limitColor = sliderJoint2D.limits.min > sliderJoint2D.limits.max
             ? editorSettings.incorrectLimitsColor
             : editorSettings.correctLimitsColor;
+
+        if (isCreatedByTarget) {
+            limitColor.a *= editorSettings.connectedJointTransparency;
+        }
+
         using (new HandleColor(limitColor)) {
-            Handles.DrawLine(anchorPosition + direction*sliderJoint2D.limits.min,
-                anchorPosition + direction*sliderJoint2D.limits.max);
+            Handles.DrawLine(anchorPosition + direction * sliderJoint2D.limits.min,
+                anchorPosition + direction * sliderJoint2D.limits.max);
 
-            float fontSize;
-
-            if (Event.current.type == EventType.repaint)
-            {
-                if (EditorHelpers.IsWarm(minLimitControlID) && DragAndDrop.objectReferences.Length == 0)
-                {
-
+            if (Event.current.type == EventType.repaint) {
+                float fontSize;
+                if (EditorHelpers.IsWarm(minLimitControlID) && DragAndDrop.objectReferences.Length == 0) {
                     var labelContent = new GUIContent(string.Format("Min: {0:0.00}", sliderJoint2D.limits.min));
 
                     var sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.min);
 
                     fontSize = HandleUtility.GetHandleSize(sliderPosition) * ONE_OVER64;
 
-                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y +
+                                      fontSize * 20 *
+                                      Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
 
-                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                    EditorHelpers.OverlayLabel((Vector3) sliderPosition + (Camera.current.transform.up * labelOffset),
+                        labelContent, EditorHelpers.FontWithBackgroundStyle);
                 }
-                if (EditorHelpers.IsWarm(maxLimitControlID) && DragAndDrop.objectReferences.Length == 0)
-                {
-
+                if (EditorHelpers.IsWarm(maxLimitControlID) && DragAndDrop.objectReferences.Length == 0) {
                     var labelContent = new GUIContent(string.Format("Max: {0:0.00}", sliderJoint2D.limits.max));
 
                     var sliderPosition = anchorPosition + (direction) * (sliderJoint2D.limits.max);
 
                     fontSize = HandleUtility.GetHandleSize(sliderPosition) * ONE_OVER64;
 
-                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y + fontSize * 20 * Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
+                    var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y +
+                                      fontSize * 20 *
+                                      Mathf.Abs(Mathf.Cos(Mathf.Deg2Rad * Helpers2D.GetAngle(direction)));
 
-                    EditorHelpers.OverlayLabel((Vector3)sliderPosition + (Camera.current.transform.up * labelOffset), labelContent, EditorHelpers.FontWithBackgroundStyle);
+                    EditorHelpers.OverlayLabel((Vector3) sliderPosition + (Camera.current.transform.up * labelOffset),
+                        labelContent, EditorHelpers.FontWithBackgroundStyle);
                 }
             }
 
             if (GUIUtility.hotControl == minLimitControlID ||
                 GUIUtility.hotControl == maxLimitControlID) {
-                using (new HandleColor(new Color(1, 1, 1, 0.25f))) {
-                    var handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition)*ONE_OVER16;
+                using (
+                    new HandleColor(new Color(1, 1, 1,
+                        0.25f * (isCreatedByTarget ? editorSettings.connectedJointTransparency : 1.0f)))) {
+                    var handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition) * ONE_OVER16;
 
-                    Handles.DrawLine(wantedOppositeAnchorPosition - direction*handleSize,
-                        wantedOppositeAnchorPosition + direction*handleSize);
-                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2)*ONE_OVER16;
-                    Handles.DrawLine(wantedOppositeAnchorPosition2 - direction*handleSize,
-                        wantedOppositeAnchorPosition2 + direction*handleSize);
+                    Handles.DrawLine(wantedOppositeAnchorPosition - direction * handleSize,
+                        wantedOppositeAnchorPosition + direction * handleSize);
+                    handleSize = HandleUtility.GetHandleSize(wantedOppositeAnchorPosition2) * ONE_OVER16;
+                    Handles.DrawLine(wantedOppositeAnchorPosition2 - direction * handleSize,
+                        wantedOppositeAnchorPosition2 + direction * handleSize);
                     Handles.DrawWireArc(anchorPosition, Vector3.forward, wantedOppositeAnchorPosition, 360,
                         Vector2.Distance(wantedOppositeAnchorPosition, anchorPosition));
                 }
@@ -493,10 +501,18 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
                 };
             }
 
-            using (new HandleColor(editorSettings.minLimitColor)) {
+            var minLimitColor = editorSettings.minLimitColor;
+            var maxLimitColor = editorSettings.maxLimitColor;
+
+            if (isCreatedByTarget) {
+                minLimitColor.a *= editorSettings.connectedJointTransparency;
+                maxLimitColor.a *= editorSettings.connectedJointTransparency;
+            }
+
+            using (new HandleColor(minLimitColor)) {
                 DrawLimitSlider(sliderJoint2D, minLimitControlID, anchorPosition, direction, snapList, Limit.Min);
             }
-            using (new HandleColor(editorSettings.maxLimitColor)) {
+            using (new HandleColor(maxLimitColor)) {
                 DrawLimitSlider(sliderJoint2D, maxLimitControlID, anchorPosition, direction, snapList, Limit.Max);
             }
         }
@@ -523,46 +539,50 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
             val,
             Helpers2D.GetAngle(direction), 0.125f, false, limit == Limit.Min);
 
-        if (EditorGUI.EndChangeCheck()) {
-            if (snapList != null) {
-                var limitSnapList = new List<Vector2>(snapList);
-                switch (limit) {
-                    case Limit.Min:
-                        limitSnapList.Add(anchorPosition + direction*limits2D.max);
-                        break;
-                    case Limit.Max:
-                        limitSnapList.Add(anchorPosition + direction*limits2D.min);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException("limit");
-                }
+        if (!EditorGUI.EndChangeCheck()) {
+            return;
+        }
 
-                var limitGUIPosition =
-                    HandleUtility.WorldToGUIPoint(anchorPosition + direction*newLimit);
-
-                foreach (var snapPosition in limitSnapList) {
-                    var snapGUIPosition = HandleUtility.WorldToGUIPoint(snapPosition);
-                    if (Vector2.Distance(limitGUIPosition, snapGUIPosition) < 10) {
-                        newLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
-                            snapPosition);
-                    }
-                }
-            }
-
-
-            EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
+        if (snapList != null) {
+            var limitSnapList = new List<Vector2>(snapList);
             switch (limit) {
                 case Limit.Min:
-                    limits2D.min = newLimit;
+                    limitSnapList.Add(anchorPosition + direction * limits2D.max);
                     break;
                 case Limit.Max:
-                    limits2D.max = newLimit;
+                    limitSnapList.Add(anchorPosition + direction * limits2D.min);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("limit");
             }
-            sliderJoint2D.limits = limits2D;
+
+            var limitGUIPosition =
+                HandleUtility.WorldToGUIPoint(anchorPosition + direction * newLimit);
+
+            foreach (
+                var snapPosition in 
+                    from snapPosition in limitSnapList
+                    let snapGUIPosition = HandleUtility.WorldToGUIPoint(snapPosition)
+                    where Vector2.Distance(limitGUIPosition, snapGUIPosition) < 10
+                    select snapPosition) {
+                newLimit = Helpers2D.DistanceAlongLine(new Ray(anchorPosition, direction),
+                    snapPosition);
+            }
         }
+
+
+        EditorHelpers.RecordUndo("Change slider limit", sliderJoint2D);
+        switch (limit) {
+            case Limit.Min:
+                limits2D.min = newLimit;
+                break;
+            case Limit.Max:
+                limits2D.max = newLimit;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException("limit");
+        }
+        sliderJoint2D.limits = limits2D;
     }
 
     private void LimitContext(SliderJoint2D sliderJoint2D, int controlID, Limit limit) {
@@ -573,9 +593,9 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
         EditorHelpers.ContextClick(controlID, () => {
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Edit " + limitName), false, () =>
-                    ShowUtility(
+                ShowUtility(
                     "Edit " + limitName,
-                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight*3),
+                    new Rect(mousePosition.x - 250, mousePosition.y + 15, 500, EditorGUIUtility.singleLineHeight * 3),
                     delegate(Action close, bool focused) {
                         EditorGUI.BeginChangeCheck();
                         GUI.SetNextControlName(limitName);
@@ -606,8 +626,6 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
         });
     }
 
-    
-
 
     protected override void OwnershipMoved(AnchoredJoint2D cloneJoint) {
         //swap limits
@@ -632,37 +650,73 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D>
     }
 
     protected override bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
-        JointHelpers.AnchorBias bias)
-    {
+        JointHelpers.AnchorBias bias) {
         var sliderJoint2D = joint2D as SliderJoint2D;
-        if (sliderJoint2D == null)
-        {
+        if (sliderJoint2D == null) {
             return false;
         }
 
         if (Event.current.type == EventType.repaint) {
-            if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) && DragAndDrop.objectReferences.Length == 0) {
-                var suspensionAngle = sliderJoint2D.angle;
-
-                var labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
-                Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-
-                var fontSize = HandleUtility.GetHandleSize(mainAnchorPosition)*ONE_OVER64;
-
-                var labelOffset = fontSize*EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
-
-                EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up*labelOffset), labelContent,
-                    EditorHelpers.FontWithBackgroundStyle);
+            if (!EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) || DragAndDrop.objectReferences.Length != 0) {
+                return false;
             }
-        } else {
-            if (EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) 
-                && DragAndDrop.objectReferences.Length == 0) {
-                if (SceneView.lastActiveSceneView) {
-                    SceneView.lastActiveSceneView.Repaint();
-                }
+            var suspensionAngle = sliderJoint2D.angle;
+
+            var labelContent = new GUIContent(String.Format("{0:0.00}", suspensionAngle));
+            Vector3 mainAnchorPosition = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+
+            var fontSize = HandleUtility.GetHandleSize(mainAnchorPosition) * ONE_OVER64;
+
+            var labelOffset = fontSize * EditorHelpers.FontWithBackgroundStyle.CalcSize(labelContent).y;
+
+            EditorHelpers.OverlayLabel(mainAnchorPosition + (Camera.current.transform.up * labelOffset),
+                labelContent,
+                EditorHelpers.FontWithBackgroundStyle);
+        }
+        else {
+            if (!EditorHelpers.IsWarm(info.GetControlID("sliderAngle")) || DragAndDrop.objectReferences.Length != 0) {
+                return false;
+            }
+            if (SceneView.lastActiveSceneView) {
+                SceneView.lastActiveSceneView.Repaint();
             }
         }
 
         return false;
+    }
+
+    protected override void DrawCustomInspector() {
+//        float? referenceAngle = null;
+//        var mixedValue = false;
+//
+//        foreach (
+//            var targetReferenceAngle in
+//                targets.Select(currentTarget => currentTarget as SliderJoint2D)
+//                    .Select(targetSliderJoint => targetSliderJoint.referenceAngle)) {
+//
+//            if (referenceAngle == null) {
+//                referenceAngle = targetReferenceAngle;
+//                continue;
+//            }
+//
+//            if (Mathf.Approximately(referenceAngle.Value, targetReferenceAngle)) {
+//                continue;
+//            }
+//
+//            mixedValue = true;
+//            referenceAngle = targetReferenceAngle;
+//        }
+//
+//        if (referenceAngle == null) {
+//            return;
+//        }
+//
+//        var showMixedValue = EditorGUI.showMixedValue;
+//        EditorGUI.showMixedValue = mixedValue;
+//        EditorGUI.BeginDisabledGroup(true);
+//        EditorGUI.BeginChangeCheck();
+//        EditorGUILayout.FloatField("Reference Angle", referenceAngle.Value);
+//        EditorGUI.EndDisabledGroup();
+//        EditorGUI.showMixedValue = showMixedValue;
     }
 }

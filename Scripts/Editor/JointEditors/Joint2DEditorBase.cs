@@ -589,6 +589,8 @@ public abstract class Joint2DEditorBase : Editor {
 
 
         EditorGUI.BeginChangeCheck();
+        DrawCustomInspector();
+
         DrawDefaultInspector();
         if (EditorGUI.EndChangeCheck()) {
             if (WantsLocking()) {
@@ -648,8 +650,11 @@ public abstract class Joint2DEditorBase : Editor {
 
         if (EditorGUI.EndChangeCheck()) {
             Undo.CollapseUndoOperations(grp);
-            //Debug.Log("!!!");
         }
+    }
+
+    protected virtual void DrawCustomInspector() {
+        
     }
 
 
@@ -712,7 +717,7 @@ public abstract class Joint2DEditorBase : Editor {
             center,
             HandleUtility.GetHandleSize(center) * editorSettings.lockButtonScale,
             editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture,
-            new Color(1, 1, 1, isCreatedByTarget ? 0.5f : 1));
+            new Color(1, 1, 1, isCreatedByTarget ? editorSettings.connectedJointTransparency : 1));
 
         if (lockPressed) {
             var jointSettings = SettingsHelper.GetOrCreate(joint2D);
@@ -1130,7 +1135,7 @@ public abstract class Joint2DEditorBase : Editor {
         Max
     }
 
-    public static float LineAngleHandle(int controlID, float angle, Vector2 center,
+    public float LineAngleHandle(int controlID, float angle, Vector2 center,
         float handleScale = 1f,
         float lineThickness = 1f) {
         var handleSize = HandleUtility.GetHandleSize(center) * handleScale;
@@ -1208,6 +1213,10 @@ public abstract class Joint2DEditorBase : Editor {
                     Color wantedColor;
                     if (GUIUtility.hotControl == controlID) {
                         wantedColor = editorSettings.activeAngleColor;
+                        if (isCreatedByTarget) {
+                            wantedColor.a *= editorSettings.connectedJointTransparency;
+                        }
+
                         using (new HandleColor(wantedColor)) {
                             Handles.DrawLine(angleState.center,
                                 Helpers2D.ClosestPointToRay(
@@ -1235,6 +1244,10 @@ public abstract class Joint2DEditorBase : Editor {
                                 wantedColor.a *= editorSettings.connectedJointTransparency;
                                 //semitransparent if not active control
                             }
+                        }
+                        if (isCreatedByTarget)
+                        {
+                            wantedColor.a *= editorSettings.connectedJointTransparency;
                         }
                     }
 

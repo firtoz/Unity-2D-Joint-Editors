@@ -43,7 +43,7 @@ public class Joint2DTargetEditor : Editor {
             var unseenJoints = new HashSet<Joint2D>(editors.Keys);
 
             var jointsToEdit = jointTarget.attachedJoints
-                .Where(attachedJoint => !Selection.Contains(attachedJoint.gameObject));
+                .Where(attachedJoint => attachedJoint && !Selection.Contains(attachedJoint.gameObject));
 
             foreach (var attachedJoint in jointsToEdit) {
                 unseenJoints.Remove(attachedJoint);

@@ -9,14 +9,14 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase where JointType : AnchoredJoint2D {
+public abstract class JointEditorWithAngleBase<TJointType> : Joint2DEditorBase where TJointType : AnchoredJoint2D {
     protected override bool WantsLocking() {
         return true;
     }
 
     protected override void InspectorDisplayGUI(bool enabled) {
         var allSettings =
-            targets.Cast<JointType>()
+            targets.Cast<TJointType>()
                 .Select(joint2D => GetSettings(joint2D))
                 .Where(jointSettings => jointSettings != null).Cast<Object>().ToList();
 
@@ -24,7 +24,7 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
         SelectAngleLimitsMode(serializedSettings, enabled);
     }
 
-    protected abstract JointSettingsWithBias GetSettings(JointType joint2D);
+    protected abstract JointSettingsWithBias GetSettings(TJointType joint2D);
 
 // ReSharper disable StaticFieldInGenericType
     private static readonly GUIContent AngleLimitsModeContent =
@@ -46,7 +46,7 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
 
         if (EditorGUI.EndChangeCheck()) {
             foreach (var tar in targets) {
-                var joint2D = (JointType) tar;
+                var joint2D = (TJointType) tar;
                 var settings = GetSettings(joint2D);
 
                 EditorHelpers.RecordUndo("toggle angle limits display mode", settings);
@@ -61,7 +61,7 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
     protected override void ExtraMenuItems(GenericMenu menu, AnchoredJoint2D joint) {
         base.ExtraMenuItems(menu, joint);
 
-        var sliderJoint2D = joint as JointType;
+        var sliderJoint2D = joint as TJointType;
         if (sliderJoint2D == null) {
             return;
         }
@@ -71,7 +71,7 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
         AddEditAngleMenuItem(sliderJoint2D, menu, mousePosition);
     }
 
-    protected void AddEditAngleMenuItem(JointType joint2D, GenericMenu menu, Vector2 mousePosition) {
+    protected void AddEditAngleMenuItem(TJointType joint2D, GenericMenu menu, Vector2 mousePosition) {
         var joint2DSettings = GetSettings(joint2D);
         var mainAnchorPosition = JointHelpers.GetMainAnchorPosition(joint2D);
 
@@ -114,7 +114,7 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
                     }));
     }
 
-    protected void DrawAngleWidget(JointType joint2D, int controlID) {
+    protected void DrawAngleWidget(TJointType joint2D, int controlID) {
         var joint2DSettings = GetSettings(joint2D);
 
         var worldAngle = joint2D.transform.eulerAngles.z + GetAngle(joint2D);
@@ -149,73 +149,74 @@ public abstract class JointEditorWithAngleBase<JointType> : Joint2DEditorBase wh
             menu.ShowAsContext();
         });
 
-        if (EditorGUI.EndChangeCheck()) {
-            var snapped = false;
-
-            if (EditorGUI.actionKey) {
-                var handleSize = HandleUtility.GetHandleSize(angleWidgetPosition);
-
-                var mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
-
-                var currentAngleRay = new Ray(angleWidgetPosition, Helpers2D.GetDirection(newAngle));
-
-                var mousePositionProjectedToAngle = Helpers2D.ClosestPointToRay(currentAngleRay, mousePosition2D);
-
-                var directionsToSnapTo = new List<Vector2> {
-                    (GetTargetPosition(joint2D, bias) - angleWidgetPosition).normalized
-                };
-
-                if (!joint2DSettings.lockAnchors) {
-                    directionsToSnapTo.Insert(0, offsetToOther.normalized);
-                }
-
-                if (joint2D.connectedBody) {
-                    directionsToSnapTo.Add(
-                        (GetTargetPosition(joint2D, oppositeBias) - angleWidgetPosition)
-                            .normalized);
-                }
-
-                foreach (var direction in directionsToSnapTo) {
-                    var rayTowardsDirection = new Ray(angleWidgetPosition, direction);
-
-                    var closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsDirection,
-                        mousePositionProjectedToAngle);
-
-                    if (Vector2.Distance(closestPointTowardsDirection, mousePositionProjectedToAngle) <
-                        handleSize * 0.125f) {
-                        var currentDirection = Helpers2D.GetDirection(newAngle);
-                        var closestPositionToDirection =
-                            Helpers2D.ClosestPointToRay(rayTowardsDirection,
-                                angleWidgetPosition + currentDirection);
-
-                        snapped = true;
-                        newAngle = Helpers2D.GetAngle(closestPositionToDirection - angleWidgetPosition);
-
-                        break;
-                    }
-                }
-            }
-
-            var wantedAngle = newAngle - joint2D.transform.eulerAngles.z;
-
-            if (!snapped) {
-                wantedAngle = Handles.SnapValue(wantedAngle, editorSettings.snapAngle);
-            }
-
-            EditorHelpers.RecordUndo("Alter Angle", joint2D);
-
-            if (joint2DSettings.lockAnchors) {
-                var angleDelta = Mathf.DeltaAngle(GetAngle(joint2D), wantedAngle);
-
-                JointHelpers.SetWorldAnchorPosition(joint2D,
-                    angleWidgetPosition + (Vector2) (Helpers2D.Rotate(angleDelta) * offsetToOther), oppositeBias);
-            }
-
-            SetAngle(joint2D, wantedAngle);
+        if (!EditorGUI.EndChangeCheck()) {
+            return;
         }
+        var snapped = false;
+
+        if (EditorGUI.actionKey) {
+            var handleSize = HandleUtility.GetHandleSize(angleWidgetPosition);
+
+            var mousePosition2D = Helpers2D.GUIPointTo2DPosition(Event.current.mousePosition);
+
+            var currentAngleRay = new Ray(angleWidgetPosition, Helpers2D.GetDirection(newAngle));
+
+            var mousePositionProjectedToAngle = Helpers2D.ClosestPointToRay(currentAngleRay, mousePosition2D);
+
+            var directionsToSnapTo = new List<Vector2> {
+                (GetTargetPosition(joint2D, bias) - angleWidgetPosition).normalized
+            };
+
+            if (!joint2DSettings.lockAnchors) {
+                directionsToSnapTo.Insert(0, offsetToOther.normalized);
+            }
+
+            if (joint2D.connectedBody) {
+                directionsToSnapTo.Add(
+                    (GetTargetPosition(joint2D, oppositeBias) - angleWidgetPosition)
+                        .normalized);
+            }
+
+            foreach (var direction in directionsToSnapTo) {
+                var rayTowardsDirection = new Ray(angleWidgetPosition, direction);
+
+                var closestPointTowardsDirection = Helpers2D.ClosestPointToRay(rayTowardsDirection,
+                    mousePositionProjectedToAngle);
+
+                if (Vector2.Distance(closestPointTowardsDirection, mousePositionProjectedToAngle) <
+                    handleSize * 0.125f) {
+                    var currentDirection = Helpers2D.GetDirection(newAngle);
+                    var closestPositionToDirection =
+                        Helpers2D.ClosestPointToRay(rayTowardsDirection,
+                            angleWidgetPosition + currentDirection);
+
+                    snapped = true;
+                    newAngle = Helpers2D.GetAngle(closestPositionToDirection - angleWidgetPosition);
+
+                    break;
+                }
+            }
+        }
+
+        var wantedAngle = newAngle - joint2D.transform.eulerAngles.z;
+
+        if (!snapped) {
+            wantedAngle = Handles.SnapValue(wantedAngle, editorSettings.snapAngle);
+        }
+
+        EditorHelpers.RecordUndo("Alter Angle", joint2D);
+
+        if (joint2DSettings.lockAnchors) {
+            var angleDelta = Mathf.DeltaAngle(GetAngle(joint2D), wantedAngle);
+
+            JointHelpers.SetWorldAnchorPosition(joint2D,
+                angleWidgetPosition + (Vector2) (Helpers2D.Rotate(angleDelta) * offsetToOther), oppositeBias);
+        }
+
+        SetAngle(joint2D, wantedAngle);
     }
 
-    protected abstract void SetAngle(JointType joint2D, float wantedAngle);
+    protected abstract void SetAngle(TJointType joint2D, float wantedAngle);
 
-    protected abstract float GetAngle(JointType joint2D);
+    protected abstract float GetAngle(TJointType joint2D);
 }
