@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using toxicFork.GUIHelpers;
 using toxicFork.GUIHelpers.DisposableEditor;
-using toxicFork.GUIHelpers.DisposableEditorGUI;
 using toxicFork.GUIHelpers.DisposableGUI;
 using UnityEditor;
 using UnityEngine;

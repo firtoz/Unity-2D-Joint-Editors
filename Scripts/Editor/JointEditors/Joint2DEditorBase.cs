@@ -98,9 +98,10 @@ public abstract class Joint2DEditorBase : Editor {
         var handleSize = HandleUtility.GetHandleSize(anchorPosition) * handleScale;
         EditorGUI.BeginChangeCheck();
         Vector2 targetPosition;
+        var connectedBody = joint.connectedBody;
         if (bias == JointHelpers.AnchorBias.Connected) {
-            if (joint.connectedBody) {
-                targetPosition = joint.connectedBody.transform.position;
+            if (connectedBody) {
+                targetPosition = connectedBody.transform.position;
             }
             else {
                 targetPosition = anchorPosition;
@@ -206,9 +207,19 @@ public abstract class Joint2DEditorBase : Editor {
                 menu.AddSeparator("");
             }
 
-            if (joint.connectedBody) {
-                menu.AddItem(new GUIContent("Move ownership to '" + joint.connectedBody.name + "'"), false, () => {
-                    var connectedObject = joint.connectedBody.gameObject;
+            if (connectedBody) {
+                var connectedBodyName = connectedBody.name;
+                var selectConnectedBodyContent = new GUIContent(string.Format("Select '{0}'", connectedBodyName));
+                if (isCreatedByTarget) {
+                    menu.AddDisabledItem(selectConnectedBodyContent);
+                } else {
+                    menu.AddItem(selectConnectedBodyContent, false, () =>
+                    {
+                        Selection.activeGameObject = connectedBody.gameObject;
+                    });
+                }
+                menu.AddItem(new GUIContent(string.Format("Move ownership to '{0}'", connectedBodyName)), false, () => {
+                    var connectedObject = connectedBody.gameObject;
 
                     var cloneJoint =
                         Undo.AddComponent(connectedObject, joint.GetType()) as AnchoredJoint2D;
@@ -256,7 +267,7 @@ public abstract class Joint2DEditorBase : Editor {
 
                     OwnershipMoved(cloneJoint);
                 });
-                menu.AddItem(new GUIContent("Disconnect from '" + joint.connectedBody.name + "'"), false, () => {
+                menu.AddItem(new GUIContent("Disconnect from '" + connectedBodyName + "'"), false, () => {
                     var worldConnectedPosition = JointHelpers.GetConnectedAnchorPosition(joint);
 
                     using (new Modification("Disconnect from connected body", joint)) {
@@ -266,6 +277,7 @@ public abstract class Joint2DEditorBase : Editor {
                 });
             }
             else {
+                menu.AddDisabledItem(new GUIContent("Select connected body"));
                 menu.AddDisabledItem(new GUIContent("Move ownership to connected body"));
                 menu.AddDisabledItem(new GUIContent("Disconnect from connected body"));
             }

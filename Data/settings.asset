@@ -43,4 +43,4 @@ MonoBehaviour:
   showAdvancedOptions: 1
   showConnectedJoints: 1
   drawLinesToBodies: 1
-  connectedJointTransparency: .5
+  connectedJointTransparency: .25
