@@ -18,25 +18,21 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
         return ControlNames;
     }
 
-    protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
-        JointHelpers.AnchorBias bias, float snapDistance) {
+    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
+                                                             JointHelpers.AnchorBias bias, Vector2 anchorPosition) {
         if (!EditorGUI.actionKey) {
-            return position;
+            return null;
         }
 
-        var wheelJoint2D = (WheelJoint2D) joint;
+        var wheelJoint2D = (WheelJoint2D) joint2D;
 
-        if (!SettingsHelper.GetOrCreate(joint).lockAnchors &&
-            !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
-                JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)) {
-            var wantedAnchorPosition = GetWantedAnchorPosition(wheelJoint2D, bias, position);
-
-            if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
-                return wantedAnchorPosition;
-            }
+        if (SettingsHelper.GetOrCreate(joint2D).lockAnchors ||
+            Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint2D),
+                JointHelpers.GetConnectedAnchorPosition(joint2D)) <= AnchorEpsilon) {
+            return null;
         }
-
-        return position;
+        
+        return new[] { GetWantedAnchorPosition(wheelJoint2D, bias, anchorPosition) };
     }
 
     protected override bool DragBothAnchorsWhenLocked() {
@@ -65,7 +61,7 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
     }
 
     private static Vector2 GetWantedAnchorPosition(AnchoredJoint2D anchoredJoint2D, JointHelpers.AnchorBias bias,
-        Vector2 position) {
+                                                   Vector2 position) {
         var wheelJoint2D = (WheelJoint2D) anchoredJoint2D;
 
         var otherBias = JointHelpers.GetOppositeBias(bias);
@@ -92,17 +88,20 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
             DrawAngleWidget(wheelJoint2D, suspensionAngleControlID);
         }
 
+        var snapLineColor = GetAdjustedColor(new Color(1, 1, 1, .5f));
+
         //if the joint anchors are being moved, then show snap lines
         var sliderControlID = anchorInfo.GetControlID("slider");
         if (GUIUtility.hotControl == sliderControlID) {
             var snap = GetWantedAnchorPosition(wheelJoint2D, bias);
-            using (new HandleColor(new Color(1, 1, 1, .5f))) {
+            using (new HandleColor(snapLineColor)) {
                 Handles.DrawLine(connectedAnchorPosition, snap);
                 Handles.DrawLine(mainAnchorPosition, snap);
             }
         }
 
-        using (new HandleColor(new Color(1, 1, 1, 0.5f))) {
+        using (new HandleColor(snapLineColor))
+        {
             Handles.DrawLine(mainAnchorPosition, connectedAnchorPosition);
             if (wheelJoint2D.connectedBody && GUIUtility.hotControl == suspensionAngleControlID) {
                 Handles.DrawLine(mainAnchorPosition, GetTargetPosition(wheelJoint2D, JointHelpers.AnchorBias.Connected));
@@ -122,7 +121,7 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
     }
 
     protected override bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
-        JointHelpers.AnchorBias bias) {
+                                          JointHelpers.AnchorBias bias) {
         var wheelJoint2D = joint2D as WheelJoint2D;
         if (wheelJoint2D == null) {
             return false;
@@ -146,8 +145,7 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
                     labelContent,
                     EditorHelpers.FontWithBackgroundStyle);
             }
-        }
-        else {
+        } else {
             if (EditorHelpers.IsWarm(suspensionAngleControlID)
                 && DragAndDrop.objectReferences.Length == 0) {
                 if (SceneView.lastActiveSceneView) {
@@ -210,8 +208,7 @@ public class WheelJoint2DEditor : JointEditorWithAngleBase<WheelJoint2D> {
                         if (GUILayout.Button("Done") ||
                             (Event.current.isKey &&
                              (Event.current.keyCode == KeyCode.Escape) &&
-                             focused))
-                        {
+                             focused)) {
                             close();
                         }
                     });

@@ -1,4 +1,5 @@
 ﻿using toxicFork.GUIHelpers.DisposableEditor;
+using toxicFork.GUIHelpers.DisposableGUI;
 using UnityEditor;
 using UnityEngine;
 
@@ -53,6 +54,7 @@ internal class JointEditorSettingsEditor : Editor {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorScale"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("anchorDisplayScale"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("lockButtonScale"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("snapDistance"));
             });
 
             FoldoutHelper.Foldout("colors", ColorsLabel, () => {
@@ -64,6 +66,7 @@ internal class JointEditorSettingsEditor : Editor {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleWidgetColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("hoverAngleColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("activeAngleColor"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("snapHighlightColor"));
             });
 
             FoldoutHelper.Foldout("hingejoint2d", HingeJoint2DLabel, () => {
@@ -94,7 +97,10 @@ internal class JointEditorSettingsEditor : Editor {
             });
 
             FoldoutHelper.Foldout("toggles", TogglesLabel,
-                () => EditorGUILayout.PropertyField(serializedObject.FindProperty("drawLinesToBodies")));
+                () => {
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("drawLinesToBodies"));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("highlightSnapPositions"));
+                });
 
             if (EditorGUI.EndChangeCheck()) {
                 using (new Modification("Inspector", target)) {

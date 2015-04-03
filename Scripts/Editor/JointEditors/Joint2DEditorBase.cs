@@ -75,7 +75,7 @@ public abstract class Joint2DEditorBase : Editor {
 
         foreach (var joint2D in targets.Cast<AnchoredJoint2D>()) {
             var midPoint = (JointHelpers.GetAnchorPosition(joint2D) +
-                                JointHelpers.GetConnectedAnchorPosition(joint2D)) * .5f;
+                            JointHelpers.GetConnectedAnchorPosition(joint2D)) * .5f;
             var distance = Vector2.Distance(midPoint,
                 GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main));
             if (joint2D.connectedBody) {
@@ -90,8 +90,8 @@ public abstract class Joint2DEditorBase : Editor {
         return bounds;
     }
 
-    protected Vector2 AnchorSlider(int controlID, float handleScale,
-        IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias, AnchoredJoint2D joint) {
+    protected Vector2 AnchorSlider(int controlID, float handleScale, IEnumerable<Vector2> snapPositions,
+                                   JointHelpers.AnchorBias bias, AnchoredJoint2D joint, AnchorInfo anchorInfo) {
         var sliderState = StateObject.Get<AnchorSliderState>(controlID);
 
         var anchorPosition = JointHelpers.GetAnchorPosition(joint, bias);
@@ -102,12 +102,10 @@ public abstract class Joint2DEditorBase : Editor {
         if (bias == JointHelpers.AnchorBias.Connected) {
             if (connectedBody) {
                 targetPosition = connectedBody.transform.position;
-            }
-            else {
+            } else {
                 targetPosition = anchorPosition;
             }
-        }
-        else {
+        } else {
             targetPosition = joint.gameObject.transform.position;
         }
 
@@ -123,42 +121,174 @@ public abstract class Joint2DEditorBase : Editor {
 
         var hovering = HandleUtility.nearestControl == controlID;
 
-        var showCursor = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
+        var hoveringOrHot = (hovering && GUIUtility.hotControl == 0) || controlID == GUIUtility.hotControl;
 
-        if (showCursor && _hoverControlID != controlID) {
+        if (hoveringOrHot && _hoverControlID != controlID) {
             _hoverControlID = controlID;
 
             HandleUtility.Repaint();
-        }
-        else if (!showCursor && _hoverControlID == controlID) {
+        } else if (!hoveringOrHot && _hoverControlID == controlID) {
             _hoverControlID = 0;
             HandleUtility.Repaint();
         }
 
-        if (_hoverControlID == controlID && Event.current.type == EventType.repaint) {
-            if (isCreatedByTarget && !(sliderState.pressed && sliderState.dragging)) {
-                EditorHelpers.SetEditorCursor(MouseCursor.Link);
-            }
-            else {
-                EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
-            }
-        }
-
-        if (showCursor && Event.current.type == EventType.repaint) {
-            using (new HandleColor(editorSettings.anchorHoverColor)) {
-                Handles.DrawSolidDisc(anchorPosition, Vector3.forward, handleSize * .5f);
-                Handles.DrawWireDisc(anchorPosition, Vector3.forward, handleSize * .5f);
-            }
-        }
-
-        var current = Event.current;
 
         var joint2DSettings = SettingsHelper.GetOrCreate(joint);
 
+        HandleAnchorContext(controlID, bias, joint, joint2DSettings, anchorPosition, connectedBody);
+
+        HandleSliderEvents(controlID, joint, sliderState, anchorPosition, hoveringOrHot, handleSize);
+
+        HandleDragDrop(controlID, joint, joint2DSettings);
+
+        var result = HandleSliding(controlID, bias, originalAngle, anchorPosition, handleSize);
+
+        result = HandleSnapping(controlID, snapPositions, bias, joint, anchorInfo, result, handleSize);
+
+        return result;
+    }
+
+    private Vector2 HandleSnapping(int controlID, IEnumerable<Vector2> snapPositions, JointHelpers.AnchorBias bias,
+                                   AnchoredJoint2D joint,
+                                   AnchorInfo anchorInfo, Vector2 result, float handleSize) {
+        Vector2[] snapPositionsArray;
+
+        var customSnapPositions = GetSnapPositions(joint, anchorInfo, bias, result);
+
+        if (customSnapPositions != null) {
+            if (snapPositions == null) {
+                snapPositions = customSnapPositions;
+            } else {
+                snapPositions = snapPositions.Concat(customSnapPositions);
+            }
+        }
+
+        if (snapPositions != null) {
+            snapPositionsArray = snapPositions as Vector2[] ?? snapPositions.ToArray();
+        } else {
+            snapPositionsArray = null;
+        }
+
+        if (Event.current.type == EventType.repaint &&
+            (editorSettings.highlightSnapPositions &&
+             GUIUtility.hotControl == controlID && EditorGUI.actionKey &&
+             snapPositionsArray != null)) {
+            var snapHighlightColor = GetAdjustedColor(editorSettings.snapHighlightColor);
+
+            using (new HandleColor(snapHighlightColor)) {
+                foreach (var snapPosition in snapPositionsArray) {
+                    Handles.CircleCap(0, snapPosition, Quaternion.identity,
+                        HandleUtility.GetHandleSize(snapPosition) * EditorHelpers.HandleSizeToPixels *
+                        editorSettings.snapDistance * 0.5f);
+                }
+            }
+        }
+
+        if (EditorGUI.EndChangeCheck() && EditorGUI.actionKey && snapPositionsArray != null) {
+            foreach (var snapPosition in snapPositionsArray) {
+                var distance = Vector2.Distance(result, snapPosition);
+                if (distance < handleSize * EditorHelpers.HandleSizeToPixels * editorSettings.snapDistance) {
+                    result = snapPosition;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    protected Color GetAdjustedColor(Color color) {
+        if (isCreatedByTarget) {
+            color.a *= editorSettings.connectedJointTransparency;
+        }
+
+        return color;
+    }
+
+    private Vector2 HandleSliding(int controlID, JointHelpers.AnchorBias bias, float originalAngle,
+                                  Vector2 anchorPosition,
+                                  float handleSize) {
+        Vector2 result;
+
+        Texture2D sliderTexture;
+
+        switch (bias) {
+            case JointHelpers.AnchorBias.Main:
+                sliderTexture = editorSettings.mainAnchorTexture;
+                break;
+            case JointHelpers.AnchorBias.Connected:
+                sliderTexture = editorSettings.connectedAnchorTexture;
+                break;
+            case JointHelpers.AnchorBias.Either:
+                sliderTexture = editorSettings.lockedAnchorTexture;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException("bias");
+        }
+        using (var drawer = CreateTextureDrawer(sliderTexture, originalAngle)) {
+            drawer.alwaysVisible = true;
+            result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
+                drawer.DrawSquare, Vector2.zero);
+        }
+        return result;
+    }
+
+    private void HandleSliderEvents(int controlID,
+                                    AnchoredJoint2D joint,
+                                    AnchorSliderState sliderState,
+                                    Vector2 anchorPosition,
+                                    bool hoveringOrHot,
+                                    float handleSize) {
+        var current = Event.current;
+
+        switch (current.GetTypeForControl(controlID)) {
+            case EventType.mouseDrag:
+                if (sliderState.pressed) {
+                    sliderState.dragging = true;
+                }
+                break;
+            case EventType.mouseDown:
+                if (HandleUtility.nearestControl == controlID) {
+                    if (current.button == 0) {
+                        sliderState.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
+                        sliderState.dragging = false;
+                        sliderState.pressed = true;
+                    }
+                }
+                break;
+            case EventType.mouseUp:
+                if (sliderState.pressed && !sliderState.dragging) {
+                    EditorHelpers.SelectObject(joint.gameObject);
+                }
+                sliderState.dragging = false;
+                sliderState.pressed = false;
+                break;
+            case EventType.repaint:
+
+                if (_hoverControlID == controlID) {
+                    if (isCreatedByTarget && !(sliderState.pressed && sliderState.dragging)) {
+                        EditorHelpers.SetEditorCursor(MouseCursor.Link);
+                    } else {
+                        EditorHelpers.SetEditorCursor(MouseCursor.MoveArrow);
+                    }
+                }
+
+                if (hoveringOrHot) {
+                    using (new HandleColor(GetAdjustedColor(editorSettings.anchorHoverColor))) {
+                        Handles.DrawSolidDisc(anchorPosition, Vector3.forward, handleSize * .5f);
+                        Handles.DrawWireDisc(anchorPosition, Vector3.forward, handleSize * .5f);
+                    }
+                }
+                break;
+        }
+    }
+
+    private void HandleAnchorContext(int controlID, JointHelpers.AnchorBias bias, AnchoredJoint2D joint,
+                                     Joint2DSettingsBase joint2DSettings, Vector2 anchorPosition,
+                                     Rigidbody2D connectedBody) {
         EditorHelpers.ContextClick(controlID, () => {
             var menu = new GenericMenu();
             menu.AddDisabledItem(new GUIContent(joint.GetType()
-                .Name));
+                                                     .Name));
             menu.AddSeparator("");
             if (WantsLocking()) {
                 menu.AddItem(new GUIContent("Lock Anchors", GetAnchorLockTooltip()),
@@ -179,8 +309,7 @@ public abstract class Joint2DEditorBase : Editor {
                 var otherPosition = JointHelpers.GetAnchorPosition(joint, otherBias);
                 if (Vector2.Distance(otherPosition, anchorPosition) <= AnchorEpsilon) {
                     menu.AddDisabledItem(new GUIContent("Bring other anchor here"));
-                }
-                else {
+                } else {
                     menu.AddItem(new GUIContent("Bring other anchor here"), false, () => {
                         EditorHelpers.RecordUndo("Move Joint Anchor", joint);
                         JointHelpers.SetWorldAnchorPosition(joint, anchorPosition, otherBias);
@@ -213,10 +342,8 @@ public abstract class Joint2DEditorBase : Editor {
                 if (isCreatedByTarget) {
                     menu.AddDisabledItem(selectConnectedBodyContent);
                 } else {
-                    menu.AddItem(selectConnectedBodyContent, false, () =>
-                    {
-                        Selection.activeGameObject = connectedBody.gameObject;
-                    });
+                    menu.AddItem(selectConnectedBodyContent, false,
+                        () => { Selection.activeGameObject = connectedBody.gameObject; });
                 }
                 menu.AddItem(new GUIContent(string.Format("Move ownership to '{0}'", connectedBodyName)), false, () => {
                     var connectedObject = connectedBody.gameObject;
@@ -275,79 +402,17 @@ public abstract class Joint2DEditorBase : Editor {
                         JointHelpers.SetWorldConnectedAnchorPosition(joint, worldConnectedPosition);
                     }
                 });
-            }
-            else {
+            } else {
                 menu.AddDisabledItem(new GUIContent("Select connected body"));
                 menu.AddDisabledItem(new GUIContent("Move ownership to connected body"));
                 menu.AddDisabledItem(new GUIContent("Disconnect from connected body"));
             }
 
             menu.AddItem(new GUIContent("Delete " + joint.GetType()
-                .Name), false,
+                                                         .Name), false,
                 () => Undo.DestroyObjectImmediate(joint));
             menu.ShowAsContext();
         });
-
-        switch (current.GetTypeForControl(controlID)) {
-            case EventType.mouseDrag:
-                if (sliderState.pressed) {
-                    sliderState.dragging = true;
-                }
-                break;
-            case EventType.mouseDown:
-                if (HandleUtility.nearestControl == controlID) {
-                    if (current.button == 0) {
-                        sliderState.mouseOffset = Helpers2D.GUIPointTo2DPosition(current.mousePosition) - anchorPosition;
-                        sliderState.dragging = false;
-                        sliderState.pressed = true;
-                    }
-                }
-                break;
-            case EventType.mouseUp:
-                if (sliderState.pressed && !sliderState.dragging) {
-                    EditorHelpers.SelectObject(joint.gameObject);
-                }
-                sliderState.dragging = false;
-                sliderState.pressed = false;
-                break;
-        }
-
-        HandleDragDrop(controlID, joint, joint2DSettings);
-
-        Vector2 result;
-
-        Texture2D sliderTexture;
-
-        switch (bias) {
-            case JointHelpers.AnchorBias.Main:
-                sliderTexture = editorSettings.mainAnchorTexture;
-                break;
-            case JointHelpers.AnchorBias.Connected:
-                sliderTexture = editorSettings.connectedAnchorTexture;
-                break;
-            case JointHelpers.AnchorBias.Either:
-                sliderTexture = editorSettings.lockedAnchorTexture;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException("bias");
-        }
-        using (var drawer = CreateTextureDrawer(sliderTexture, originalAngle)) {
-            drawer.alwaysVisible = true;
-            result = Handles.Slider2D(controlID, anchorPosition, Vector3.forward, Vector3.up, Vector3.right, handleSize,
-                drawer.DrawSquare, Vector2.zero);
-        }
-
-        if (EditorGUI.EndChangeCheck() && EditorGUI.actionKey && snapPositions != null) {
-            foreach (var snapPosition in snapPositions) {
-                var distance = Vector2.Distance(result, snapPosition);
-                if (distance < handleSize * 0.25f) {
-                    result = snapPosition;
-                    break;
-                }
-            }
-        }
-
-        return result;
     }
 
 
@@ -384,7 +449,7 @@ public abstract class Joint2DEditorBase : Editor {
                         if (isCreatedByTarget) {
                             EditorHelpers.SelectObject(rigidbody2D.gameObject, true);
                             Selection.objects = Selection.objects.Where(o1 => o1 != previousConnectedBody.gameObject)
-                                .ToArray();
+                                                         .ToArray();
                         }
 
                         EditorUtility.SetDirty(joint);
@@ -394,11 +459,11 @@ public abstract class Joint2DEditorBase : Editor {
                     break;
                 case EventType.DragUpdated:
                     if (DragAndDrop.objectReferences.OfType<GameObject>()
-                        .Any(go => {
-                            var rigidbody2D = go.GetComponent<Rigidbody2D>();
-                            return !go.Equals(joint.gameObject) && rigidbody2D != null &&
-                                   rigidbody2D != joint.connectedBody;
-                        })) {
+                                   .Any(go => {
+                                       var rigidbody2D = go.GetComponent<Rigidbody2D>();
+                                       return !go.Equals(joint.gameObject) && rigidbody2D != null &&
+                                              rigidbody2D != joint.connectedBody;
+                                   })) {
                         DragAndDrop.visualMode = DragAndDropVisualMode.Link;
                         Event.current.Use();
                     }
@@ -415,11 +480,6 @@ public abstract class Joint2DEditorBase : Editor {
 
     protected virtual string GetAnchorLockTooltip() {
         return "";
-    }
-
-    protected virtual Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
-        JointHelpers.AnchorBias bias, float snapDistance) {
-        return position;
     }
 
     public struct TransformInfo {
@@ -444,7 +504,7 @@ public abstract class Joint2DEditorBase : Editor {
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(serializedSettings.FindProperty("showCustomGizmos"), CustomGizmosContent);
         using (new GUIEnabled(!serializedSettings.FindProperty("showCustomGizmos")
-            .boolValue)) {
+                                                 .boolValue)) {
             EditorGUILayout.PropertyField(serializedSettings.FindProperty("showDefaultgizmos"), DefaultGizmosContent);
         }
     }
@@ -473,7 +533,7 @@ public abstract class Joint2DEditorBase : Editor {
 
                 var showJointGizmos = serializedSettings.FindProperty("showCustomGizmos");
                 var enabled = GUI.enabled &&
-                               (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
+                              (showJointGizmos.boolValue || showJointGizmos.hasMultipleDifferentValues);
                 EditorGUILayout.LabelField("Display:");
                 using (new Indent()) {
                     ToggleShowGizmos();
@@ -485,7 +545,6 @@ public abstract class Joint2DEditorBase : Editor {
                         if (WantsLocking()) {
                             ToggleAnchorLock();
                         }
-//                        AlterOffsets(enabled);
                     }
                 }
 
@@ -524,14 +583,14 @@ public abstract class Joint2DEditorBase : Editor {
 
         if (wantsLock) {
             var farAway = targets.Cast<AnchoredJoint2D>()
-                .Any(joint2D =>
-                    Vector2.Distance(
-                        JointHelpers.GetMainAnchorPosition(joint2D),
-                        GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Main)
-                        ) > AnchorEpsilon || Vector2.Distance(
-                            JointHelpers.GetConnectedAnchorPosition(joint2D),
-                            GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected)
-                            ) > AnchorEpsilon);
+                                 .Any(joint2D =>
+                                     Vector2.Distance(
+                                         JointHelpers.GetMainAnchorPosition(joint2D),
+                                         GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Main)
+                                         ) > AnchorEpsilon || Vector2.Distance(
+                                             JointHelpers.GetConnectedAnchorPosition(joint2D),
+                                             GetWantedAnchorPosition(joint2D, JointHelpers.AnchorBias.Connected)
+                                             ) > AnchorEpsilon);
             if (farAway) {
                 choice = EditorUtility.DisplayDialogComplex("Enable Anchor Lock",
                     "Which anchor would you like to lock to?",
@@ -557,7 +616,7 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     protected virtual void ToggleIndividualAnchorLock(bool wantsLock, AnchoredJoint2D joint2D,
-        JointHelpers.AnchorBias alignmentBias) {
+                                                      JointHelpers.AnchorBias alignmentBias) {
         var jointSettings = SettingsHelper.GetOrCreate(joint2D);
 
         var action = wantsLock ? "Lock Anchors" : "Unlock Anchors";
@@ -588,16 +647,16 @@ public abstract class Joint2DEditorBase : Editor {
             } while (propertyIterator.Next(true));*/
 
         var originalAnchor = serializedObject.FindProperty("m_Anchor")
-            .vector2Value;
+                                             .vector2Value;
         var originalConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor")
-            .vector2Value;
+                                                      .vector2Value;
         var connectedRigidBody = serializedObject.FindProperty("m_ConnectedRigidBody")
-            .objectReferenceValue;
+                                                 .objectReferenceValue;
 
         var worldConnectedAnchors =
             targets.Cast<AnchoredJoint2D>()
-                .ToDictionary(joint2D => joint2D,
-                    joint2D => JointHelpers.GetConnectedAnchorPosition(joint2D));
+                   .ToDictionary(joint2D => joint2D,
+                       joint2D => JointHelpers.GetConnectedAnchorPosition(joint2D));
 
 
         EditorGUI.BeginChangeCheck();
@@ -607,13 +666,13 @@ public abstract class Joint2DEditorBase : Editor {
         if (EditorGUI.EndChangeCheck()) {
             if (WantsLocking()) {
                 var curAnchor = serializedObject.FindProperty("m_Anchor")
-                    .vector2Value;
+                                                .vector2Value;
                 var curConnectedAnchor = serializedObject.FindProperty("m_ConnectedAnchor")
-                    .vector2Value;
+                                                         .vector2Value;
 
                 var mainAnchorChanged = Vector2.Distance(curAnchor, originalAnchor) > AnchorEpsilon;
                 var connectedAnchorChanged = Vector2.Distance(curConnectedAnchor, originalConnectedAnchor) >
-                                              AnchorEpsilon;
+                                             AnchorEpsilon;
 
                 if (mainAnchorChanged || connectedAnchorChanged) {
                     JointHelpers.AnchorBias bias;
@@ -622,8 +681,7 @@ public abstract class Joint2DEditorBase : Editor {
                         bias = connectedAnchorChanged
                             ? JointHelpers.AnchorBias.Either
                             : JointHelpers.AnchorBias.Main;
-                    }
-                    else {
+                    } else {
                         bias = JointHelpers.AnchorBias.Connected;
                     }
                     foreach (var tar in targets) {
@@ -642,7 +700,7 @@ public abstract class Joint2DEditorBase : Editor {
             }
 
             if (connectedRigidBody != serializedObject.FindProperty("m_ConnectedRigidBody")
-                .objectReferenceValue) {
+                                                      .objectReferenceValue) {
                 foreach (var tar in targets) {
                     var joint2D = (AnchoredJoint2D) tar;
                     EditorHelpers.RecordUndo("Inspector", joint2D);
@@ -665,9 +723,7 @@ public abstract class Joint2DEditorBase : Editor {
         }
     }
 
-    protected virtual void DrawCustomInspector() {
-        
-    }
+    protected virtual void DrawCustomInspector() {}
 
 
     protected static List<Vector2> GetAllAnchorsInSelection(AnchoredJoint2D joint2D) {
@@ -729,7 +785,7 @@ public abstract class Joint2DEditorBase : Editor {
             center,
             HandleUtility.GetHandleSize(center) * editorSettings.lockButtonScale,
             editorSettings.unlockButtonTexture, editorSettings.lockButtonTexture,
-            new Color(1, 1, 1, isCreatedByTarget ? editorSettings.connectedJointTransparency : 1));
+            GetAdjustedColor(Color.white));
 
         if (lockPressed) {
             var jointSettings = SettingsHelper.GetOrCreate(joint2D);
@@ -763,28 +819,28 @@ public abstract class Joint2DEditorBase : Editor {
         return lockPressed;
     }
 
-    private static readonly List<Vector2> SnapPositions = new List<Vector2>();
-
-    protected virtual IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
-        JointHelpers.AnchorBias bias) {
-        return SnapPositions;
+    protected virtual IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D,
+                                                            AnchorInfo anchorInfo,
+                                                            JointHelpers.AnchorBias bias,
+                                                            Vector2 anchorPosition) {
+        return null;
     }
 
     protected bool SliderGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, IEnumerable<Vector2> otherAnchors,
-        JointHelpers.AnchorBias bias) {
+                             JointHelpers.AnchorBias bias) {
         var sliderID = anchorInfo.GetControlID("slider");
         List<Vector2> snapPositions = null;
         if (EditorGUI.actionKey) {
             snapPositions = new List<Vector2> {
                 GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
                 JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Main)
-                    .position
+                            .position
             };
 
             if (joint2D.connectedBody) {
                 snapPositions.Add(GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected));
                 snapPositions.Add(JointHelpers.GetTargetTransform(joint2D, JointHelpers.AnchorBias.Connected)
-                    .position);
+                                              .position);
             }
 
             switch (bias) {
@@ -798,18 +854,14 @@ public abstract class Joint2DEditorBase : Editor {
             }
 
             snapPositions.AddRange(otherAnchors);
-            snapPositions.AddRange(GetSnapPositions(joint2D, anchorInfo, bias));
         }
         EditorGUI.BeginChangeCheck();
-        var position = AnchorSlider(sliderID, editorSettings.anchorScale, snapPositions, bias, joint2D);
+        var position = AnchorSlider(sliderID, editorSettings.anchorScale, snapPositions, bias, joint2D, anchorInfo);
 
         var changed = false;
         if (EditorGUI.EndChangeCheck()) {
             EditorHelpers.RecordUndo("Anchor Move", joint2D);
             changed = true;
-
-            position = AlterDragResult(sliderID, position, joint2D, bias,
-                HandleUtility.GetHandleSize(position) * editorSettings.anchorScale * 0.25f);
 
             JointHelpers.SetWorldAnchorPosition(joint2D, position, bias);
         }
@@ -817,7 +869,7 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     protected bool AnchorDraggingWidgetGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo,
-        IEnumerable<Vector2> otherAnchors, JointHelpers.AnchorBias bias) {
+                                           IEnumerable<Vector2> otherAnchors, JointHelpers.AnchorBias bias) {
         var lockID = anchorInfo.GetControlID("lock");
 
         var changed = PreSliderGUI(joint2D, anchorInfo, bias);
@@ -836,27 +888,24 @@ public abstract class Joint2DEditorBase : Editor {
 
 
             if (SettingsHelper.GetOrCreate(joint2D)
-                .lockAnchors && (bias == JointHelpers.AnchorBias.Either || !farAway)) {
+                              .lockAnchors && (bias == JointHelpers.AnchorBias.Either || !farAway)) {
                 //locked! show unlock
                 if (ToggleUnlockButton(lockID, joint2D, bias)) {
                     changed = true;
                 }
-            }
-            else {
+            } else {
                 if (ToggleLockButton(lockID, joint2D, bias)) {
                     changed = true;
                 }
             }
-        }
-        else if (SliderGUI(joint2D, anchorInfo, otherAnchors, bias)) {
+        } else if (SliderGUI(joint2D, anchorInfo, otherAnchors, bias)) {
             changed = true;
         }
 
         if (bias == JointHelpers.AnchorBias.Either) {
             DrawLineToBody(joint2D, JointHelpers.AnchorBias.Main);
             DrawLineToBody(joint2D, JointHelpers.AnchorBias.Connected);
-        }
-        else {
+        } else {
             DrawLineToBody(joint2D, bias);
         }
 
@@ -875,16 +924,11 @@ public abstract class Joint2DEditorBase : Editor {
 
             if (bias == JointHelpers.AnchorBias.Main) {
                 lineColor = editorSettings.anchorsToMainBodyColor;
-            }
-            else {
+            } else {
                 lineColor = editorSettings.anchorsToConnectedBodyColor;
             }
 
-            if (isCreatedByTarget) {
-                lineColor.a *= editorSettings.connectedJointTransparency;
-            }
-
-            using (new HandleColor(lineColor)) {
+            using (new HandleColor(GetAdjustedColor(lineColor))) {
                 Vector3 bodyPosition = JointHelpers.GetTargetPosition(joint2D, bias);
                 var anchorPosition = JointHelpers.GetAnchorPosition(joint2D, bias);
 
@@ -933,13 +977,12 @@ public abstract class Joint2DEditorBase : Editor {
         var changed = false;
 
         AnchorInfo main = new AnchorInfo(controlNames),
-            connected = new AnchorInfo(controlNames),
-            locked = new AnchorInfo(controlNames);
+                   connected = new AnchorInfo(controlNames),
+                   locked = new AnchorInfo(controlNames);
 
         if (jointAnchorInfos.ContainsKey(joint2D)) {
             jointAnchorInfos[joint2D].Clear();
-        }
-        else {
+        } else {
             jointAnchorInfos[joint2D] = new List<AnchorInfo>();
         }
 
@@ -954,8 +997,7 @@ public abstract class Joint2DEditorBase : Editor {
                 if (AnchorDraggingWidgetGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either)) {
                     changed = true;
                 }
-            }
-            else {
+            } else {
                 //draw the locks instead, force them to show
                 if (ToggleLockButton(main.GetControlID("lock"), joint2D, JointHelpers.AnchorBias.Main)) {
                     changed = true;
@@ -968,8 +1010,7 @@ public abstract class Joint2DEditorBase : Editor {
             if (!changed) {
                 changed = PostAnchorGUI(joint2D, locked, otherAnchors, JointHelpers.AnchorBias.Either);
             }
-        }
-        else {
+        } else {
             if (AnchorDraggingWidgetGUI(joint2D, connected, otherAnchors, JointHelpers.AnchorBias.Connected)) {
                 changed = true;
                 if (anchorLock) {
@@ -996,7 +1037,7 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     protected virtual bool PostAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo info, List<Vector2> otherAnchors,
-        JointHelpers.AnchorBias bias) {
+                                         JointHelpers.AnchorBias bias) {
         return false;
     }
 
@@ -1012,22 +1053,24 @@ public abstract class Joint2DEditorBase : Editor {
         if (joint2D == null || !joint2D.enabled) {
             return;
         }
-
-        if (editorSettings == null && !isCreatedByTarget || editorSettings.disableEverything) {
-            DrawDefaultSceneGUI(joint2D);
-
-            return;
-        }
-
-        var settings = SettingsHelper.GetOrCreate(joint2D);
-        if (settings && !settings.showCustomGizmos) {
-            if (settings.showDefaultgizmos && !isCreatedByTarget) {
+        using (new HandleColor()) {
+            if (editorSettings == null && !isCreatedByTarget ||
+                (editorSettings != null && editorSettings.disableEverything)) {
                 DrawDefaultSceneGUI(joint2D);
-            }
-            return;
-        }
 
-        AnchorGUI(joint2D);
+                return;
+            }
+
+            var settings = SettingsHelper.GetOrCreate(joint2D);
+            if (settings && !settings.showCustomGizmos) {
+                if (settings.showDefaultgizmos && !isCreatedByTarget) {
+                    DrawDefaultSceneGUI(joint2D);
+                }
+                return;
+            }
+
+            AnchorGUI(joint2D);
+        }
     }
 
     private readonly Dictionary<AnchoredJoint2D, Editor> defaultEditors = new Dictionary<AnchoredJoint2D, Editor>();
@@ -1036,25 +1079,20 @@ public abstract class Joint2DEditorBase : Editor {
         Editor defaultEditor = null;
         if (defaultEditors.ContainsKey(joint2D)) {
             defaultEditor = defaultEditors[joint2D];
-        }
-        else {
+        } else {
             Type editorType = null;
 
             var assembly = typeof (Editor).Assembly;
 
             if (joint2D is HingeJoint2D) {
                 editorType = assembly.GetType("UnityEditor.HingeJoint2DEditor", true);
-            }
-            else if (joint2D is DistanceJoint2D) {
+            } else if (joint2D is DistanceJoint2D) {
                 editorType = assembly.GetType("UnityEditor.DistanceJoint2DEditor", true);
-            }
-            else if (joint2D is SliderJoint2D) {
+            } else if (joint2D is SliderJoint2D) {
                 editorType = assembly.GetType("UnityEditor.SliderJoint2DEditor", true);
-            }
-            else if (joint2D is SpringJoint2D) {
+            } else if (joint2D is SpringJoint2D) {
                 editorType = assembly.GetType("UnityEditor.SpringJoint2DEditor", true);
-            }
-            else if (joint2D is WheelJoint2D) {
+            } else if (joint2D is WheelJoint2D) {
                 editorType = assembly.GetType("UnityEditor.WheelJoint2DEditor", true);
             }
             if (editorType != null) {
@@ -1062,17 +1100,20 @@ public abstract class Joint2DEditorBase : Editor {
                 defaultEditors[joint2D] = defaultEditor;
             }
         }
-        if (defaultEditor != null) {
-            var method = defaultEditor.GetType()
-                .GetMethod("OnSceneGUI",
-                    BindingFlags.Instance
-                    | BindingFlags.Public
-                    | BindingFlags.NonPublic
-                    | BindingFlags.FlattenHierarchy);
 
-            if (method != null) {
-                method.Invoke(defaultEditor, null);
-            }
+        if (defaultEditor == null) {
+            return;
+        }
+
+        var method = defaultEditor.GetType()
+                                  .GetMethod("OnSceneGUI",
+                                      BindingFlags.Instance
+                                      | BindingFlags.Public
+                                      | BindingFlags.NonPublic
+                                      | BindingFlags.FlattenHierarchy);
+
+        if (method != null) {
+            method.Invoke(defaultEditor, null);
         }
     }
 
@@ -1092,22 +1133,29 @@ public abstract class Joint2DEditorBase : Editor {
         if (defaultNames.Overlaps(childControlNames)) {
             Debug.LogError("Reserved control names: " +
                            String.Join(",", defaultNames.Intersect(childControlNames)
-                               .ToArray()) + ".");
+                                                        .ToArray()) + ".");
         }
         controlNames = new HashSet<string>(defaultNames.Union(childControlNames));
 
         if (EditorHelpers.AllowMultiObjectAccess) {
             var allSettings =
                 targets.Cast<Joint2D>()
-                    .Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
-                    .Where(jointSettings => jointSettings != null)
-                    .Cast<Object>()
-                    .ToList();
+                       .Select(joint2D => SettingsHelper.GetOrCreate(joint2D))
+                       .Where(jointSettings => jointSettings != null)
+                       .Cast<Object>()
+                       .ToList();
 
-            serializedSettings = new SerializedObject(allSettings.ToArray());
-        }
-        else {
-            serializedSettings = new SerializedObject(new Object[] {SettingsHelper.GetOrCreate(target as Joint2D)});
+            if (allSettings.Count > 0) {
+                serializedSettings = new SerializedObject(allSettings.ToArray());
+            } else {
+                serializedSettings = null;
+            }
+        } else {
+            if (target) {
+                serializedSettings = new SerializedObject(new Object[] {SettingsHelper.GetOrCreate(target as Joint2D)});
+            } else {
+                serializedSettings = null;
+            }
         }
     }
 
@@ -1128,13 +1176,13 @@ public abstract class Joint2DEditorBase : Editor {
 
     private void CleanupHotControls() {
         if ((from jointAnchorInfo in jointAnchorInfos.Values
-            let names = GetControlNames()
-            where
-                jointAnchorInfo.Any(
-                    info =>
-                        names.Select(controlName => info.GetControlID(controlName))
-                            .Any(controlID => GUIUtility.hotControl == controlID))
-            select jointAnchorInfo).Any()) {
+             let names = GetControlNames()
+             where
+                 jointAnchorInfo.Any(
+                     info =>
+                         names.Select(controlName => info.GetControlID(controlName))
+                              .Any(controlID => GUIUtility.hotControl == controlID))
+             select jointAnchorInfo).Any()) {
             GUIUtility.hotControl = 0;
         }
     }
@@ -1148,8 +1196,8 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     public float LineAngleHandle(int controlID, float angle, Vector2 center,
-        float handleScale = 1f,
-        float lineThickness = 1f) {
+                                 float handleScale = 1f,
+                                 float lineThickness = 1f) {
         var handleSize = HandleUtility.GetHandleSize(center) * handleScale;
 
         var rotated2DVector = Helpers2D.GetDirection(angle) * handleSize;
@@ -1224,10 +1272,7 @@ public abstract class Joint2DEditorBase : Editor {
                     }
                     Color wantedColor;
                     if (GUIUtility.hotControl == controlID) {
-                        wantedColor = editorSettings.activeAngleColor;
-                        if (isCreatedByTarget) {
-                            wantedColor.a *= editorSettings.connectedJointTransparency;
-                        }
+                        wantedColor = GetAdjustedColor(editorSettings.activeAngleColor);
 
                         using (new HandleColor(wantedColor)) {
                             Handles.DrawLine(angleState.center,
@@ -1245,22 +1290,17 @@ public abstract class Joint2DEditorBase : Editor {
 
                         left = EditorHelpers.ScreenToHandlePoint(cameraVectorA);
                         right = EditorHelpers.ScreenToHandlePoint(cameraVectorB);
-                    }
-                    else {
+                    } else {
                         if (GUIUtility.hotControl == 0 && hoverState.hovering) {
                             wantedColor = editorSettings.hoverAngleColor;
-                        }
-                        else {
+                        } else {
                             wantedColor = editorSettings.angleWidgetColor;
                             if (GUIUtility.hotControl != 0) {
                                 wantedColor.a *= editorSettings.connectedJointTransparency;
                                 //semitransparent if not active control
                             }
                         }
-                        if (isCreatedByTarget)
-                        {
-                            wantedColor.a *= editorSettings.connectedJointTransparency;
-                        }
+                        wantedColor = GetAdjustedColor(wantedColor);
                     }
 
                     using (new HandleColor(wantedColor)) {

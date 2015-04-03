@@ -44,126 +44,126 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D> {
     protected override float GetAngle(SliderJoint2D joint2D) {
         return joint2D.angle;
     }
-
-    protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint,
-        JointHelpers.AnchorBias bias, float snapDistance) {
-        if (!EditorGUI.actionKey) {
-            return position;
-        }
-
-        var sliderJoint2D = (SliderJoint2D) joint;
-
-        var lockAnchors = SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors;
-        var oppositeBias = JointHelpers.GetOppositeBias(bias);
-        var oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
-
-        Vector2[] targetPositions;
-
-        if (joint.connectedBody) {
-            targetPositions = new[] {
-                GetTargetPosition(joint, JointHelpers.AnchorBias.Main),
-                GetTargetPosition(joint, JointHelpers.AnchorBias.Connected)
-            };
-        }
-        else {
-            targetPositions = new[] {
-                GetTargetPosition(joint, JointHelpers.AnchorBias.Main)
-            };
-        }
-
-        if (sliderJoint2D.useLimits) {
-            Ray slideRay;
-
-            var min = sliderJoint2D.limits.min;
-            var max = sliderJoint2D.limits.max;
-
-
-            if (lockAnchors) {
-                slideRay = new Ray(oppositeAnchorPosition,
-                    (position - oppositeAnchorPosition).normalized);
-
-                foreach (var targetPosition in targetPositions) {
-                    if (Vector2.Distance(oppositeAnchorPosition, targetPosition) <= AnchorEpsilon) {
-                        continue;
-                    }
-
-                    var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
-                        (targetPosition - oppositeAnchorPosition).normalized);
-
-                    if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) >= snapDistance) {
-                        continue;
-                    }
-
-                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
-
-                    var ray = new Ray(oppositeAnchorPosition, (closestPointToRay - oppositeAnchorPosition).normalized);
-
-                    Vector2 wantedMinPosition = ray.GetPoint(min);
-                    Vector2 wantedMaxPosition = ray.GetPoint(max);
-
-                    if (Vector2.Distance(wantedMinPosition, closestPointToRay) < snapDistance) {
-                        return wantedMinPosition;
-                    }
-
-                    if (Vector2.Distance(wantedMaxPosition, closestPointToRay) < snapDistance) {
-                        return wantedMaxPosition;
-                    }
-                }
-            }
-            else {
-                var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
-
-                if (bias == JointHelpers.AnchorBias.Main) {
-                    worldAngle += 180;
-                }
-
-                slideRay = new Ray(oppositeAnchorPosition,
-                    Helpers2D.GetDirection(worldAngle));
-            }
-
-
-            Vector2 minPos = slideRay.GetPoint(min);
-
-            if (Vector2.Distance(position, minPos) < snapDistance) {
-                return minPos;
-            }
-
-
-            Vector2 maxPos = slideRay.GetPoint(max);
-
-            if (Vector2.Distance(position, maxPos) < snapDistance) {
-                return maxPos;
-            }
-        }
-
-        if (lockAnchors) {
-            //align onto the rays from either target towards the opposite bias
-            foreach (var targetPosition in targetPositions) {
-                if (Vector2.Distance(targetPosition, oppositeAnchorPosition) <= AnchorEpsilon) {
-                    continue;
-                }
-                var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
-                    (targetPosition - oppositeAnchorPosition).normalized);
-
-                if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) < snapDistance) {
-                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
-                    return closestPointToRay;
-                }
-            }
-        }
-
-        if (!lockAnchors &&
-            !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint),
-                JointHelpers.GetConnectedAnchorPosition(joint)) <= AnchorEpsilon)) {
-            var wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
-
-            if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
-                return wantedAnchorPosition;
-            }
-        }
-
-        return position;
-    }
+//
+//    protected override Vector2 AlterDragResult(int sliderID, Vector2 position, AnchoredJoint2D joint2D,
+//        JointHelpers.AnchorBias bias, float snapDistance) {
+//        if (!EditorGUI.actionKey) {
+//            return position;
+//        }
+//
+//        var sliderJoint2D = (SliderJoint2D) joint2D;
+//
+//        var lockAnchors = SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors;
+//        var oppositeBias = JointHelpers.GetOppositeBias(bias);
+//        var oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
+//
+//        Vector2[] targetPositions;
+//
+//        if (joint2D.connectedBody) {
+//            targetPositions = new[] {
+//                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
+//                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected)
+//            };
+//        }
+//        else {
+//            targetPositions = new[] {
+//                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main)
+//            };
+//        }
+//
+//        if (sliderJoint2D.useLimits) {
+//            Ray slideRay;
+//
+//            var min = sliderJoint2D.limits.min;
+//            var max = sliderJoint2D.limits.max;
+//
+//
+//            if (lockAnchors) {
+//                slideRay = new Ray(oppositeAnchorPosition,
+//                    (position - oppositeAnchorPosition).normalized);
+//
+//                foreach (var targetPosition in targetPositions) {
+//                    if (Vector2.Distance(oppositeAnchorPosition, targetPosition) <= AnchorEpsilon) {
+//                        continue;
+//                    }
+//
+//                    var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+//                        (targetPosition - oppositeAnchorPosition).normalized);
+//
+//                    if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) >= snapDistance) {
+//                        continue;
+//                    }
+//
+//                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
+//
+//                    var ray = new Ray(oppositeAnchorPosition, (closestPointToRay - oppositeAnchorPosition).normalized);
+//
+//                    Vector2 wantedMinPosition = ray.GetPoint(min);
+//                    Vector2 wantedMaxPosition = ray.GetPoint(max);
+//
+//                    if (Vector2.Distance(wantedMinPosition, closestPointToRay) < snapDistance) {
+//                        return wantedMinPosition;
+//                    }
+//
+//                    if (Vector2.Distance(wantedMaxPosition, closestPointToRay) < snapDistance) {
+//                        return wantedMaxPosition;
+//                    }
+//                }
+//            }
+//            else {
+//                var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+//
+//                if (bias == JointHelpers.AnchorBias.Main) {
+//                    worldAngle += 180;
+//                }
+//
+//                slideRay = new Ray(oppositeAnchorPosition,
+//                    Helpers2D.GetDirection(worldAngle));
+//            }
+//
+//
+//            Vector2 minPos = slideRay.GetPoint(min);
+//
+//            if (Vector2.Distance(position, minPos) < snapDistance) {
+//                return minPos;
+//            }
+//
+//
+//            Vector2 maxPos = slideRay.GetPoint(max);
+//
+//            if (Vector2.Distance(position, maxPos) < snapDistance) {
+//                return maxPos;
+//            }
+//        }
+//
+//        if (lockAnchors) {
+//            //align onto the rays from either target towards the opposite bias
+//            foreach (var targetPosition in targetPositions) {
+//                if (Vector2.Distance(targetPosition, oppositeAnchorPosition) <= AnchorEpsilon) {
+//                    continue;
+//                }
+//                var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+//                    (targetPosition - oppositeAnchorPosition).normalized);
+//
+//                if (Helpers2D.DistanceToLine(fromConnectedToTarget, position) < snapDistance) {
+//                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, position);
+//                    return closestPointToRay;
+//                }
+//            }
+//        }
+//
+//        if (!lockAnchors &&
+//            !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint2D),
+//                JointHelpers.GetConnectedAnchorPosition(joint2D)) <= AnchorEpsilon)) {
+//            var wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, position);
+//
+//            if (Vector2.Distance(position, wantedAnchorPosition) < snapDistance) {
+//                return wantedAnchorPosition;
+//            }
+//        }
+//
+//        return position;
+//    }
 
     protected override bool DragBothAnchorsWhenLocked() {
         return false;
@@ -312,6 +312,121 @@ public class SliderJoint2DEditor : JointEditorWithAngleBase<SliderJoint2D> {
                         }
                     }));
         }
+    }
+
+    protected override IEnumerable<Vector2> GetSnapPositions(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias, Vector2 anchorPosition) {
+        var sliderJoint2D = (SliderJoint2D)joint2D;
+
+        var lockAnchors = SettingsHelper.GetOrCreate(sliderJoint2D).lockAnchors;
+        var oppositeBias = JointHelpers.GetOppositeBias(bias);
+        var oppositeAnchorPosition = JointHelpers.GetAnchorPosition(sliderJoint2D, oppositeBias);
+
+        var snapPositions = new List<Vector2>();
+
+        Vector2[] targetPositions;
+
+        if (joint2D.connectedBody)
+        {
+            targetPositions = new[] {
+                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main),
+                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Connected)
+            };
+        }
+        else
+        {
+            targetPositions = new[] {
+                GetTargetPosition(joint2D, JointHelpers.AnchorBias.Main)
+            };
+        }
+
+        if (sliderJoint2D.useLimits)
+        {
+            Ray slideRay;
+
+            var min = sliderJoint2D.limits.min;
+            var max = sliderJoint2D.limits.max;
+
+
+            if (lockAnchors)
+            {
+                slideRay = new Ray(oppositeAnchorPosition,
+                    (anchorPosition - oppositeAnchorPosition).normalized);
+
+                foreach (var targetPosition in targetPositions)
+                {
+                    if (Vector2.Distance(oppositeAnchorPosition, targetPosition) <= AnchorEpsilon)
+                    {
+                        continue;
+                    }
+
+                    var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+                        (targetPosition - oppositeAnchorPosition).normalized);
+
+                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, anchorPosition);
+
+                    var ray = new Ray(oppositeAnchorPosition, (closestPointToRay - oppositeAnchorPosition).normalized);
+
+                    Vector2 wantedMinPosition = ray.GetPoint(min);
+                    Vector2 wantedMaxPosition = ray.GetPoint(max);
+
+                    snapPositions.Add(wantedMinPosition);
+                    snapPositions.Add(wantedMaxPosition);
+                }
+            }
+            else
+            {
+                var worldAngle = sliderJoint2D.transform.eulerAngles.z + sliderJoint2D.angle;
+
+                if (bias == JointHelpers.AnchorBias.Main)
+                {
+                    worldAngle += 180;
+                }
+
+                slideRay = new Ray(oppositeAnchorPosition,
+                    Helpers2D.GetDirection(worldAngle));
+            }
+
+
+            Vector2 minPos = slideRay.GetPoint(min);
+
+            snapPositions.Add(minPos);
+
+
+            Vector2 maxPos = slideRay.GetPoint(max);
+
+            snapPositions.Add(maxPos);
+        }
+
+        if (lockAnchors)
+        {
+            //align onto the rays from either target towards the opposite bias
+            foreach (var targetPosition in targetPositions)
+            {
+                if (Vector2.Distance(targetPosition, oppositeAnchorPosition) <= AnchorEpsilon)
+                {
+                    continue;
+                }
+                var fromConnectedToTarget = new Ray(oppositeAnchorPosition,
+                    (targetPosition - oppositeAnchorPosition).normalized);
+
+//                if (Helpers2D.DistanceToLine(fromConnectedToTarget, anchorPosition) < snapDistance)
+                {
+                    var closestPointToRay = Helpers2D.ClosestPointToRay(fromConnectedToTarget, anchorPosition);
+                    snapPositions.Add(closestPointToRay);
+                }
+            }
+        }
+
+        if (!lockAnchors &&
+            !(Vector2.Distance(JointHelpers.GetMainAnchorPosition(joint2D),
+                JointHelpers.GetConnectedAnchorPosition(joint2D)) <= AnchorEpsilon))
+        {
+            var wantedAnchorPosition = GetWantedAnchorPosition(sliderJoint2D, bias, anchorPosition);
+
+            snapPositions.Add(wantedAnchorPosition);
+        }
+
+        return snapPositions;
     }
 
     protected override bool SingleAnchorGUI(AnchoredJoint2D joint2D, AnchorInfo anchorInfo, JointHelpers.AnchorBias bias) {

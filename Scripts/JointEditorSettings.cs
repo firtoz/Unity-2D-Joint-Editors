@@ -68,6 +68,9 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The color displayed to highlight when angle widgets are active.")]
     public Color activeAngleColor = Color.green;
 
+    [Tooltip("The color displayed to highlight anchor snapping positions.")]
+    public Color snapHighlightColor = Color.cyan;
+
     //hingejoint2d settings
     [Tooltip("The distance (in pixels) between the anchors and the angle limits widgets.")]
     public float angleLimitRadius = 30.0f;
@@ -111,6 +114,12 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The transparency of the connected joint widgets.")]
     [Range(0f, 1f)]
     public float connectedJointTransparency = 0.25f;
+
+    [Tooltip("Whether or not to highlight snap positions while holding the control key.")]
+    public bool highlightSnapPositions = true;
+
+    [Tooltip("The snap distance in pixels.")]
+    public float snapDistance = 10.0f;
 
 #if UNITY_EDITOR
     private static JointEditorSettings _editorSettings;

@@ -16,7 +16,7 @@ MonoBehaviour:
     type: 3}
   mainAnchorTexture: {fileID: 2800000, guid: 261668e3e1b3301479325610688bf3bb, type: 3}
   lockedAnchorTexture: {fileID: 2800000, guid: 6a9799c60d7368f41b9e54871399b09b, type: 3}
-  hotAnchorTexture: {fileID: 2800000, guid: acebfdac151ccea41b546557f1dd8352, type: 3}
+  hotAnchorTexture: {fileID: 2800000, guid: e0834cf76c353e54eadc2082f6c91a9b, type: 3}
   lockButtonTexture: {fileID: 2800000, guid: f6f9ae7b70b94bf4986738c53724f6fe, type: 3}
   unlockButtonTexture: {fileID: 2800000, guid: 0800896fa119a3941a91800fd2db9b6c, type: 3}
   anchorScale: .5
@@ -30,6 +30,7 @@ MonoBehaviour:
   angleWidgetColor: {r: 1, g: 1, b: 1, a: 1}
   hoverAngleColor: {r: 1, g: .921568632, b: .0156862754, a: 1}
   activeAngleColor: {r: .996078432, g: .685057461, b: .0156862661, a: 1}
+  snapHighlightColor: {r: 0, g: 1, b: 1, a: 1}
   angleLimitRadius: 30
   angleHandleSize: 5
   snapAngle: 15
@@ -44,3 +45,5 @@ MonoBehaviour:
   showConnectedJoints: 1
   drawLinesToBodies: 1
   connectedJointTransparency: .25
+  highlightSnapPositions: 1
+  snapDistance: 20
