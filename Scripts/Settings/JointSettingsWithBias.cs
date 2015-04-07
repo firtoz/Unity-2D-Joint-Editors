@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-public abstract class JointSettingsWithBias : Joint2DSettingsBase {
+﻿public abstract class JointSettingsWithBias : Joint2DSettingsBase {
     public enum AnchorPriority {
         Main,
         Connected

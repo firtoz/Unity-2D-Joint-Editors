@@ -1,6 +1,5 @@
 ﻿using System;
 using toxicFork.GUIHelpers.DisposableEditor;
-using toxicFork.GUIHelpers.DisposableEditorGUI;
 using UnityEditor;
 using UnityEngine;
 

@@ -1,8 +1,7 @@
-﻿using System.ComponentModel;
+﻿using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
 
 [ExecuteInEditMode]
 public class JointEditorSettings : ScriptableObject {
@@ -78,7 +77,7 @@ public class JointEditorSettings : ScriptableObject {
     [Tooltip("The size (in pixels) of the angle limits widgets.")]
     public float angleHandleSize = 5.0f;
 
-    [Tooltip("The snapping angle for the angle limits when you hold the control key.")]
+    [Tooltip("The snapping angle that is used when you hold the control key.")]
     public float snapAngle = 45.0f;
 
     [Tooltip("The fill color for the area between the angle limits widgets and the anchors.")]

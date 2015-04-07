@@ -1,5 +1,4 @@
 ﻿using toxicFork.GUIHelpers.DisposableEditor;
-using toxicFork.GUIHelpers.DisposableGUI;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,7 +25,7 @@ internal class JointEditorSettingsEditor : Editor {
     private static readonly GUIContent ConnectedJointsLabel =
         new GUIContent("Connected Joints", "Settings for the display of connected joints");
 
-    private static readonly GUIContent TogglesLabel =
+    private static readonly GUIContent MiscLabel =
         new GUIContent("Misc", "Settings for the display of additional features");
 
     public override void OnInspectorGUI() {
@@ -72,7 +71,6 @@ internal class JointEditorSettingsEditor : Editor {
             FoldoutHelper.Foldout("hingejoint2d", HingeJoint2DLabel, () => {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleLimitRadius"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("angleHandleSize"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("snapAngle"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("limitsAreaColor"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("incorrectLimitsArea"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ringDisplayMode"));
@@ -96,10 +94,11 @@ internal class JointEditorSettingsEditor : Editor {
                     new GUIContent("Opacity", connectedJointTransparencyProperty.tooltip));
             });
 
-            FoldoutHelper.Foldout("toggles", TogglesLabel,
+            FoldoutHelper.Foldout("toggles", MiscLabel,
                 () => {
                     EditorGUILayout.PropertyField(serializedObject.FindProperty("drawLinesToBodies"));
                     EditorGUILayout.PropertyField(serializedObject.FindProperty("highlightSnapPositions"));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("snapAngle"));
                 });
 
             if (EditorGUI.EndChangeCheck()) {
