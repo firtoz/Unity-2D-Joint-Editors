@@ -81,14 +81,11 @@ public class Joint2DTargetEditor : Editor {
     public override void OnInspectorGUI() {
         var guiEnabled = GUI.enabled;
         GUI.enabled = true;
-        EditorGUILayout.LabelField("This component is used by the 2D Joint Editors plugin");
-        EditorGUILayout.LabelField(" to display connected joints. If you would like to ");
-        EditorGUILayout.LabelField(" disable this feature, please edit the settings ");
-        EditorGUILayout.LabelField(" file which can be found in Joint2DEditor/Data/settings.");
-        EditorGUILayout.LabelField("The option can be found at the bottom as 'Show Connected Joints'");
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("This component will automatically be removed ");
-        EditorGUILayout.LabelField(" when the scene is being built.");
+
+        EditorGUILayout.HelpBox("This component is used by the 2D Joint Editors plugin  to display connected joints. " +
+                                "If you would like to disable this feature, please edit the settings file which can be found in Joint2DEditor/Data/settings. " +
+                                "The option can be found at the bottom as 'Show Connected Joints'. \n\n" +
+                                "This component will automatically be removed when the scene is being built, therefore it will not cause any impact on the built game.", MessageType.Info, true);
 
         foreach (var editorMap in editorMaps) {
             var editors = editorMap.Value;
