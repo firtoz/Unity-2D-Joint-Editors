@@ -156,7 +156,6 @@ public class Joint2DTargetEditor : Editor {
             EditorGUI.BeginChangeCheck();
             joint2DEditor.OnSceneGUI();
             if (EditorGUI.EndChangeCheck()) {
-                Debug.Log("!!!");
                 Repaint();
                 joint2DEditor.Repaint();                
             }
