@@ -510,11 +510,13 @@ public abstract class Joint2DEditorBase : Editor {
     }
 
     public override sealed void OnInspectorGUI() {
-        if (editorSettings == null || PrefabUtility.GetPrefabType(target) == PrefabType.Prefab ||
+        if (editorSettings == null || !target || PrefabUtility.GetPrefabType(target) == PrefabType.Prefab ||
             editorSettings.disableEverything) {
             DrawDefaultInspector();
             return;
         }
+
+
         if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed") {
             Repaint();
         }
@@ -1080,21 +1082,7 @@ public abstract class Joint2DEditorBase : Editor {
         if (defaultEditors.ContainsKey(joint2D)) {
             defaultEditor = defaultEditors[joint2D];
         } else {
-            Type editorType = null;
-
-            var assembly = typeof (Editor).Assembly;
-
-            if (joint2D is HingeJoint2D) {
-                editorType = assembly.GetType("UnityEditor.HingeJoint2DEditor", true);
-            } else if (joint2D is DistanceJoint2D) {
-                editorType = assembly.GetType("UnityEditor.DistanceJoint2DEditor", true);
-            } else if (joint2D is SliderJoint2D) {
-                editorType = assembly.GetType("UnityEditor.SliderJoint2DEditor", true);
-            } else if (joint2D is SpringJoint2D) {
-                editorType = assembly.GetType("UnityEditor.SpringJoint2DEditor", true);
-            } else if (joint2D is WheelJoint2D) {
-                editorType = assembly.GetType("UnityEditor.WheelJoint2DEditor", true);
-            }
+            var editorType = GetEditorType(joint2D);
             if (editorType != null) {
                 defaultEditor = CreateEditor(joint2D, editorType);
                 defaultEditors[joint2D] = defaultEditor;
@@ -1115,6 +1103,25 @@ public abstract class Joint2DEditorBase : Editor {
         if (method != null) {
             method.Invoke(defaultEditor, null);
         }
+    }
+
+    private static Type GetEditorType(AnchoredJoint2D joint2D) {
+        Type editorType = null;
+
+        var assembly = typeof (Editor).Assembly;
+
+        if (joint2D is HingeJoint2D) {
+            editorType = assembly.GetType("UnityEditor.HingeJoint2DEditor", true);
+        } else if (joint2D is DistanceJoint2D) {
+            editorType = assembly.GetType("UnityEditor.DistanceJoint2DEditor", true);
+        } else if (joint2D is SliderJoint2D) {
+            editorType = assembly.GetType("UnityEditor.SliderJoint2DEditor", true);
+        } else if (joint2D is SpringJoint2D) {
+            editorType = assembly.GetType("UnityEditor.SpringJoint2DEditor", true);
+        } else if (joint2D is WheelJoint2D) {
+            editorType = assembly.GetType("UnityEditor.WheelJoint2DEditor", true);
+        }
+        return editorType;
     }
 
     private SerializedObject serializedSettings;

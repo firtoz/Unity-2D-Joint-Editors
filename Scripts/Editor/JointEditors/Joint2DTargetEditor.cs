@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using toxicFork.GUIHelpers.DisposableEditorGUI;
+using toxicFork.GUIHelpers.DisposableEditorGUILayout;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,11 +12,69 @@ public class Joint2DTargetEditor : Editor {
     private readonly Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditorBase>> editorMaps =
         new Dictionary<Joint2DTarget, Dictionary<Joint2D, Joint2DEditorBase>>();
 
-    public void OnDisable() {
-        foreach (var editorMap in editorMaps.Values) {
-            foreach (var editor in editorMap.Values) {
-                DestroyImmediate(editor);
+    public static Type GetEditorType(AnchoredJoint2D joint2D) {
+        Type editorType = null;
+
+        if (joint2D is HingeJoint2D) {
+            editorType = typeof (HingeJoint2DEditor);
+        } else if (joint2D is DistanceJoint2D) {
+            editorType = typeof (DistanceJoint2DEditor);
+        } else if (joint2D is SliderJoint2D) {
+            editorType = typeof (SliderJoint2DEditor);
+        } else if (joint2D is SpringJoint2D) {
+            editorType = typeof (SpringJoint2DEditor);
+        } else if (joint2D is WheelJoint2D) {
+            editorType = typeof (WheelJoint2DEditor);
+        }
+        return editorType;
+    }
+
+    public void OnEnable() {
+        EditorApplication.update += Update;
+    }
+
+    private void Update() {
+        foreach (var jointTarget in 
+            targets.Select(targ => targ as Joint2DTarget)
+                   .Where(jointTarget => jointTarget)) {
+            if (!editorMaps.ContainsKey(jointTarget)) {
+                editorMaps[jointTarget] = new Dictionary<Joint2D, Joint2DEditorBase>();
             }
+
+            var editors = editorMaps[jointTarget];
+
+            var unseenJoints = new HashSet<Joint2D>(editors.Keys);
+
+            var jointsToEdit = jointTarget.attachedJoints
+                                          .Where(
+                                              attachedJoint =>
+                                                  attachedJoint && !Selection.Contains(attachedJoint.gameObject));
+
+            foreach (var attachedJoint in jointsToEdit) {
+                unseenJoints.Remove(attachedJoint);
+
+                if (editors.ContainsKey(attachedJoint)) {
+                    continue;
+                }
+
+                editors[attachedJoint] = (Joint2DEditorBase) CreateEditor(attachedJoint);
+                editors[attachedJoint].isCreatedByTarget = true;
+            }
+
+            foreach (var joint2D in unseenJoints) {
+                DestroyImmediate(editors[joint2D]);
+
+                editors.Remove(joint2D);
+            }
+        }
+    }
+
+    public void OnDisable() {
+        EditorApplication.update -= Update;
+
+        foreach (var editor in editorMaps.Values
+                                         .SelectMany(editorMap => editorMap.Values)) {
+            DestroyImmediate(editor);
         }
     }
 
@@ -28,39 +89,79 @@ public class Joint2DTargetEditor : Editor {
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("This component will automatically be removed ");
         EditorGUILayout.LabelField(" when the scene is being built.");
+
+        foreach (var editorMap in editorMaps) {
+            var editors = editorMap.Value;
+            foreach (var map in editors) {
+                var originalEditor = map.Value;
+
+                bool isToggled;
+                if (!toggleEditors.TryGetValue(originalEditor, out isToggled)) {
+                    isToggled = false;
+                }
+
+                EditorGUI.BeginChangeCheck();
+
+
+                using (new Horizontal()) {
+                    var jointOwner = map.Key;
+
+                    isToggled = EditorGUILayout.Foldout(isToggled, jointOwner.GetType().Name);
+
+                    if (GUILayout.Button("Select"))
+                    {
+                        Selection.activeObject = jointOwner;
+                        return;
+                    }
+                }
+
+                if (EditorGUI.EndChangeCheck()) {
+                    toggleEditors[originalEditor] = isToggled;
+                }
+
+                if (isToggled) {
+                    using (new Indent()) {
+                        originalEditor.OnInspectorGUI();
+                    }
+                }
+            }
+        }
+
         GUI.enabled = guiEnabled;
     }
 
+    private readonly Dictionary<Editor, bool> toggleEditors = new Dictionary<Editor, bool>();
+
     public void OnSceneGUI() {
         var jointTarget = target as Joint2DTarget;
-        if (jointTarget) {
-            if (!editorMaps.ContainsKey(jointTarget)) {
-                editorMaps[jointTarget] = new Dictionary<Joint2D, Joint2DEditorBase>();
+        if (!jointTarget) {
+            return;
+        }
+
+        if (!editorMaps.ContainsKey(jointTarget)) {
+            editorMaps[jointTarget] = new Dictionary<Joint2D, Joint2DEditorBase>();
+        }
+
+        var editors = editorMaps[jointTarget];
+
+        var jointsToEdit = jointTarget.attachedJoints
+                                      .Where(
+                                          attachedJoint =>
+                                              attachedJoint && !Selection.Contains(attachedJoint.gameObject));
+
+        foreach (var attachedJoint in jointsToEdit) {
+            if (!editors.ContainsKey(attachedJoint)) {
+                editors[attachedJoint] = (Joint2DEditorBase) CreateEditor(attachedJoint);
+                editors[attachedJoint].isCreatedByTarget = true;
             }
 
-            var editors = editorMaps[jointTarget];
-
-            var unseenJoints = new HashSet<Joint2D>(editors.Keys);
-
-            var jointsToEdit = jointTarget.attachedJoints
-                .Where(attachedJoint => attachedJoint && !Selection.Contains(attachedJoint.gameObject));
-
-            foreach (var attachedJoint in jointsToEdit) {
-                unseenJoints.Remove(attachedJoint);
-
-                if (!editors.ContainsKey(attachedJoint)) {
-                    editors[attachedJoint] = (Joint2DEditorBase) CreateEditor(attachedJoint);
-                    editors[attachedJoint].isCreatedByTarget = true;
-                }
-
-                var joint2DEditor = editors[attachedJoint];
-                joint2DEditor.OnSceneGUI();
-            }
-
-            foreach (var joint2D in unseenJoints) {
-                DestroyImmediate(editors[joint2D]);
-
-                editors.Remove(joint2D);
+            var joint2DEditor = editors[attachedJoint];
+            EditorGUI.BeginChangeCheck();
+            joint2DEditor.OnSceneGUI();
+            if (EditorGUI.EndChangeCheck()) {
+                Debug.Log("!!!");
+                Repaint();
+                joint2DEditor.Repaint();                
             }
         }
     }
