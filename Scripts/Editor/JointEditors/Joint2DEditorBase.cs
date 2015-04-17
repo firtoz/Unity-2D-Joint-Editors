@@ -1207,7 +1207,7 @@ public abstract class Joint2DEditorBase : Editor {
                                  float lineThickness = 1f) {
         var handleSize = HandleUtility.GetHandleSize(center) * handleScale;
 
-        var rotated2DVector = Helpers2D.GetDirection(angle) * handleSize;
+        var rotated2DVector = Helpers2D.GetDirection(angle) * handleSize * 0.6f;
 
         var left = center - rotated2DVector;
         var right = center + rotated2DVector;
