@@ -319,10 +319,10 @@ public abstract class Joint2DEditorBase : Editor {
             }
 
             menu.AddItem(new GUIContent("Toggle Collide Connected",
-                "Whether rigid bodies connected with this joint can collide or not."), joint.collideConnected,
+                "Whether rigid bodies connected with this joint can collide or not."), joint.enableCollision,
                 () => {
                     EditorHelpers.RecordUndo("Move Joint Anchor", joint);
-                    joint.collideConnected = !joint.collideConnected;
+                    joint.enableCollision = !joint.enableCollision;
                     EditorUtility.SetDirty(joint);
                 });
 
