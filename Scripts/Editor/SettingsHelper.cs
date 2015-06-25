@@ -24,9 +24,13 @@ public class SettingsHelper
         return allSettings.FirstOrDefault(settings => settings.attachedJoint == joint2D);
     }
 
-    public static T GetOrCreate<T>(Joint2D joint2D) where T : Joint2DSettingsBase
-    {
-        return Get<T>(joint2D) ?? Create<T>(joint2D);
+    public static T GetOrCreate<T>(Joint2D joint2D) where T : Joint2DSettingsBase {
+        //because ?? doesn't work with webplayer!?
+        if (Get<T>(joint2D) != null) {
+            return Get<T>(joint2D);
+        } else {
+            return Create<T>(joint2D);
+        }
     }
 
     public static Joint2DSettingsBase GetOrCreate(Joint2D joint2D)
