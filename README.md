@@ -23,9 +23,9 @@ License: MIT ( check MIT.txt )
 - Hold control while dragging the handles, this allows you to snap the anchors and limits
   - The snapping positions are highlighted by circles
   - ![Snap](http://i.imgur.com/SnSPnvs.png)
-- Can see transparent outlines of all anchors connected to an object
-    - Configurable via Settings -> Connected Jointes
-- ![Outline](http://i.imgur.com/qBJ5riG.png)
+- Can see transparent outlines of all joints connected to the selected object
+    - ![Outline](http://i.imgur.com/qBJ5riG.png)
+    - Configurable via Settings -> Connected Joints
 - Hinge Joint 2D:
     - Object movement circles:  
     - ![Object Movement Circle](http://i.imgur.com/5dAko4r.png)

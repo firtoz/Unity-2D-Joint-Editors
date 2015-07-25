@@ -36,7 +36,7 @@ MonoBehaviour:
   snapAngle: 15
   limitsAreaColor: {r: .26491347, g: .772195756, b: .776470602, a: .117647059}
   incorrectLimitsArea: {r: 1, g: .5, b: 0, a: .235294119}
-  ringDisplayMode: 1
+  ringDisplayMode: 2
   mainRingColor: {r: 0, g: 1, b: 0, a: 1}
   connectedRingColor: {r: .567906499, g: .513725519, b: 1, a: 1}
   minLimitColor: {r: 0, g: .470588237, b: 1, a: 1}
