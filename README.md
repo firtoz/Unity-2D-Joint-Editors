@@ -1,4 +1,6 @@
 # Joint Editors 2D
+This package aims to make it easier for you to use 2D joints in Unity3D.
+
 Made by Firtina ([@ToxicFork](https://twitter.com/toxicfork)) Ozbalikci.
 
 License: MIT ( check MIT.txt )
