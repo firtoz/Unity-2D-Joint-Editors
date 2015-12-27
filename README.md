@@ -46,7 +46,8 @@ License: MIT ( check MIT.txt )
     - ![Distance](http://i.imgur.com/xt2j3Tv.png)
 
 ## How to use
-- Just add the [.unitypackage file from the release](https://github.com/toxicFork/Unity-2D-Joint-Editors/releases/download/2015.207.2/JointEditors2D.zip) to your project ( double-clicking the file should do it automatically )
+- You can now [download through the Asset Store](https://www.assetstore.unity3d.com/en/#!/content/30233).
+- Otherwise, just add the [.unitypackage file from the release](https://github.com/toxicFork/Unity-2D-Joint-Editors/releases/download/2015.207.2/JointEditors2D.zip) to your project ( double-clicking the file should do it automatically )
 - Select any object with 2D joints, you will see that the scene view will now show the updated UI
 - You can configure each joint's extra features in the inspector
 - You can also tweak parameters in the 2DJointEditors/Data/settings asset!
